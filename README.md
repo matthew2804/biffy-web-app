@@ -1,24 +1,39 @@
-# Biffy Web App
+# Biffy · App móvil (Flutter)
 
-Crea un nuevo proyecto para la aplicación web/móvil Biffy. Configura el entorno utilizando Next.js con App Router y React. Asegúrate de estructurar el proyecto para que los paquetes se puedan gestionar con pnpm. Configura Tailwind CSS definiendo las siguientes variables globales: primary: #5E23E3, secondary: #F3B428, background: #F4F5F9, text-main: #1E1E20, accent-green: #23A05B, y accent-red: #E85D57.
+Aplicación de domicilios de comida para estudiantes universitarios en Colombia, con tres roles conectados: **comprador**, **restaurante** y **repartidor**. Sprint 1: frontend funcional en Flutter con datos simulados (sin backend, sin pagos reales, sin GPS).
 
-This project was built with [Lovable](https://lovable.dev).
+> La app web anterior (React/Lovable) se conserva solo como referencia en [`legacy_web/`](legacy_web/).
 
-## Build with Lovable
+## Requisitos
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/8499962e-91d6-45b0-bba2-8c6153e18c69).
+- Flutter 3.44 o superior (probado con Flutter 3.44.8 / Dart 3.12.2).
+- Para Android: Android SDK / Android Studio y un emulador o teléfono con depuración USB.
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+## Comandos (desde la raíz del repositorio)
 
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```bash
+flutter pub get                 # dependencias
+flutter run                     # ejecutar en el dispositivo conectado
+flutter run -d chrome           # ejecutar en el navegador (vista previa)
+dart format .                   # formato
+flutter analyze                 # análisis estático
+flutter test                    # pruebas unitarias, de widgets e integración (sin dispositivo)
+flutter test integration_test/app_test.dart -d <dispositivo>   # integración en Android/iOS
+flutter build apk --debug       # APK de depuración (requiere Android SDK)
 ```
+
+## Cuentas de demostración
+
+Contraseña de todas: `biffy123` (también hay botones de acceso rápido en la pantalla de login).
+
+| Rol | Correo |
+|---|---|
+| Comprador con historial (Icesi verificado, simulado) | `diego.demo@icesi.edu.co` |
+| Comprador nuevo | `camila.demo@biffy.co` |
+| Repartidor (moto) | `andres.repartidor@demo.biffy.co` |
+| Repartidora (bicicleta) | `valentina.repartidora@demo.biffy.co` |
+| Restaurante Qbano Icesi (demo) | `qbano@demo.biffy.co` |
+
+Si pruebas de noche y todo aparece cerrado, activa **Configuración › Horario de demostración (12:00)**.
+
+Consulta el informe completo en [`INFORME_SPRINT_1.md`](INFORME_SPRINT_1.md).
