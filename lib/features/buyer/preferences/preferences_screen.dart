@@ -122,6 +122,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                   for (final s in kLifestyleOptions)
                     SelectPill(
                       label: capitalize(s),
+                      emoji: kOptionEmoji[s],
                       selected: _p.lifestyle.contains(s),
                       onTap: () => setState(
                         () => _p = _p.copyWith(
@@ -146,6 +147,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                     SelectPill(
                       key: Key('allergy-$a'),
                       label: capitalize(a),
+                      emoji: kOptionEmoji[a],
                       selected: _p.allergies.contains(a),
                       onTap: () => setState(
                         () => _p = _p.copyWith(

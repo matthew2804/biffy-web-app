@@ -478,6 +478,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                       for (final s in kLifestyleOptions)
                         SelectPill(
                           label: capitalize(s),
+                          emoji: kOptionEmoji[s],
                           selected: f.lifestyle.contains(s),
                           onTap: () => setState(() {
                             final set = {...f.lifestyle};

@@ -63,6 +63,22 @@ const kAllergyOptions = [
   'sésamo',
 ];
 
+/// Ícono de comida para cada alergia y estilo de vida (se ve en los chips).
+const kOptionEmoji = {
+  'gluten': '🌾',
+  'lácteos': '🥛',
+  'maní': '🥜',
+  'mariscos': '🦐',
+  'huevo': '🥚',
+  'soya': '🫘',
+  'sésamo': '🥯',
+  'vegano': '🌱',
+  'vegetariano': '🥦',
+  'sin gluten': '🌽',
+  'alto en proteína': '🍗',
+  'bajo en calorías': '🥗',
+};
+
 const kUniversities = <University>[
   University(
     id: 'icesi',
