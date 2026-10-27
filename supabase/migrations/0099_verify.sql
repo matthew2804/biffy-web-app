@@ -20,7 +20,7 @@ declare
     'app_settings', 'addresses', 'gotas_ledger', 'coupons', 'user_coupons',
     'favorite_dishes', 'favorite_branches', 'notifications', 'courier_profiles',
     'orders', 'order_items', 'order_events', 'order_declines', 'reviews',
-    'gotas_rewards', 'reward_redemptions'
+    'gotas_rewards', 'reward_redemptions', 'gotas_reward_prizes'
   ];
   expected_columns text[][] := array[
     ['dishes', 'active'], ['dishes', 'sold_out'], ['dishes', 'branch_id'],
@@ -107,6 +107,19 @@ begin
 
   if not exists (select 1 from public.gotas_rewards) then
     raise warning 'public.gotas_rewards quedó vacía; revisa 0006_seed_reference.sql';
+  end if;
+
+  if exists (
+    select 1
+    from public.gotas_rewards r
+    where r.reward_type in ('mystery_box', 'monthly_raffle')
+      and not exists (
+        select 1
+        from public.gotas_reward_prizes p
+        where p.reward_id = r.id and p.is_active
+      )
+  ) then
+    raise warning 'Hay cajas sin premios activos; revisa 0008_reward_boxes.sql';
   end if;
 
   raise notice 'Biffy OK · % tablas · % políticas RLS · % funciones en public',

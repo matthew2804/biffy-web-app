@@ -196,7 +196,7 @@ supabase db push
 
 | Pieza | Detalle |
 |---|---|
-| Esquema | 26 tablas: perfiles, negocios, sedes, platos, direcciones, cupones, Gotas (saldo, catálogo de recompensas y canjes), pedidos, eventos, repartidores, notificaciones |
+| Esquema | 27 tablas: perfiles, negocios, sedes, platos, direcciones, cupones, Gotas (saldo, recompensas, premios por caja y canjes), pedidos, eventos, repartidores, notificaciones |
 | Seguridad | RLS activo en todas; catálogo público solo en lectura; datos personales por dueño; pedidos visibles solo para sus tres partes |
 | Integridad | Enums, `CHECK`, FKs, `updated_at` por trigger, borrado lógico e índices en FKs y estado |
 | Operaciones | RPC `place_order`, `restaurant_*`, `courier_*`, `buyer_cancel`, `verify_university`, `register_business` |

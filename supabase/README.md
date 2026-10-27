@@ -56,8 +56,9 @@ supabase/
     0003_functions.sql            # RPC de negocio + triggers de identidad
     0004_rls.sql                  # RLS y políticas por rol
     0005_storage.sql              # buckets y políticas de archivos
-    0006_seed_reference.sql       # universidades, puntos y categorías
-    0007_verify.sql               # verifica tablas, columnas y RPC clave
+    0006_seed_reference.sql       # universidades, puntos, categorías, recompensas
+    0008_reward_boxes.sql         # premios por caja + sorteo ponderado
+    0099_verify.sql               # verifica tablas, columnas y RPC clave
 ```
 
 > `apply_all.sql` se regenera concatenando `migrations/*.sql`. No se edita a
@@ -73,7 +74,8 @@ profiles ─┬─ businesses ── branches ── dishes ── dish_options
           ├─ addresses
           ├─ preferences / app_settings
           ├─ gotas_ledger
-          ├─ gotas_rewards ── reward_redemptions
+          ├─ gotas_rewards ─┬─ gotas_reward_prizes
+          │                 └─ reward_redemptions
           ├─ coupons (vía user_coupons)
           ├─ favorite_dishes / favorite_branches
           ├─ courier_profiles
@@ -126,13 +128,51 @@ Decisiones pensadas para no volver a tocar la base:
 | `courier_decline(order)` | repartidor | Registra el rechazo de la oferta |
 | `courier_pickup(order)` | repartidor | `ready → on_the_way` |
 | `courier_deliver(order, code, evidence)` | repartidor | Valida código y evidencia, entrega y acredita Gotas |
-| `redeem_reward(payload)` | comprador | Canjea una recompensa con Gotas de forma atómica |
+| `redeem_reward(payload)` | comprador | Canjea con Gotas; en cajas sortea un premio ponderado |
 | `verify_university(payload)` | comprador | Verifica el correo contra el dominio de la universidad |
 | `register_business(payload)` | restaurante | Crea negocio + sedes y lo vincula al perfil |
 
 Todas devuelven `jsonb` con `result` (`ok`, `invalid_state`, `forbidden`,
 `already_assigned`, `wrong_code`, `missing_evidence`, …) para mapear directo a
 los enums de Dart.
+
+## Recompensas (Gotas)
+
+El catálogo está en `gotas_rewards` y cada caja tiene sus premios con peso en
+`gotas_reward_prizes`. `redeem_reward` descuenta las Gotas y sortea el premio:
+
+| Caja | Costo | Premios | Mejor premio |
+|---|---|---|---|
+| `box_25` · Caja sorpresa | 25 | 5 | $5.000 |
+| `box_50` · Caja premium | 50 | 5 | $12.000 + 2 envíos |
+| `box_100` · Caja sorteo | 100 | 5 | $25.000 + boleto |
+| `free_shipping` | 5 | directo | — |
+
+El peso es relativo: se suma y se sortea con `random()`, así que ajustar
+probabilidades es cambiar `weight` (en `0008_reward_boxes.sql` o con un
+`update`), nunca código de la app. El premio queda guardado en
+`reward_redemptions` (`prize_label`, `prize_type`, `prize_amount`).
+
+## Cuentas demo
+
+Se crean en Supabase Auth (no en memoria) para probar los tres roles contra la
+base. Contraseña: **`biffy123`**.
+
+| Rol | Correo | Nombre |
+|---|---|---|
+| Comprador | `diego.demo@icesi.edu.co` | Diego (demo) |
+| Repartidor | `andres.repartidor@demo.biffy.co` | Andrés (demo) |
+| Restaurante | `qbano@demo.biffy.co` | Qbano (demo) |
+
+Requisito: **Authentication → Providers → Email → "Confirm email" desactivado**.
+Con la confirmación activa el alta queda pendiente y la cuenta no puede entrar.
+
+Al registrarse:
+
+- `handle_new_user` crea el perfil con el rol que llega en `user_metadata`;
+- el trigger de bienvenida acredita **450 Gotas**;
+- el repartidor obtiene su fila en `courier_profiles`;
+- el restaurante crea negocio y sede con `register_business`.
 
 ## Pendiente para cerrar la base
 
