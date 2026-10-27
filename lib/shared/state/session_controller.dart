@@ -135,7 +135,7 @@ class SessionController extends ChangeNotifier {
     return u;
   }
 
-  void _startSession(AppUser u) {
+  void _startSession(AppUser u, {bool localWelcome = true}) {
     _user = u;
     _activeRole = u.role;
     final d = dataFor(u.id);
@@ -144,7 +144,8 @@ class SessionController extends ChangeNotifier {
       d.prefs = _guest.prefs;
       d.prefsCompleted = true;
     }
-    if (!d.welcomeGranted && u.role == UserRole.buyer) {
+    // En modo remoto las Gotas de bienvenida las acredita la base.
+    if (localWelcome && !d.welcomeGranted && u.role == UserRole.buyer) {
       d.welcomeGranted = true;
       _credit(d, kWelcomeGotas, 'Bienvenida a Biffy (demo)');
       _notifications.push(
@@ -162,6 +163,102 @@ class SessionController extends ChangeNotifier {
   void logout() {
     _user = null;
     _activeRole = UserRole.buyer;
+    notifyListeners();
+  }
+
+  // ----------------------------------------------------- Auth asíncrona
+  // Las pantallas usan esta ruta: con Supabase habla con Auth; en demo
+  // resuelve al instante contra los datos en memoria.
+
+  Future<AppUser> loginAsync(String email, String password) async {
+    final u = await _auth.signIn(email, password);
+    _startSession(u, localWelcome: !_auth.isRemote);
+    await _hydrateRemote(u);
+    return u;
+  }
+
+  Future<AppUser> registerAsync({
+    required String name,
+    required String email,
+    required String password,
+    required UserRole role,
+    String phone = '',
+  }) async {
+    final u = await _auth.signUp(
+      name: name,
+      email: email,
+      password: password,
+      role: role,
+      phone: phone,
+    );
+
+    if (_auth.isRemote) {
+      _startSession(u, localWelcome: false);
+      await _hydrateRemote(u);
+      return u;
+    }
+
+    final d = dataFor(u.id);
+    if (role == UserRole.buyer) {
+      final p = point;
+      final a = Address(
+        id: _id('addr'),
+        label: 'Punto de entrega',
+        line: p.name,
+        details: p.detail,
+        neighborhood: p.campusId == null ? 'Bogotá' : 'Campus',
+        pointId: p.id,
+      );
+      d.addresses.add(a);
+      d.defaultAddressId = a.id;
+    }
+    _startSession(u);
+    return u;
+  }
+
+  Future<void> logoutAsync() async {
+    await _auth.signOut();
+    logout();
+  }
+
+  /// Recupera la sesión persistida al abrir la app (solo backend real).
+  Future<AppUser?> restoreAsync() async {
+    final u = await _auth.restoreSession();
+    if (u == null) return null;
+    _startSession(u, localWelcome: !_auth.isRemote);
+    await _hydrateRemote(u);
+    return u;
+  }
+
+  Future<void> _hydrateRemote(AppUser u) async {
+    final balance = await _auth.gotasBalance(u.id);
+    final saved = await _auth.addresses(u.id);
+    final d = dataFor(u.id);
+
+    if (balance != null) {
+      d.gotas = balance;
+      d.welcomeGranted = true;
+    }
+
+    // Las direcciones del backend fijan el punto de entrega (regla de radio).
+    if (saved.isNotEmpty) {
+      d.addresses
+        ..clear()
+        ..addAll(saved);
+      d.defaultAddressId = saved.first.id;
+      _pointId = saved.first.pointId;
+    }
+
+    // Perfil de repartidor: evita pedirle el registro a una cuenta que ya lo tiene.
+    final courier = await _auth.courierProfile(u.id);
+    if (courier != null) {
+      d.courierProfile = courier;
+      d.courierOnline = true;
+      d.courierZone = courier.universityId == null
+          ? CourierZone.general
+          : CourierZone.campus;
+    }
+
     notifyListeners();
   }
 

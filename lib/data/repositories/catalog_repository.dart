@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../mock/seed_catalog.dart';
 import '../models/business.dart';
 import '../models/catalog.dart';
@@ -17,6 +19,9 @@ abstract class CatalogRepository {
   void upsertDish(Dish dish);
   void deleteDish(String id);
   void recordSale(String dishId, int qty);
+
+  /// Emite cuando el backend trae cambios (Realtime). Vacío en memoria.
+  Stream<void> get changes => const Stream<void>.empty();
 }
 
 class InMemoryCatalogRepository implements CatalogRepository {
@@ -31,6 +36,9 @@ class InMemoryCatalogRepository implements CatalogRepository {
   final List<Business> _businesses;
   final List<Restaurant> _restaurants;
   final List<Dish> _dishes;
+
+  @override
+  Stream<void> get changes => const Stream<void>.empty();
 
   @override
   List<Business> get businesses => List.unmodifiable(_businesses);

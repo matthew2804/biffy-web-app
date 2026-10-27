@@ -1,4 +1,5 @@
 import '../../core/constants/catalog_constants.dart';
+import '../models/address.dart';
 import '../models/user.dart';
 
 class AuthException implements Exception {
@@ -22,11 +23,39 @@ abstract class AuthRepository {
   });
   AppUser? byId(String id);
   AppUser? byBusiness(String businessId);
+
+  /// `true` cuando la autenticación vive en un backend real.
+  bool get isRemote => false;
+
+  /// Ruta asíncrona que usan las pantallas. En la demo resuelve al instante
+  /// contra los datos en memoria; con Supabase habla con Auth.
+  Future<AppUser> signIn(String email, String password);
+
+  Future<AppUser> signUp({
+    required String name,
+    required String email,
+    required String password,
+    required UserRole role,
+    String phone,
+  });
+
+  Future<void> signOut();
+
+  /// Recupera la sesión persistida (solo backend real).
+  Future<AppUser?> restoreSession();
+
+  /// Saldo de Gotas en el backend. `null` en modo demo.
+  Future<int?> gotasBalance(String userId);
+
+  /// Direcciones guardadas del usuario (vacío en la demo).
+  Future<List<Address>> addresses(String userId);
+
+  /// Perfil de repartidor (solo rol `courier`). `null` en la demo.
+  Future<CourierProfile?> courierProfile(String userId);
 }
 
 class InMemoryAuthRepository implements AuthRepository {
-  InMemoryAuthRepository(List<AppUser> seedUsers) {
-    for (final u in seedUsers) {
+  InMemoryAuthRepository(List<AppUser> seedUsers) {    for (final u in seedUsers) {
       _users[u.email.toLowerCase()] = u;
       _passwords[u.email.toLowerCase()] = kDemoPassword;
     }
@@ -35,6 +64,9 @@ class InMemoryAuthRepository implements AuthRepository {
   final Map<String, AppUser> _users = {};
   final Map<String, String> _passwords = {};
   int _seq = 1;
+
+  @override
+  bool get isRemote => false;
 
   @override
   List<AppUser> get demoAccounts =>
@@ -92,4 +124,40 @@ class InMemoryAuthRepository implements AuthRepository {
     }
     return null;
   }
+
+  // ------------------------------------------------------- Ruta asíncrona
+
+  @override
+  Future<AppUser> signIn(String email, String password) async =>
+      login(email, password);
+
+  @override
+  Future<AppUser> signUp({
+    required String name,
+    required String email,
+    required String password,
+    required UserRole role,
+    String phone = '',
+  }) async => register(
+    name: name,
+    email: email,
+    password: password,
+    role: role,
+    phone: phone,
+  );
+
+  @override
+  Future<void> signOut() async {}
+
+  @override
+  Future<AppUser?> restoreSession() async => null;
+
+  @override
+  Future<int?> gotasBalance(String userId) async => null;
+
+  @override
+  Future<List<Address>> addresses(String userId) async => const [];
+
+  @override
+  Future<CourierProfile?> courierProfile(String userId) async => null;
 }

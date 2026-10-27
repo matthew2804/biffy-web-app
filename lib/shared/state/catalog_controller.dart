@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../core/utils/clock.dart';
@@ -13,11 +15,14 @@ class CatalogController extends ChangeNotifier {
   CatalogController(this.repo, this._session, this.clock) {
     _lastPoint = _session.pointId;
     _session.addListener(_onSession);
+    // Cambios del backend (Realtime): refresca la vista sin recargar pantalla.
+    _changesSub = repo.changes.listen((_) => notifyListeners());
   }
 
   final CatalogRepository repo;
   final SessionController _session;
   final Clock clock;
+  StreamSubscription<void>? _changesSub;
   late String _lastPoint;
   bool _lastLunch = false;
   int _seq = 0;
@@ -33,6 +38,7 @@ class CatalogController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _changesSub?.cancel();
     _session.removeListener(_onSession);
     super.dispose();
   }

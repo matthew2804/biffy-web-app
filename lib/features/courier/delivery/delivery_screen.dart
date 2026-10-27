@@ -258,6 +258,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       session.user!.id,
       _code.text,
       _evidence,
+      evidenceBytes: _bytes,
     );
     switch (res) {
       case DeliveryResult.wrongCode:

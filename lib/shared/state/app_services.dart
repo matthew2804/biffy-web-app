@@ -9,6 +9,9 @@ import '../../data/mock/seed_users.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/catalog_repository.dart';
 import '../../data/repositories/order_repository.dart';
+import '../../data/repositories/supabase_auth_repository.dart';
+import '../../data/repositories/supabase_catalog_repository.dart';
+import '../../data/repositories/supabase_order_repository.dart';
 import 'cart_controller.dart';
 import 'catalog_controller.dart';
 import 'notification_center.dart';
@@ -49,6 +52,41 @@ class AppServices {
       body:
           'Explora sin registrarte. Todo es una demostración sin cobros reales.',
       audience: 'all',
+    );
+    return AppServices._(
+      clock: c,
+      notifications: notifications,
+      session: session,
+      catalog: catalog,
+      cart: cart,
+      orders: orders,
+    );
+  }
+
+  /// Contenedor con autenticación y catálogo reales (Supabase).
+  ///
+  /// Fase 2b: catálogo remoto con caché hidratada + Realtime. Los pedidos y
+  /// las escrituras de comercio siguen en memoria hasta la fase 2c/2d.
+  static Future<AppServices> supabase({
+    Clock? clock,
+    AuthRepository? auth,
+    CatalogRepository? catalogRepo,
+    OrderRepository? orderRepo,
+  }) async {
+    final c = clock ?? Clock();
+    final remoteAuth = auth ?? SupabaseAuthRepository();
+    final repo = catalogRepo ?? await SupabaseCatalogRepository.load();
+    final orderStore = orderRepo ?? await SupabaseOrderRepository.load();
+    final notifications = NotificationCenter(c);
+    final session = SessionController(remoteAuth, notifications, c);
+    final catalog = CatalogController(repo, session, c);
+    final cart = CartController(repo);
+    final orders = OrderService(
+      repo: orderStore,
+      catalog: catalog,
+      session: session,
+      notifications: notifications,
+      clock: c,
     );
     return AppServices._(
       clock: c,

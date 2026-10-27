@@ -30,6 +30,14 @@ ios/Flutter/flutter_export_environment.sh
 .vscode/*
 !.vscode/extensions.json
 
+# Entorno y secretos (Supabase, scripts de administración)
+.env
+.env.*
+env.json
+*.env
+supabase/.temp/
+supabase/.branches/
+
 # Referencia web (legacy_web)
 node_modules
 legacy_web/node_modules
