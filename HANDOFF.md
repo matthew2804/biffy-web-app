@@ -1,0 +1,237 @@
+# Estado del proyecto y pendientes
+
+> Documento de traspaso. Está escrito para que **una persona o una IA** pueda
+> retomar el trabajo sin adivinar qué está hecho, qué falta y cómo se trabaja.
+>
+> Rama de integración: **`supabase`**. Proyecto Supabase:
+> `jwdzpwsfwtkdeeuceaco`.
+>
+> **Lee primero** [`AGENTS.md`](AGENTS.md) (reglas de arquitectura) y
+> [`supabase/README.md`](supabase/README.md) (detalle de la base).
+
+---
+
+## 1. Cómo se corre
+
+| Modo | Comando | Qué usa |
+|---|---|---|
+| Demo local (por defecto) | `flutter run` | Datos en memoria, sin red |
+| Supabase | `flutter run --dart-define-from-file=env.json` | Auth, catálogo, pedidos y Storage reales |
+
+`env.json` se copia de `env.example.json` y **no se versiona**. Sin las dos
+variables (`SUPABASE_URL`, `SUPABASE_KEY`) la app arranca en demo.
+
+**Cuentas demo (contraseña `biffy123`):**
+
+| Rol | Correo |
+|---|---|
+| Comprador | `diego.demo@icesi.edu.co` |
+| Repartidor | `andres.repartidor@demo.biffy.co` |
+| Restaurante | `qbano@demo.biffy.co` |
+
+La confirmación de correo está **desactivada** mientras sea demo.
+
+---
+
+## 2. Arquitectura en una pantalla
+
+```text
+Pantallas (lib/features/**)
+   ↓ solo lectura/acciones
+Controladores ChangeNotifier (lib/shared/state/**)
+   ↓ contratos síncronos
+Repositorios (lib/data/repositories/**)
+   ├── InMemory…   → modo demo
+   └── Supabase…   → backend real
+```
+
+Reglas que **no** se negocian:
+
+- La regla de alcance (radio + repartidores + campus) vive solo en
+  `lib/domain/catalog_rules.dart` (`isReachable`).
+- Los pedidos solo cambian de estado por `OrderService`; ninguna pantalla toca
+  `Order`.
+- Las reglas de negocio (precios, filtros, transiciones, horarios) son funciones
+  puras en `lib/domain/` con tests.
+- `AppServices.demo()` debe seguir funcionando: **los 104 tests dependen de él**.
+
+---
+
+## 3. Qué ya está hecho
+
+### Base de datos (aplicada y verificada)
+
+| Pieza | Detalle |
+|---|---|
+| Esquema | 27 tablas, FKs, `CHECK`, índices, `updated_at` por trigger |
+| RLS | 43 políticas: catálogo público, datos por dueño, pedidos por rol |
+| RPC | `place_order`, `restaurant_accept/reject/ready`, `buyer_cancel`, `courier_accept/decline/pickup/deliver`, `redeem_reward`, `verify_university`, `register_business` |
+| Storage | `dish-images` (público), `delivery-evidence` y `merchant-docs` (privados por carpeta) |
+| Datos | 4 universidades, 8 puntos con geometría, 9 categorías, 4 recompensas con premios, 1 negocio (Qbano Icesi) con 4 platos |
+| Cuentas | 3 cuentas demo reales, 450 Gotas cada una |
+
+Migraciones en `supabase/migrations/` (`0000`–`0011`). El bootstrap para pegar
+en el SQL Editor es `supabase/apply_all.sql` (generado concatenando las
+migraciones).
+
+### App (Fase 2a–2c)
+
+| Archivo | Qué hace |
+|---|---|
+| `lib/core/config/app_config.dart` | Lee `--dart-define`; decide demo vs Supabase |
+| `lib/main.dart` | `Supabase.initialize()` + restaura sesión |
+| `lib/data/repositories/supabase_auth_repository.dart` | Login, registro con rol, sesión, saldo, direcciones y perfil de repartidor |
+| `lib/data/repositories/supabase_catalog_repository.dart` | Catálogo con caché hidratada + Realtime |
+| `lib/data/repositories/supabase_order_repository.dart` | Pedidos: cache, mapeo y RPC; sube evidencia |
+| `lib/shared/state/app_services.dart` | `AppServices.demo()` y `AppServices.supabase()` |
+| `lib/shared/state/session_controller.dart` | `loginAsync`, `registerAsync`, `restoreAsync`, hidratación remota |
+| `lib/shared/state/order_service.dart` | Réplica de cada transición por RPC |
+
+Verificado con un pedido real: `BF-2041` creado, aceptado, listo, asignado,
+recogido y entregado (6 eventos, evidencia en Storage, +12 Gotas).
+
+Calidad actual: `flutter analyze` limpio · `flutter test` **104/104**.
+
+---
+
+## 4. Qué falta
+
+Orden sugerido. Cada punto tiene criterio de aceptación.
+
+### Fase 1 · Recompensas con cajas (2 días)
+
+- `/recompensas` debe leer `gotas_rewards` y `gotas_reward_prizes`.
+- Abrir caja → RPC `redeem_reward` → revelar el premio sorteado.
+- Historial desde `reward_redemptions`; saldo y libro desde `gotas_ledger`.
+- Límite de canjes por día (regla en la base).
+- **Hecho cuando:** abrir una caja descuenta en la base y al reabrir la app el
+  premio sigue ahí.
+
+### Fase 2 · Comercio real (3–4 días)
+
+- Alta de negocio desde la app con `register_business` (hoy muestra
+  "llega en la siguiente fase" en `merchant_registration_screen.dart`).
+- CRUD de platos remoto (crear, editar, borrar, agotado, pausar sede).
+- Fotos de platos a `dish-images/<business_id>/`.
+- **Hecho cuando:** un comerciante nuevo se registra, crea su menú y al reabrir
+  ve lo mismo.
+
+### Fase 3 · Catálogo completo (2 días)
+
+- Cargar los 15 restaurantes / 32 platos de `lib/data/mock/seed_catalog.dart`.
+- `dish_options` (tamaños, acompañantes, extras) para los platos que los tengan.
+- Polígonos en `universities.boundary_polygon` (PostGIS ya está instalado).
+- **Hecho cuando:** el home en modo Supabase se ve igual que el demo.
+
+### Fase 4 · Datos personales sincronizados (2–3 días)
+
+Hoy viven solo en memoria (`SessionController`), aunque las tablas existen:
+
+- Direcciones (`addresses`) — crear/editar/borrar.
+- Preferencias y encuesta de 300 Gotas (`preferences`).
+- Favoritos (`favorite_dishes`, `favorite_branches`).
+- Ajustes (`app_settings`).
+- Cupones (`coupons`, `user_coupons`).
+- Notificaciones persistentes (`notifications`) — requiere política INSERT.
+- **Hecho cuando:** cerrar sesión y volver conserva todo.
+
+> Es la fase de mayor riesgo: `SessionController` lo usan casi todas las
+> pantallas.
+
+### Fase 5 · Robustez (2–3 días)
+
+- Capa de errores y reintentos (hoy solo hay 6 `try/catch` en formularios).
+- Estados de carga en listas y checkout.
+- Idempotencia de `place_order` (clave de cliente para evitar duplicados).
+- Tests de integración contra Supabase local.
+- CI: `flutter analyze`, `flutter test`, `flutter build web`.
+
+### Fase 6 · Publicación (1–2 días)
+
+- Secrets por entorno; confirmación de correo activada + plantilla en español.
+- Backups/PITR, rate limits.
+- **Rotar** la contraseña de la base que se compartió por chat.
+- Smoke test de los tres roles en el build final.
+
+### Backlog técnico de la base
+
+| Prioridad | Pendiente |
+|---|---|
+| Alta | `couriers_nearby` real (repartidores online + PostGIS) |
+| Alta | Límite diario de canjes |
+| Alta | Idempotencia de `place_order` |
+| Alta | Política INSERT de `notifications` |
+| Media | `branches.rating` recalculado desde `reviews` |
+| Media | Jobs `pg_cron`: auto-cancelar pedidos viejos, sorteo mensual, limpiar evidencias |
+| Media | Ledger de pagos (restaurante y repartidor) |
+| Media | Índices trigram para buscador |
+| Baja | Auditoría de cambios de catálogo |
+| Baja | `profiles.active_role` (multi-rol) |
+
+---
+
+## 5. Reglas de trabajo
+
+1. **Una sola base compartida.** Los pedidos y cuentas de prueba los ve todo el
+   equipo.
+2. **Nada de cambios de esquema desde el panel.** Cada cambio es una migración
+   nueva en `supabase/migrations/`; después se regenera `apply_all.sql`
+   concatenando las migraciones en orden.
+3. **La app nunca usa `service_role`.** Solo scripts locales de administración.
+4. **Secretos fuera del repo:** `env.json`, contraseñas y `service_role` no se
+   versionan.
+5. Antes de subir: `flutter analyze` y `flutter test` en verde.
+6. Commits pequeños; la rama de integración es `supabase`.
+
+---
+
+## 6. Trampas conocidas (leer antes de tocar código)
+
+| Tema | Detalle |
+|---|---|
+| Auth síncrona vs asíncrona | La demo usa `login/register` (síncronos, los tests dependen de ellos). Las pantallas usan `loginAsync/registerAsync`. No mezclar. |
+| IDs de pedido | `Order.id` es el código visible (`BF-2041`); `Order.dbId` es el uuid de la base. Los RPC usan **`dbId`**. Si es `null`, el pedido aún no llegó a la base. |
+| Escritura optimista | `place_order` se dispara después de crear el pedido local. Si el RPC falla, el pedido queda solo en memoria (gap de Fase 5). |
+| `dbId` tardío | Se asigna cuando responde el RPC. Una transición en ese primer segundo puede no replicarse. |
+| Alcance | `isReachable` exige `couriersNearby > 0`. Es un valor simulado (default 1); la sede demo tiene 3. |
+| Realtime | Requiere `0010_realtime.sql` aplicado (publica `branches`, `dishes`, `orders`, `order_events`). Sin él todo funciona, pero hay que reabrir la app. |
+| `businesses` | Tiene RLS de dueño: el comprador no ve negocios (solo sedes y platos). `businessById` solo lo usan pantallas de comercio. |
+| Evidencia | Se sube a `delivery-evidence/<order_uuid>/`. El bucket es privado: para mostrarla hace falta URL firmada. |
+| Datos locales | Preferencias, favoritos, ajustes y cupones **no** se guardan en Supabase todavía (Fase 4). |
+| Datos de prueba | Existe el pedido `BF-2041` entregado y `legacy_gotas_rewards` (tabla antigua conservada y bloqueada). |
+| Confirmación de correo | Desactivada a propósito. Al publicar hay que activarla. |
+| Registro abierto | `disable_signup = false`: cualquiera con la URL y la clave publicable puede crear cuenta. Es aceptable en demo, no en producción. |
+
+---
+
+## 7. Cómo verificar el estado
+
+```bash
+flutter analyze
+flutter test
+flutter run --dart-define-from-file=env.json
+```
+
+En la base (SQL Editor o `psql`):
+
+```sql
+select count(*) from public.gotas_rewards;        -- 4
+select count(*) from public.gotas_reward_prizes;  -- 15
+select code, status from public.orders order by created_at desc limit 5;
+select status from public.order_events order by created_at desc limit 6;
+```
+
+Si `gotas_reward_prizes` no existe, falta aplicar `0008`.
+Si la app no se refresca sola, falta `0010`.
+
+---
+
+## 8. Glosario
+
+| Término | Significado |
+|---|---|
+| Gota | Moneda de fidelidad. 1 Gota = $10 COP (`kGotaValue`) |
+| Caja | Recompensa aleatoria (`mystery_box` / `monthly_raffle`) con premios ponderados |
+| Sede / branch | Restaurante físico (`branches`) de un negocio (`businesses`) |
+| Punto de entrega | Lugar del campus o casa (`delivery_points`) que fija la regla de alcance |
+| RPC | Función Postgres expuesta por PostgREST; única vía de escritura de pedidos |

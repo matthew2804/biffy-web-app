@@ -235,6 +235,7 @@ Copia de la app React/Lovable original, conservada como referencia. No se compil
 
 ## Documentación
 
+- [`HANDOFF.md`](HANDOFF.md): qué está hecho, qué falta, reglas de trabajo y trampas conocidas. **Empieza por aquí si retomas el proyecto.**
 - [`INFORME_SPRINT_1.md`](INFORME_SPRINT_1.md): alcance, arquitectura, pruebas, limitaciones y pendientes del Sprint 1.
 - [`AGENTS.md`](AGENTS.md): reglas de arquitectura que debe respetar cualquier cambio.
 
