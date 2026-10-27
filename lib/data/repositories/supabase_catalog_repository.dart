@@ -31,6 +31,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
   final List<Dish> _dishes = [];
 
   sb.RealtimeChannel? _channel;
+  StreamSubscription<sb.AuthState>? _authSub;
 
   @override
   Stream<void> get changes => _changes.stream;
@@ -129,6 +130,10 @@ class SupabaseCatalogRepository implements CatalogRepository {
     } on Object {
       // Realtime es opcional: si no está habilitado seguimos con la caché.
     }
+
+    // El catálogo se hidrata antes del login; al cambiar la sesión se recarga
+    // con el JWT nuevo (p. ej. el comerciante pasa a ver su negocio por RLS).
+    _authSub = _client.auth.onAuthStateChange.listen((_) => _reload());
   }
 
   Future<void> _reload() async {
@@ -138,6 +143,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
 
   /// Libera el canal de Realtime y el stream de cambios.
   Future<void> dispose() async {
+    await _authSub?.cancel();
     final channel = _channel;
     if (channel != null) {
       await _client.removeChannel(channel);
