@@ -49,6 +49,9 @@ abstract class AuthRepository {
 
   /// Direcciones guardadas del usuario (vacío en la demo).
   Future<List<Address>> addresses(String userId);
+
+  /// Perfil de repartidor (solo rol `courier`). `null` en la demo.
+  Future<CourierProfile?> courierProfile(String userId);
 }
 
 class InMemoryAuthRepository implements AuthRepository {
@@ -154,4 +157,7 @@ class InMemoryAuthRepository implements AuthRepository {
 
   @override
   Future<List<Address>> addresses(String userId) async => const [];
+
+  @override
+  Future<CourierProfile?> courierProfile(String userId) async => null;
 }

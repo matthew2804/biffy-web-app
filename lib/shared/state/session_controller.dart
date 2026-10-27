@@ -249,6 +249,16 @@ class SessionController extends ChangeNotifier {
       _pointId = saved.first.pointId;
     }
 
+    // Perfil de repartidor: evita pedirle el registro a una cuenta que ya lo tiene.
+    final courier = await _auth.courierProfile(u.id);
+    if (courier != null) {
+      d.courierProfile = courier;
+      d.courierOnline = true;
+      d.courierZone = courier.universityId == null
+          ? CourierZone.general
+          : CourierZone.campus;
+    }
+
     notifyListeners();
   }
 

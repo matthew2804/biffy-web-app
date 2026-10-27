@@ -136,6 +136,39 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  @override
+  Future<CourierProfile?> courierProfile(String userId) async {
+    try {
+      final row = await _client
+          .from('courier_profiles')
+          .select(
+            'full_name, doc_type, doc_number, phone, vehicle, plate, university_id',
+          )
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (row == null) return null;
+      return CourierProfile(
+        fullName: (row['full_name'] as String?) ?? '',
+        docType: (row['doc_type'] as String?) ?? 'CC',
+        docNumber: (row['doc_number'] as String?) ?? '',
+        phone: (row['phone'] as String?) ?? '',
+        vehicle: _vehicle(row['vehicle'] as String?),
+        plate: row['plate'] as String?,
+        universityId: row['university_id'] as String?,
+        contactEmail: _cache[userId]?.email ?? '',
+      );
+    } on Object {
+      return null;
+    }
+  }
+
+  static Vehicle _vehicle(String? value) => switch (value) {
+    'bicycle' => Vehicle.bicycle,
+    'scooter' => Vehicle.scooter,
+    'walking' => Vehicle.walking,
+    _ => Vehicle.moto,
+  };
+
   // --------------------------------------------------------- Lectura local
 
   @override

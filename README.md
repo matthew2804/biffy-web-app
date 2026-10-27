@@ -221,7 +221,7 @@ El RPC recibe un único `jsonb`, así se agregan campos sin volver a tocar firma
 | Pantallas de acceso con ruta asíncrona | ✅ |
 | Catálogo remoto (caché hidratada + realtime) | ✅ |
 | Pedidos por RPC (crear, aceptar, recoger, entregar) + realtime | ✅ |
-| Subida real de evidencia y fotos a Storage | ⏳ |
+| Subida real de evidencia y fotos a Storage | ✅ (evidencia) |
 | Pantalla de recompensas con cajas | ⏳ |
 | Errores, estados de carga y reintentos | ⏳ |
 

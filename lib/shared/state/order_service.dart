@@ -533,8 +533,9 @@ class OrderService extends ChangeNotifier {
     String id,
     String courierId,
     String code,
-    String? evidence,
-  ) {
+    String? evidence, {
+    Uint8List? evidenceBytes,
+  }) {
     final o = byId(id);
     if (o == null ||
         o.courierId != courierId ||
@@ -546,10 +547,11 @@ class OrderService extends ChangeNotifier {
     _move(o, OrderStatus.delivered, 'Repartidor');
     o.evidence = evidence;
     o.deliveredAt = clock.now();
-    _sync('courier_deliver', o, {
-      'p_code': code,
-      'p_evidence': evidence ?? '',
-    });
+    final remote = _remote;
+    if (remote != null && o.dbId != null) {
+      // Sube la foto (si hay) y luego confirma la entrega por RPC.
+      remote.deliver(o, code, evidence, evidenceBytes);
+    }
     if (!o.gotasCredited) {
       o.gotasCredited = true;
       final earned = o.subtotal ~/ 1000;

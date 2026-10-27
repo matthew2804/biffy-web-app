@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
@@ -166,6 +167,40 @@ class SupabaseOrderRepository implements OrderRepository {
     } on Object {
       // Si falla, la próxima recarga corrige el estado local.
     }
+  }
+
+  /// Sube la evidencia al bucket privado y confirma la entrega.
+  Future<void> deliver(
+    Order order,
+    String code,
+    String? evidence,
+    Uint8List? bytes,
+  ) async {
+    final dbId = order.dbId;
+    if (dbId == null) return;
+
+    var reference = evidence ?? '';
+    if (bytes != null && bytes.isNotEmpty) {
+      try {
+        final path = '$dbId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+        await _client.storage
+            .from('delivery-evidence')
+            .uploadBinary(
+              path,
+              bytes,
+              fileOptions: const sb.FileOptions(contentType: 'image/jpeg'),
+            );
+        reference = path;
+      } on Object {
+        // Si la subida falla, se conserva la referencia local.
+      }
+    }
+
+    await call('courier_deliver', {
+      'p_order': dbId,
+      'p_code': code,
+      'p_evidence': reference,
+    });
   }
 
   // ------------------------------------------------------------ Realtime
