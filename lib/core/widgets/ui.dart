@@ -404,6 +404,32 @@ class BeeLogo extends StatelessWidget {
   );
 }
 
+/// Foto local (`assets/...`) o remota (URL de Supabase Storage en
+/// `image_url`); si no carga se muestra [fallback].
+Widget catalogImage(
+  String src, {
+  double? width,
+  double? height,
+  required Widget fallback,
+}) {
+  Widget onError(BuildContext _, Object _, StackTrace? _) => fallback;
+  return src.startsWith('http')
+      ? Image.network(
+          src,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          errorBuilder: onError,
+        )
+      : Image.asset(
+          src,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          errorBuilder: onError,
+        );
+}
+
 /// Foto del plato o emoji grande sobre superficie lavanda.
 class FoodImage extends StatelessWidget {
   const FoodImage({
@@ -444,13 +470,11 @@ class FoodImage extends StatelessWidget {
         color: context.palette.surfaceSoft,
         alignment: Alignment.center,
         child: asset != null
-            ? Image.asset(
+            ? catalogImage(
                 asset!,
                 width: width ?? size,
                 height: size,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) =>
-                    Text(emoji, style: TextStyle(fontSize: size * 0.5)),
+                fallback: Text(emoji, style: TextStyle(fontSize: size * 0.5)),
               )
             : Text(emoji, style: TextStyle(fontSize: size * 0.5)),
       ),
@@ -487,12 +511,11 @@ class PersonAvatar extends StatelessWidget {
       child: asset == null
           ? initial
           : ClipOval(
-              child: Image.asset(
+              child: catalogImage(
                 asset!,
                 width: radius * 2,
                 height: radius * 2,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => initial,
+                fallback: initial,
               ),
             ),
     );

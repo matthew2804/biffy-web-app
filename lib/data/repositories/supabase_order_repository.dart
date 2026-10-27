@@ -28,7 +28,9 @@ class SupabaseOrderRepository implements OrderRepository {
 
   Stream<void> get changes => _changes.stream;
 
-  static Future<SupabaseOrderRepository> load({sb.SupabaseClient? client}) async {
+  static Future<SupabaseOrderRepository> load({
+    sb.SupabaseClient? client,
+  }) async {
     final repo = SupabaseOrderRepository(client ?? sb.Supabase.instance.client);
     await repo.refresh();
     repo._subscribe();
@@ -80,8 +82,7 @@ class SupabaseOrderRepository implements OrderRepository {
             .add(
               StatusEvent(
                 _status(row['status'] as String?),
-                DateTime.tryParse((row['created_at'] as String?) ?? '') ??
-                    DateTime.now(),
+                _date(row['created_at']) ?? DateTime.now(),
                 (row['actor_label'] as String?) ?? '',
               ),
             );
@@ -272,10 +273,8 @@ class SupabaseOrderRepository implements OrderRepository {
       address: address,
       pointId: (row['point_id'] as String?) ?? address.pointId,
       payment: _payment(row['payment_method'] as String?),
-      createdAt:
-          DateTime.tryParse((row['created_at'] as String?) ?? '') ??
-          DateTime.now(),
-      scheduledFor: DateTime.tryParse((row['scheduled_for'] as String?) ?? ''),
+      createdAt: _date(row['created_at']) ?? DateTime.now(),
+      scheduledFor: _date(row['scheduled_for']),
       restaurantNote: (row['restaurant_note'] as String?) ?? '',
       subtotal: _int(row['subtotal']),
       campusDiscount: _int(row['campus_discount']),
@@ -299,7 +298,7 @@ class SupabaseOrderRepository implements OrderRepository {
     order.rejectReason = row['reject_reason'] as String?;
     order.evidence = row['evidence_url'] as String?;
     order.gotasCredited = (row['gotas_credited'] as bool?) ?? false;
-    order.deliveredAt = DateTime.tryParse((row['delivered_at'] as String?) ?? '');
+    order.deliveredAt = _date(row['delivered_at']);
     order.history
       ..clear()
       ..addAll(events);
@@ -332,6 +331,11 @@ class SupabaseOrderRepository implements OrderRepository {
   }
 
   static int _int(Object? value) => (value as num?)?.toInt() ?? 0;
+
+  /// `timestamptz` llega en UTC; las pantallas comparan días y muestran horas
+  /// en la zona del dispositivo.
+  static DateTime? _date(Object? value) =>
+      DateTime.tryParse((value as String?) ?? '')?.toLocal();
 
   static OrderStatus _status(String? value) => switch (value) {
     'preparing' => OrderStatus.preparing,

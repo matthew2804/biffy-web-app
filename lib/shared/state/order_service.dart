@@ -330,7 +330,8 @@ class OrderService extends ChangeNotifier {
       'distance_km': order.distanceKm,
       'restaurant_note': order.restaurantNote,
       if (order.scheduledFor != null)
-        'scheduled_for': order.scheduledFor!.toIso8601String(),
+        // En UTC con zona explícita: sin ella Postgres la toma como UTC.
+        'scheduled_for': order.scheduledFor!.toUtc().toIso8601String(),
       if (order.couponId != null) 'coupon_id': order.couponId,
     };
 

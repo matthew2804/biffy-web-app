@@ -70,10 +70,9 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                     // Portada a lo ancho; si el local no tiene foto, se ve su emoji.
                     if (r.imageAsset != null)
                       Positioned.fill(
-                        child: Image.asset(
+                        child: catalogImage(
                           r.imageAsset!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Center(
+                          fallback: Center(
                             child: Text(
                               r.emoji,
                               style: const TextStyle(fontSize: 72),

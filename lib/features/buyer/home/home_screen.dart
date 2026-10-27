@@ -41,6 +41,7 @@ class HomeScreen extends StatelessWidget {
     final campusPopular = catalog.popularDishes
         .where((d) => catalog.restaurantById(d.restaurantId)?.campusId != null)
         .toList();
+    final qbano = catalog.qbanoIcesi;
 
     return Scaffold(
       body: SafeArea(
@@ -111,44 +112,46 @@ class HomeScreen extends StatelessWidget {
                     ),
                   Text('¿Qué se te antoja hoy? 🐝', style: t.headlineSmall),
                   const SizedBox(height: 12),
-                  BiffyCard(
-                    key: const Key('qbano-strip'),
-                    color: AppColors.surfaceSoft,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    onTap: () => context.push('/restaurante/qbano-icesi'),
-                    child: Row(
-                      children: [
-                        const Text('🥪', style: TextStyle(fontSize: 26)),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Qbano en Icesi',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.text,
+                  if (qbano != null) ...[
+                    BiffyCard(
+                      key: const Key('qbano-strip'),
+                      color: AppColors.surfaceSoft,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      onTap: () => context.push('/restaurante/${qbano.id}'),
+                      child: Row(
+                        children: [
+                          const Text('🥪', style: TextStyle(fontSize: 26)),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Qbano en Icesi',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.text,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                'Compra de demostración · sin cobros reales',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.text,
+                                Text(
+                                  'Compra de demostración · sin cobros reales',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.text,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        Icon(Icons.chevron_right, color: AppColors.text),
-                      ],
+                          Icon(Icons.chevron_right, color: AppColors.text),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
+                  ],
                   InkWell(
                     key: const Key('home-search'),
                     borderRadius: BorderRadius.circular(16),

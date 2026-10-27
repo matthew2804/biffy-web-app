@@ -50,6 +50,12 @@ class CatalogController extends ChangeNotifier {
   Dish? dishById(String id) => repo.dishById(id);
   Business? businessById(String id) => repo.businessById(id);
 
+  /// Sede del caso demo de Qbano: en memoria tiene id fijo; en Supabase es un
+  /// uuid, así que se busca por nombre.
+  Restaurant? get qbanoIcesi =>
+      restaurantById('qbano-icesi') ??
+      repo.restaurants.where((r) => r.name == 'Qbano Icesi').firstOrNull;
+
   bool reachable(Restaurant r) => isReachable(r, point);
   bool isOpen(Restaurant r) => isOpenAt(r, now);
 

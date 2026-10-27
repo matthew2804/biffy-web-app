@@ -3,7 +3,7 @@
 > Documento de traspaso. Está escrito para que **una persona o una IA** pueda
 > retomar el trabajo sin adivinar qué está hecho, qué falta y cómo se trabaja.
 >
-> Rama de integración: **`supabase`**. Proyecto Supabase:
+> Rama de integración: **`dev`** (frontend + `supabase` unidos). Proyecto Supabase:
 > `jwdzpwsfwtkdeeuceaco`.
 >
 > **Lee primero** [`AGENTS.md`](AGENTS.md) (reglas de arquitectura) y
@@ -181,7 +181,7 @@ Hoy viven solo en memoria (`SessionController`), aunque las tablas existen:
 4. **Secretos fuera del repo:** `env.json`, contraseñas y `service_role` no se
    versionan.
 5. Antes de subir: `flutter analyze` y `flutter test` en verde.
-6. Commits pequeños; la rama de integración es `supabase`.
+6. Commits pequeños; la rama de integración es `dev`.
 
 ---
 
@@ -197,6 +197,9 @@ Hoy viven solo en memoria (`SessionController`), aunque las tablas existen:
 | Realtime | Requiere `0010_realtime.sql` aplicado (publica `branches`, `dishes`, `orders`, `order_events`). Sin él todo funciona, pero hay que reabrir la app. |
 | `businesses` | Tiene RLS de dueño: el comprador no ve negocios (solo sedes y platos). `businessById` solo lo usan pantallas de comercio. |
 | Evidencia | Se sube a `delivery-evidence/<order_uuid>/`. El bucket es privado: para mostrarla hace falta URL firmada. |
+| Fechas | `timestamptz` llega en UTC: el mapeo usa `.toLocal()` y `scheduled_for` se envía con `.toUtc()`. Sin eso las horas y los días (ganancias, seguimiento) salen corridos 5 h. |
+| Imágenes | `image_url` acepta una ruta `assets/...` o una URL de Storage; `catalogImage` en `lib/core/widgets/ui.dart` elige asset o red. Hoy las 4 filas de Qbano tienen `null` (se ve el emoji). |
+| Ids demo | En Supabase las sedes tienen uuid: no enlazar a ids fijos como `qbano-icesi`; usar `CatalogController.qbanoIcesi` o buscar en el catálogo. |
 | Datos locales | Preferencias, favoritos, ajustes y cupones **no** se guardan en Supabase todavía (Fase 4). |
 | Datos de prueba | Existe el pedido `BF-2041` entregado y `legacy_gotas_rewards` (tabla antigua conservada y bloqueada). |
 | Confirmación de correo | Desactivada a propósito. Al publicar hay que activarla. |
