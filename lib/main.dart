@@ -20,7 +20,7 @@ Future<void> main() async {
     publishableKey: AppConfig.supabaseKey,
   );
 
-  final services = AppServices.supabase();
+  final services = await AppServices.supabase();
   try {
     await services.session.restoreAsync();
   } on Object {

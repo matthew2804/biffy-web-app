@@ -10,6 +10,7 @@ import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/catalog_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
+import '../../data/repositories/supabase_catalog_repository.dart';
 import 'cart_controller.dart';
 import 'catalog_controller.dart';
 import 'notification_center.dart';
@@ -61,18 +62,22 @@ class AppServices {
     );
   }
 
-  /// Contenedor con autenticación real (Supabase).
+  /// Contenedor con autenticación y catálogo reales (Supabase).
   ///
-  /// Fase 2a: Auth real; catálogo y pedidos siguen en memoria. Las fases 2b y
-  /// 2c los sustituyen por repositorios remotos con caché hidratada.
-  factory AppServices.supabase({Clock? clock, AuthRepository? auth}) {
+  /// Fase 2b: catálogo remoto con caché hidratada + Realtime. Los pedidos y
+  /// las escrituras de comercio siguen en memoria hasta la fase 2c/2d.
+  static Future<AppServices> supabase({
+    Clock? clock,
+    AuthRepository? auth,
+    CatalogRepository? catalogRepo,
+  }) async {
     final c = clock ?? Clock();
     final remoteAuth = auth ?? SupabaseAuthRepository();
-    final catalogRepo = InMemoryCatalogRepository();
+    final repo = catalogRepo ?? await SupabaseCatalogRepository.load();
     final notifications = NotificationCenter(c);
     final session = SessionController(remoteAuth, notifications, c);
-    final catalog = CatalogController(catalogRepo, session, c);
-    final cart = CartController(catalogRepo);
+    final catalog = CatalogController(repo, session, c);
+    final cart = CartController(repo);
     final orders = OrderService(
       repo: InMemoryOrderRepository(),
       catalog: catalog,

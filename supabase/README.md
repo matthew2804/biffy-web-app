@@ -58,6 +58,8 @@ supabase/
     0005_storage.sql              # buckets y políticas de archivos
     0006_seed_reference.sql       # universidades, puntos, categorías, recompensas
     0008_reward_boxes.sql         # premios por caja + sorteo ponderado
+    0009_welcome_gotas.sql        # 450 Gotas al crear el perfil
+    0010_realtime.sql             # publica branches/dishes/orders en Realtime
     0099_verify.sql               # verifica tablas, columnas y RPC clave
 ```
 

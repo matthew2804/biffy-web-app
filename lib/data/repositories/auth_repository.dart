@@ -1,4 +1,5 @@
 import '../../core/constants/catalog_constants.dart';
+import '../models/address.dart';
 import '../models/user.dart';
 
 class AuthException implements Exception {
@@ -45,6 +46,9 @@ abstract class AuthRepository {
 
   /// Saldo de Gotas en el backend. `null` en modo demo.
   Future<int?> gotasBalance(String userId);
+
+  /// Direcciones guardadas del usuario (vacío en la demo).
+  Future<List<Address>> addresses(String userId);
 }
 
 class InMemoryAuthRepository implements AuthRepository {
@@ -147,4 +151,7 @@ class InMemoryAuthRepository implements AuthRepository {
 
   @override
   Future<int?> gotasBalance(String userId) async => null;
+
+  @override
+  Future<List<Address>> addresses(String userId) async => const [];
 }

@@ -179,7 +179,9 @@ Estado verificado en esta rama:
 
 Proyecto: `jwdzpwsfwtkdeeuceaco`. Detalle operativo en [`supabase/README.md`](supabase/README.md).
 
-**Estado:** el esquema ya está escrito y versionado en `supabase/migrations/`, pero **todavía no se ha aplicado** al proyecto remoto. La app sigue en modo demo local y no hace peticiones de red.
+**Estado:** esquema aplicado en el proyecto remoto. La app ya usa **Auth real** y
+lee el **catálogo desde Supabase** (caché hidratada + Realtime); los pedidos
+siguen en memoria hasta la fase 2c.
 
 ### Aplicar la base (una sola vez)
 
@@ -217,13 +219,13 @@ El RPC recibe un único `jsonb`, así se agregan campos sin volver a tocar firma
 | `supabase_flutter` + `Supabase.initialize()` condicionado a `AppConfig` | ✅ |
 | `SupabaseAuthRepository` (login, registro con rol, sesión persistida) | ✅ |
 | Pantallas de acceso con ruta asíncrona | ✅ |
-| Catálogo remoto (caché hidratada + realtime) | ⏳ |
+| Catálogo remoto (caché hidratada + realtime) | ✅ |
 | Pedidos por RPC + Storage (evidencia y fotos) | ⏳ |
 | Errores, estados de carga y reintentos | ⏳ |
 
-Con `env.json` la app arranca contra Supabase; sin él sigue en modo demo local.
-Mientras el catálogo sea local, el modo Supabase sirve para validar **Auth**:
-las cuentas demo entran de verdad y las Gotas salen de `profiles`.
+Con `env.json` la app arranca contra Supabase (Auth real + catálogo remoto); sin
+él sigue en modo demo local. Los pedidos todavía se guardan en memoria hasta la
+fase 2c.
 
 ## legacy_web
 

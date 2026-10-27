@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../models/address.dart';
 import '../models/user.dart';
 import 'auth_repository.dart';
 
@@ -105,6 +106,33 @@ class SupabaseAuthRepository implements AuthRepository {
       return (row?['gotas'] as num?)?.toInt();
     } on Object {
       return null;
+    }
+  }
+
+  @override
+  Future<List<Address>> addresses(String userId) async {
+    try {
+      final rows = await _client
+          .from('addresses')
+          .select('id, label, line, details, neighborhood, reference, point_id')
+          .eq('user_id', userId)
+          .filter('deleted_at', 'is', null)
+          .order('is_default', ascending: false);
+      return rows
+          .map(
+            (row) => Address(
+              id: row['id'] as String,
+              label: (row['label'] as String?) ?? '',
+              line: (row['line'] as String?) ?? '',
+              details: (row['details'] as String?) ?? '',
+              neighborhood: (row['neighborhood'] as String?) ?? '',
+              reference: (row['reference'] as String?) ?? '',
+              pointId: (row['point_id'] as String?) ?? 'icesi-biblioteca',
+            ),
+          )
+          .toList();
+    } on Object {
+      return const [];
     }
   }
 

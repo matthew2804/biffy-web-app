@@ -173,7 +173,7 @@ class SessionController extends ChangeNotifier {
   Future<AppUser> loginAsync(String email, String password) async {
     final u = await _auth.signIn(email, password);
     _startSession(u, localWelcome: !_auth.isRemote);
-    await _hydrateGotas(u);
+    await _hydrateRemote(u);
     return u;
   }
 
@@ -194,7 +194,7 @@ class SessionController extends ChangeNotifier {
 
     if (_auth.isRemote) {
       _startSession(u, localWelcome: false);
-      await _hydrateGotas(u);
+      await _hydrateRemote(u);
       return u;
     }
 
@@ -226,16 +226,29 @@ class SessionController extends ChangeNotifier {
     final u = await _auth.restoreSession();
     if (u == null) return null;
     _startSession(u, localWelcome: !_auth.isRemote);
-    await _hydrateGotas(u);
+    await _hydrateRemote(u);
     return u;
   }
 
-  Future<void> _hydrateGotas(AppUser u) async {
+  Future<void> _hydrateRemote(AppUser u) async {
     final balance = await _auth.gotasBalance(u.id);
-    if (balance == null) return;
+    final saved = await _auth.addresses(u.id);
     final d = dataFor(u.id);
-    d.gotas = balance;
-    d.welcomeGranted = true;
+
+    if (balance != null) {
+      d.gotas = balance;
+      d.welcomeGranted = true;
+    }
+
+    // Las direcciones del backend fijan el punto de entrega (regla de radio).
+    if (saved.isNotEmpty) {
+      d.addresses
+        ..clear()
+        ..addAll(saved);
+      d.defaultAddressId = saved.first.id;
+      _pointId = saved.first.pointId;
+    }
+
     notifyListeners();
   }
 

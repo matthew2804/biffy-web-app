@@ -5,7 +5,7 @@
 --
 -- Se genera concatenando supabase/migrations/*.sql. No editar a mano.
 -- Proyecto: jwdzpwsfwtkdeeuceaco
--- Generado: 2026-10-27 10:11
+-- Generado: 2026-10-27 10:31
 --
 -- AVISO: la migración 0000 reemplaza las tablas de public. Las tablas con
 -- filas NO se borran: se conservan como legacy_<nombre> con RLS activo.
@@ -2231,6 +2231,36 @@ drop trigger if exists on_profile_created_welcome on public.profiles;
 create trigger on_profile_created_welcome
   after insert on public.profiles
   for each row execute function public.credit_welcome_gotas();
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0010_realtime.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0010 · Realtime
+-- ============================================================================
+-- Supabase no publica tablas nuevas por defecto: hay que agregarlas a la
+-- publicación `supabase_realtime` para recibir INSERT/UPDATE/DELETE.
+--
+-- Es opcional: si falla, la app sigue funcionando con la caché hidratada y
+-- refresca al reabrir.
+-- ============================================================================
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['branches', 'dishes', 'orders', 'order_events'] loop
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+      raise notice 'Realtime habilitado para public.%.', t;
+    exception
+      when duplicate_object then
+        null; -- ya estaba publicada
+      when undefined_object then
+        raise notice 'No existe la publicación supabase_realtime; se omite %.', t;
+    end;
+  end loop;
+end $$;
 
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0099_verify.sql
