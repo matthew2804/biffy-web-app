@@ -144,6 +144,10 @@ class Order {
   final Set<String> declinedBy = {};
   final List<StatusEvent> history;
 
+  /// Identificador en Supabase (uuid). `null` en modo demo o hasta que el
+  /// RPC `place_order` confirma.
+  String? dbId;
+
   int get gotasDiscount => gotasUsed * 10;
   int get itemCount => lines.fold(0, (s, l) => s + l.qty);
 

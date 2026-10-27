@@ -220,12 +220,14 @@ El RPC recibe un único `jsonb`, así se agregan campos sin volver a tocar firma
 | `SupabaseAuthRepository` (login, registro con rol, sesión persistida) | ✅ |
 | Pantallas de acceso con ruta asíncrona | ✅ |
 | Catálogo remoto (caché hidratada + realtime) | ✅ |
-| Pedidos por RPC + Storage (evidencia y fotos) | ⏳ |
+| Pedidos por RPC (crear, aceptar, recoger, entregar) + realtime | ✅ |
+| Subida real de evidencia y fotos a Storage | ⏳ |
+| Pantalla de recompensas con cajas | ⏳ |
 | Errores, estados de carga y reintentos | ⏳ |
 
-Con `env.json` la app arranca contra Supabase (Auth real + catálogo remoto); sin
-él sigue en modo demo local. Los pedidos todavía se guardan en memoria hasta la
-fase 2c.
+Con `env.json` la app arranca contra Supabase (Auth, catálogo y pedidos);
+sin él sigue en modo demo local. La evidencia de entrega se guarda como
+referencia hasta la subida real a Storage.
 
 ## legacy_web
 

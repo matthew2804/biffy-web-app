@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -11,6 +12,7 @@ import '../../data/models/catalog.dart';
 import '../../data/models/order.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/order_repository.dart';
+import '../../data/repositories/supabase_order_repository.dart';
 import '../../domain/catalog_rules.dart';
 import '../../domain/order_rules.dart';
 import '../../domain/pricing.dart';
@@ -67,7 +69,12 @@ class OrderService extends ChangeNotifier {
     required this.notifications,
     required this.clock,
     math.Random? random,
-  }) : _rnd = random ?? math.Random();
+  }) : _rnd = random ?? math.Random() {
+    final r = repo;
+    if (r is SupabaseOrderRepository) {
+      _changesSub = r.changes.listen((_) => notifyListeners());
+    }
+  }
 
   final OrderRepository repo;
   final CatalogController catalog;
@@ -76,6 +83,24 @@ class OrderService extends ChangeNotifier {
   final Clock clock;
   final math.Random _rnd;
   int _counter = 2041;
+  StreamSubscription<void>? _changesSub;
+
+  SupabaseOrderRepository? get _remote =>
+      repo is SupabaseOrderRepository ? repo as SupabaseOrderRepository : null;
+
+  @override
+  void dispose() {
+    _changesSub?.cancel();
+    super.dispose();
+  }
+
+  /// Réplica de una transición en la base (optimista, sin bloquear la UI).
+  void _sync(String fn, Order o, [Map<String, dynamic> extra = const {}]) {
+    final remote = _remote;
+    final dbId = o.dbId;
+    if (remote == null || dbId == null) return;
+    remote.call(fn, {'p_order': dbId, ...extra});
+  }
 
   List<Order> get all => repo.all;
   Order? byId(String id) => repo.byId(id);
@@ -247,6 +272,7 @@ class OrderService extends ChangeNotifier {
       couponId: d.coupon?.id,
     );
     repo.insert(order);
+    _remotePlace(order);
     if (totals.gotasUsed > 0) {
       session.spendGotas(buyer.id, totals.gotasUsed, 'Usadas en ${order.id}');
     }
@@ -271,6 +297,48 @@ class OrderService extends ChangeNotifier {
     );
     notifyListeners();
     return order;
+  }
+
+  /// Crea el pedido en Supabase y guarda su uuid. Si falla, queda local.
+  void _remotePlace(Order order) {
+    final remote = _remote;
+    if (remote == null || order.address.id.isEmpty) return;
+
+    final payload = <String, dynamic>{
+      'branch_id': order.restaurantId,
+      'address_id': order.address.id,
+      'payment': order.payment.name,
+      'lines': [
+        for (final l in order.lines)
+          {
+            'dish_id': l.dishId,
+            'qty': l.qty,
+            'unit_price': l.unitPrice,
+            'detail': l.detail,
+            'note': l.note,
+          },
+      ],
+      'subtotal': order.subtotal,
+      'campus_discount': order.campusDiscount,
+      'coupon_discount': order.couponDiscount,
+      'delivery_fee': order.deliveryFee,
+      'gotas_used': order.gotasUsed,
+      'tip': order.tip,
+      'total': order.total,
+      'eta_min': order.etaMin,
+      'courier_pay': order.courierPay,
+      'distance_km': order.distanceKm,
+      'restaurant_note': order.restaurantNote,
+      if (order.scheduledFor != null)
+        'scheduled_for': order.scheduledFor!.toIso8601String(),
+      if (order.couponId != null) 'coupon_id': order.couponId,
+    };
+
+    remote.place(payload).then((id) {
+      if (id == null) return;
+      order.dbId = id;
+      notifyListeners();
+    });
   }
 
   int _maxPrep(List<OrderLine> lines, Restaurant r) {
@@ -302,6 +370,7 @@ class OrderService extends ChangeNotifier {
     _move(o, OrderStatus.cancelled, 'Comprador');
     o.rejectReason = 'Cancelado por el comprador';
     _refund(o);
+    _sync('buyer_cancel', o);
     notifications.push(
       title: 'Pedido ${o.id} cancelado por el cliente',
       body: o.itemsSummary,
@@ -326,6 +395,7 @@ class OrderService extends ChangeNotifier {
   void restaurantAccept(String id) {
     final o = _require(id);
     _move(o, OrderStatus.preparing, 'Restaurante');
+    _sync('restaurant_accept', o);
     notifications.push(
       title: 'Pedido aceptado por el restaurante',
       body: '${o.restaurantName} aceptó tu pedido ${o.id}.',
@@ -349,6 +419,7 @@ class OrderService extends ChangeNotifier {
     _move(o, OrderStatus.cancelled, 'Restaurante');
     o.rejectReason = reason.trim();
     _refund(o);
+    _sync('restaurant_reject', o, {'p_reason': o.rejectReason!});
     notifications.push(
       title: 'Pedido ${o.id} rechazado',
       body: 'Motivo: ${o.rejectReason}. No se realizó ningún cobro.',
@@ -361,6 +432,7 @@ class OrderService extends ChangeNotifier {
   void markReady(String id) {
     final o = _require(id);
     _move(o, OrderStatus.ready, 'Restaurante');
+    _sync('restaurant_ready', o);
     notifications.push(
       title: 'Pedido listo 🛍️',
       body:
@@ -415,12 +487,17 @@ class OrderService extends ChangeNotifier {
       audience: 'business:${_businessOf(o)}',
       route: '/negocio/pedidos',
     );
+    _sync('courier_accept', o);
     notifyListeners();
     return CourierAcceptResult.ok;
   }
 
   void courierDecline(String id, String courierId) {
-    byId(id)?.declinedBy.add(courierId);
+    final o = byId(id);
+    if (o != null) {
+      o.declinedBy.add(courierId);
+      _sync('courier_decline', o);
+    }
     notifyListeners();
   }
 
@@ -440,6 +517,7 @@ class OrderService extends ChangeNotifier {
     }
     if (!(codeValidated && bagSealed && productsVerified)) return false;
     _move(o, OrderStatus.onTheWay, 'Repartidor');
+    _sync('courier_pickup', o);
     notifications.push(
       title: 'Pedido en camino 🛵',
       body:
@@ -468,6 +546,10 @@ class OrderService extends ChangeNotifier {
     _move(o, OrderStatus.delivered, 'Repartidor');
     o.evidence = evidence;
     o.deliveredAt = clock.now();
+    _sync('courier_deliver', o, {
+      'p_code': code,
+      'p_evidence': evidence ?? '',
+    });
     if (!o.gotasCredited) {
       o.gotasCredited = true;
       final earned = o.subtotal ~/ 1000;

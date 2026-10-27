@@ -11,6 +11,7 @@ import '../../data/repositories/catalog_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/supabase_catalog_repository.dart';
+import '../../data/repositories/supabase_order_repository.dart';
 import 'cart_controller.dart';
 import 'catalog_controller.dart';
 import 'notification_center.dart';
@@ -70,16 +71,18 @@ class AppServices {
     Clock? clock,
     AuthRepository? auth,
     CatalogRepository? catalogRepo,
+    OrderRepository? orderRepo,
   }) async {
     final c = clock ?? Clock();
     final remoteAuth = auth ?? SupabaseAuthRepository();
     final repo = catalogRepo ?? await SupabaseCatalogRepository.load();
+    final orderStore = orderRepo ?? await SupabaseOrderRepository.load();
     final notifications = NotificationCenter(c);
     final session = SessionController(remoteAuth, notifications, c);
     final catalog = CatalogController(repo, session, c);
     final cart = CartController(repo);
     final orders = OrderService(
-      repo: InMemoryOrderRepository(),
+      repo: orderStore,
       catalog: catalog,
       session: session,
       notifications: notifications,
