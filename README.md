@@ -146,6 +146,11 @@ Contraseña de todas: `biffy123` (también hay botones de acceso rápido en el l
 | Repartidora (bicicleta) | `valentina.repartidora@demo.biffy.co` |
 | Restaurante Qbano Icesi (demo) | `qbano@demo.biffy.co` |
 
+En Supabase (proyecto `jwdzpwsfwtkdeeuceaco`) ya existen `diego.demo@…`,
+`andres.repartidor@…` y `qbano@…`, con perfil y 450 Gotas: el repartidor queda
+online en campus y el restaurante tiene el negocio **Qbano Icesi** con 4 platos.
+`camila` y `valentina` siguen solo en el modo demo local.
+
 Si pruebas de noche y todo aparece cerrado, activa **Configuración › Horario de demostración (12:00)**.
 
 ## Pruebas
@@ -205,13 +210,20 @@ supabase db push
 
 El RPC recibe un único `jsonb`, así se agregan campos sin volver a tocar firmas, y devuelve `{ result, order }` para mapear directo a los enums de Dart.
 
-### Siguiente fase (app)
+### Estado de la integración
 
-1. `supabase_flutter` + `Supabase.initialize()` en `main.dart`, activado solo si `AppConfig.hasSupabase`.
-2. `SupabaseAuthRepository` (correo y contraseña, `onAuthStateChange`).
-3. Repositorios remotos con caché hidratada + `realtime` para conservar los getters síncronos.
-4. Escrituras de pedidos por RPC; subida de fotos a Storage.
-5. Manejo de errores y estados de carga en las pantallas.
+| Paso | Estado |
+|---|---|
+| `supabase_flutter` + `Supabase.initialize()` condicionado a `AppConfig` | ✅ |
+| `SupabaseAuthRepository` (login, registro con rol, sesión persistida) | ✅ |
+| Pantallas de acceso con ruta asíncrona | ✅ |
+| Catálogo remoto (caché hidratada + realtime) | ⏳ |
+| Pedidos por RPC + Storage (evidencia y fotos) | ⏳ |
+| Errores, estados de carga y reintentos | ⏳ |
+
+Con `env.json` la app arranca contra Supabase; sin él sigue en modo demo local.
+Mientras el catálogo sea local, el modo Supabase sirve para validar **Auth**:
+las cuentas demo entran de verdad y las Gotas salen de `profiles`.
 
 ## legacy_web
 

@@ -54,24 +54,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _submit() {
     if (!_form.currentState!.validate()) return;
+    _runLogin();
+  }
+
+  Future<void> _runLogin() async {
     try {
-      final u = context.read<SessionController>().login(
+      final u = await context.read<SessionController>().loginAsync(
         _email.text,
         _password.text,
       );
+      if (!mounted) return;
       showSnack(context, 'Hola, ${u.name.split(' ').first} 👋');
       navigateAfterAuth(context, u, widget.from);
     } on AuthException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     }
   }
 
-  void _quick(String email) {
+  Future<void> _quick(String email) async {
     final session = context.read<SessionController>();
-    final u = session.auth.login(email, kDemoPassword);
-    session.loginAs(u);
-    showSnack(context, 'Sesión demo: ${u.name}');
-    navigateAfterAuth(context, u, widget.from);
+    try {
+      final AppUser u;
+      if (session.auth.isRemote) {
+        u = await session.loginAsync(email, kDemoPassword);
+      } else {
+        u = session.auth.login(email, kDemoPassword);
+        session.loginAs(u);
+      }
+      if (!mounted) return;
+      showSnack(context, 'Sesión demo: ${u.name}');
+      navigateAfterAuth(context, u, widget.from);
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    }
   }
 
   @override

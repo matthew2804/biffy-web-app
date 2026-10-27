@@ -137,6 +137,14 @@ class _MerchantRegistrationScreenState
   }
 
   void _finish() {
+    if (_session.auth.isRemote && !_session.isLoggedIn) {
+      showSnack(
+        context,
+        'El alta de negocios con Supabase llega en la siguiente fase.',
+        error: true,
+      );
+      return;
+    }
     final catalog = context.read<CatalogController>();
     final notifications = context.read<NotificationCenter>();
     try {

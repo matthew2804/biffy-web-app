@@ -9,6 +9,7 @@ import '../../data/mock/seed_users.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/catalog_repository.dart';
 import '../../data/repositories/order_repository.dart';
+import '../../data/repositories/supabase_auth_repository.dart';
 import 'cart_controller.dart';
 import 'catalog_controller.dart';
 import 'notification_center.dart';
@@ -49,6 +50,35 @@ class AppServices {
       body:
           'Explora sin registrarte. Todo es una demostración sin cobros reales.',
       audience: 'all',
+    );
+    return AppServices._(
+      clock: c,
+      notifications: notifications,
+      session: session,
+      catalog: catalog,
+      cart: cart,
+      orders: orders,
+    );
+  }
+
+  /// Contenedor con autenticación real (Supabase).
+  ///
+  /// Fase 2a: Auth real; catálogo y pedidos siguen en memoria. Las fases 2b y
+  /// 2c los sustituyen por repositorios remotos con caché hidratada.
+  factory AppServices.supabase({Clock? clock, AuthRepository? auth}) {
+    final c = clock ?? Clock();
+    final remoteAuth = auth ?? SupabaseAuthRepository();
+    final catalogRepo = InMemoryCatalogRepository();
+    final notifications = NotificationCenter(c);
+    final session = SessionController(remoteAuth, notifications, c);
+    final catalog = CatalogController(catalogRepo, session, c);
+    final cart = CartController(catalogRepo);
+    final orders = OrderService(
+      repo: InMemoryOrderRepository(),
+      catalog: catalog,
+      session: session,
+      notifications: notifications,
+      clock: c,
     );
     return AppServices._(
       clock: c,

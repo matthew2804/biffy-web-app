@@ -167,6 +167,13 @@ base. Contraseña: **`biffy123`**.
 Requisito: **Authentication → Providers → Email → "Confirm email" desactivado**.
 Con la confirmación activa el alta queda pendiente y la cuenta no puede entrar.
 
+**Estado: ✅ creadas.**
+
+- **Diego**: comprador verificado con `@icesi.edu.co` y una dirección guardada.
+- **Andrés**: `courier_profiles` con moto, zona campus y `online = true`.
+- **Qbano**: negocio + sede *Qbano Icesi* + 4 platos en `dishes`.
+- Las tres con 450 Gotas de bienvenida.
+
 Al registrarse:
 
 - `handle_new_user` crea el perfil con el rol que llega en `user_metadata`;

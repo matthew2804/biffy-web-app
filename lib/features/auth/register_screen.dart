@@ -41,27 +41,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     if (!_form.currentState!.validate()) return;
+    _runRegister();
+  }
+
+  Future<void> _runRegister() async {
     try {
-      final u = context.read<SessionController>().register(
+      final u = await context.read<SessionController>().registerAsync(
         name: _name.text,
         email: _email.text,
         password: _password.text,
         role: _role,
         phone: _phone.text,
       );
-      showSnack(context, 'Cuenta de demostración creada ✅');
+      if (!mounted) return;
+      showSnack(context, 'Cuenta creada ✅');
       if (_role == UserRole.courier) {
         context.go('/repartidor/registro');
-      } else {
+      } else if (context.canPop()) {
         // Si venimos del login, este retoma el flujo original.
-        if (context.canPop()) {
-          context.pop(true);
-        } else {
-          navigateAfterAuth(context, u, widget.from);
-        }
+        context.pop(true);
+      } else {
+        navigateAfterAuth(context, u, widget.from);
       }
     } on AuthException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     }
   }
 
