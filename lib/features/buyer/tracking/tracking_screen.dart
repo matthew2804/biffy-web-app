@@ -37,7 +37,7 @@ class TrackingScreen extends StatelessWidget {
         ),
       );
     }
-    final steps = ['Confirmado', 'Preparando', 'En camino', 'Entregado'];
+    final steps = _steps;
     final step = o.status.buyerStep;
     final sub = switch (o.status) {
       OrderStatus.pending =>
@@ -93,40 +93,13 @@ class TrackingScreen extends StatelessWidget {
                   ],
                   const SizedBox(height: 16),
                   if (o.status != OrderStatus.cancelled)
-                    Row(
-                      children: [
-                        for (var i = 0; i < steps.length; i++)
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Container(
-                                  height: 6,
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: i <= step
-                                        ? AppColors.primary
-                                        : context.palette.border,
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  steps[i],
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: i == step
-                                        ? FontWeight.w800
-                                        : FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
+                    for (var i = 0; i < steps.length; i++)
+                      _TimelineStep(
+                        step: steps[i],
+                        done: i < step || o.status == OrderStatus.delivered,
+                        current: i == step && o.status != OrderStatus.delivered,
+                        last: i == steps.length - 1,
+                      ),
                 ],
               ),
             ),
@@ -407,6 +380,124 @@ class _DemoControls extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+typedef _Step = ({String label, String hint, IconData icon});
+
+const List<_Step> _steps = [
+  (
+    label: 'Confirmado',
+    hint: 'El restaurante recibe tu pedido',
+    icon: Icons.check,
+  ),
+  (
+    label: 'Preparando',
+    hint: 'Están preparando tu comida',
+    icon: Icons.soup_kitchen,
+  ),
+  (
+    label: 'En camino',
+    hint: 'Tu repartidor va hacia ti',
+    icon: Icons.delivery_dining,
+  ),
+  (label: 'Entregado', hint: '¡A disfrutar!', icon: Icons.celebration),
+];
+
+/// Un paso de la línea de tiempo vertical: círculo con ícono, línea al siguiente y texto.
+/// Verde = ya pasó, amarillo con anillo = paso actual, gris = falta.
+class _TimelineStep extends StatelessWidget {
+  const _TimelineStep({
+    required this.step,
+    required this.done,
+    required this.current,
+    required this.last,
+  });
+
+  final _Step step;
+  final bool done;
+  final bool current;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final color = done
+        ? AppColors.success
+        : current
+        ? AppColors.primary
+        : p.border;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 40,
+            child: Column(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 400),
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: current
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.35),
+                              spreadRadius: 5,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Icon(
+                    step.icon,
+                    size: 18,
+                    color: done
+                        ? Colors.white
+                        : current
+                        ? AppColors.text
+                        : p.muted,
+                  ),
+                ),
+                if (!last)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      color: done ? AppColors.success : p.border,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(top: 6, bottom: last ? 0 : 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    step.label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: done || current ? p.text : p.muted,
+                    ),
+                  ),
+                  if (done || current)
+                    Text(
+                      step.hint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
