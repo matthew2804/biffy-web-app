@@ -358,6 +358,11 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            if (session.settings.promotions)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: _PromoBanner(),
+              ),
             if (restaurants.isEmpty)
               EmptyState(
                 emoji: '📍',
@@ -468,6 +473,197 @@ class HomeScreen extends StatelessWidget {
               ],
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+typedef _Promo = ({
+  String title,
+  String body,
+  String cta,
+  String image,
+  String route,
+  bool isTab,
+});
+
+/// Cada promo lleva a algo que de verdad existe en la app.
+const List<_Promo> _promos = [
+  (
+    title: 'Hasta -20% en tu campus',
+    body: 'Verifica tu correo universitario',
+    cta: 'Verificar',
+    image: 'assets/images/dishes/bowl-vegano.jpg',
+    route: '/campus',
+    isTab: false,
+  ),
+  (
+    title: 'Gana $kSurveyGotas Gotas 💧',
+    body: 'Cuéntanos tus gustos y te recomendamos mejor',
+    cta: 'Empezar',
+    image: 'assets/images/dishes/pizza-pepperoni.jpg',
+    route: '/preferencias',
+    isTab: false,
+  ),
+  (
+    title: '¿No sabes qué pedir?',
+    body: 'Biffy AI te elige opciones en segundos',
+    cta: 'Probar',
+    image: 'assets/images/dishes/ramen.jpg',
+    route: '/ai',
+    isTab: true,
+  ),
+];
+
+/// Carrusel de promociones con foto y puntitos que indican la página actual.
+class _PromoBanner extends StatefulWidget {
+  const _PromoBanner();
+
+  @override
+  State<_PromoBanner> createState() => _PromoBannerState();
+}
+
+class _PromoBannerState extends State<_PromoBanner> {
+  final _controller = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 172,
+          child: PageView(
+            key: const Key('home-promos'),
+            controller: _controller,
+            onPageChanged: (i) => setState(() => _page = i),
+            children: [
+              for (final promo in _promos)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: _PromoSlide(promo: promo),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < _promos.length; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _page ? 18 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == _page
+                      ? AppColors.primary
+                      : context.palette.border,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PromoSlide extends StatelessWidget {
+  const _PromoSlide({required this.promo});
+  final _Promo promo;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: Material(
+        color: AppColors.primary,
+        child: InkWell(
+          onTap: () =>
+              promo.isTab ? context.go(promo.route) : context.push(promo.route),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(promo.image, fit: BoxFit.cover),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black87,
+                      Colors.black26,
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: FractionallySizedBox(
+                  widthFactor: 0.7,
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          promo.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Flexible(
+                        child: Text(
+                          promo.body,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '${promo.cta} →',
+                          style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
