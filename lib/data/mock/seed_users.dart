@@ -8,6 +8,18 @@ const kDemoCourierEmail = 'andres.repartidor@demo.biffy.co';
 const kDemoCourier2Email = 'valentina.repartidora@demo.biffy.co';
 const kDemoRestaurantEmail = 'qbano@demo.biffy.co';
 
+/// Fotos de perfil de las personas ficticias de la demo (por id de usuario).
+const kDemoAvatars = {
+  'u-diego': 'assets/images/avatars/diego.jpg',
+  'u-camila': 'assets/images/avatars/camila.jpg',
+  'u-andres': 'assets/images/avatars/andres.jpg',
+  'u-valentina': 'assets/images/avatars/valentina.jpg',
+  'u-seed-daniel': 'assets/images/avatars/daniel.jpg',
+  'u-seed-mario': 'assets/images/avatars/mario.jpg',
+  'u-seed-sofia': 'assets/images/avatars/sofia.jpg',
+  'u-seed-camilar': 'assets/images/avatars/camila-r.jpg',
+};
+
 List<AppUser> seedUsers(List<Business> businesses) => [
   AppUser(
     id: 'u-diego',

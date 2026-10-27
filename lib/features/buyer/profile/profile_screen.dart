@@ -86,17 +86,10 @@ class ProfileScreen extends StatelessWidget {
               BiffyCard(
                 child: Row(
                   children: [
-                    CircleAvatar(
+                    PersonAvatar(
+                      name: u.name,
+                      asset: kDemoAvatars[u.id],
                       radius: 30,
-                      backgroundColor: AppColors.primary,
-                      child: Text(
-                        u.name.characters.first,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.text,
-                        ),
-                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

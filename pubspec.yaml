@@ -29,6 +29,7 @@ flutter:
     - assets/images/
     - assets/images/dishes/
     - assets/images/restaurants/
+    - assets/images/avatars/
   fonts:
     - family: Sora
       fonts:

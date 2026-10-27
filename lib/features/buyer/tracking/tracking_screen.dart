@@ -7,6 +7,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
+import '../../../data/mock/seed_users.dart';
 import '../../../data/models/order.dart';
 import '../../../data/models/user.dart';
 import '../../../domain/pricing.dart';
@@ -140,9 +141,9 @@ class TrackingScreen extends StatelessWidget {
               BiffyCard(
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                      backgroundColor: AppColors.surfaceSoft,
-                      child: Text('🛵'),
+                    PersonAvatar(
+                      name: o.courierName!,
+                      asset: kDemoAvatars[o.courierId],
                     ),
                     const SizedBox(width: 12),
                     Expanded(

@@ -458,6 +458,47 @@ class FoodImage extends StatelessWidget {
   }
 }
 
+/// Foto de perfil redonda; si la persona no tiene foto, muestra la inicial de su nombre.
+class PersonAvatar extends StatelessWidget {
+  const PersonAvatar({
+    super.key,
+    required this.name,
+    this.asset,
+    this.radius = 22,
+  });
+
+  final String name;
+  final String? asset;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = Text(
+      name.isEmpty ? '?' : name.characters.first.toUpperCase(),
+      style: TextStyle(
+        fontSize: radius * 0.8,
+        fontWeight: FontWeight.w800,
+        color: AppColors.text,
+      ),
+    );
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: AppColors.primary,
+      child: asset == null
+          ? initial
+          : ClipOval(
+              child: Image.asset(
+                asset!,
+                width: radius * 2,
+                height: radius * 2,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => initial,
+              ),
+            ),
+    );
+  }
+}
+
 class QtyStepper extends StatelessWidget {
   const QtyStepper({
     super.key,

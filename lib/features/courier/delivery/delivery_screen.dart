@@ -8,6 +8,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/catalog.dart';
+import '../../../data/mock/seed_users.dart';
 import '../../../data/models/order.dart';
 import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
@@ -112,7 +113,17 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(o.buyerName, style: t.titleMedium),
+                  Row(
+                    children: [
+                      PersonAvatar(
+                        name: o.buyerName,
+                        asset: kDemoAvatars[o.buyerId],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(o.buyerName, style: t.titleMedium)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Text('${o.address.label} · ${o.address.full}'),
                   for (final n in notes) Text('📝 $n', style: t.bodySmall),
                   const Divider(height: 20),

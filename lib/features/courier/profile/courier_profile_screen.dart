@@ -6,6 +6,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/catalog_constants.dart';
 import '../../../core/widgets/actions.dart';
 import '../../../core/widgets/ui.dart';
+import '../../../data/mock/seed_users.dart';
 import '../../../data/models/user.dart';
 import '../../../shared/state/session_controller.dart';
 import '../../buyer/profile/profile_screen.dart';
@@ -25,6 +26,14 @@ class CourierProfileScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             Text('Perfil de repartidor', style: t.headlineSmall),
+            const SizedBox(height: 12),
+            Center(
+              child: PersonAvatar(
+                name: p.fullName,
+                asset: kDemoAvatars[session.user?.id],
+                radius: 44,
+              ),
+            ),
             const SizedBox(height: 12),
             BiffyCard(
               child: Column(
