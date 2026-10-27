@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/confetti.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/catalog.dart';
 import '../../../data/mock/seed_users.dart';
@@ -272,6 +273,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
         showSnack(context, 'El pedido no está en camino', error: true);
       case DeliveryResult.ok:
         showSnack(context, '¡Entregado! +${cop(o.courierEarning)} (simulado)');
+        celebrate(context);
         context.go('/repartidor');
     }
   }

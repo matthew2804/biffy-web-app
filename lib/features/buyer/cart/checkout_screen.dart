@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/catalog_constants.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/confetti.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../domain/catalog_rules.dart';
 import '../../../domain/pricing.dart';
@@ -202,6 +203,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       context.read<CartController>().clear();
       showSnack(context, 'Pedido ${order.id} creado · demostración sin cobros');
+      celebrate(context);
       context.go('/pedido/${order.id}');
     } on OrderException catch (e) {
       setState(() => _placing = false);
