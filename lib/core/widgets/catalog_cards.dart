@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -13,25 +14,38 @@ import 'ui.dart';
 
 class _AddButton extends StatelessWidget {
   const _AddButton(this.dish);
+
   final Dish dish;
 
   @override
   Widget build(BuildContext context) {
     final enabled = dish.orderable;
+    final iconColor =
+        enabled ? AppColors.text : context.palette.text;
+
     return Semantics(
-      label: 'Agregar ${dish.name}',
-      button: true,
-      child: Material(
-        color: enabled ? AppColors.primary : context.palette.border,
-        shape: const CircleBorder(),
-        child: InkWell(
-          key: Key('add-${dish.id}'),
-          customBorder: const CircleBorder(),
-          onTap: enabled ? () => quickAdd(context, dish) : null,
-          child: const SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(Icons.add, color: AppColors.text),
+      label: enabled
+          ? 'Agregar ${dish.name} al carrito'
+          : '${dish.name} agotado, no disponible para pedir',
+      button: enabled,
+      enabled: enabled,
+      child: Tooltip(
+        message: enabled ? 'Agregar al carrito' : 'Producto agotado',
+        child: Material(
+          color: enabled ? AppColors.primary : context.palette.border,
+          shape: const CircleBorder(),
+          child: InkWell(
+            key: Key('add-${dish.id}'),
+            customBorder: const CircleBorder(),
+            onTap: enabled ? () => quickAdd(context, dish) : null,
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(
+                enabled ? Icons.add : Icons.remove,
+                color: iconColor,
+              ),
+            ),
           ),
         ),
       ),
@@ -42,6 +56,7 @@ class _AddButton extends StatelessWidget {
 /// Tarjeta vertical para carruseles.
 class DishCard extends StatelessWidget {
   const DishCard(this.dish, {super.key, this.width = 168});
+
   final Dish dish;
   final double width;
 
@@ -49,6 +64,7 @@ class DishCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogController>();
     final r = catalog.restaurantById(dish.restaurantId);
+
     return SizedBox(
       width: width,
       child: BiffyCard(
@@ -57,7 +73,12 @@ class DishCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            FoodImage.dish(dish, size: 104, width: width - 20, radius: 14),
+            FoodImage.dish(
+              dish,
+              size: 104,
+              width: width - 20,
+              radius: 14,
+            ),
             const SizedBox(height: 8),
             Text(
               dish.name,
@@ -92,7 +113,12 @@ class DishCard extends StatelessWidget {
 
 /// Fila horizontal para listas y resultados.
 class DishTile extends StatelessWidget {
-  const DishTile(this.dish, {super.key, this.showRestaurant = true});
+  const DishTile(
+    this.dish, {
+    super.key,
+    this.showRestaurant = true,
+  });
+
   final Dish dish;
   final bool showRestaurant;
 
@@ -101,10 +127,14 @@ class DishTile extends StatelessWidget {
     final catalog = context.watch<CatalogController>();
     final session = context.watch<SessionController>();
     final r = catalog.restaurantById(dish.restaurantId);
+
     final conflicts = dish.allergens
         .where(session.prefs.allergies.contains)
         .toList();
-    final campus = r != null && campusEligible(r, session.verifiedUniversityId);
+
+    final campus =
+        r != null && campusEligible(r, session.verifiedUniversityId);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: BiffyCard(
@@ -178,12 +208,17 @@ class DishTile extends StatelessWidget {
   }
 }
 
-/// Alto de la foto de portada y de la tarjeta completa (los carruseles necesitan un alto fijo).
+/// Alto de la foto de portada y de la tarjeta completa.
 const double kRestaurantCoverHeight = 116;
 const double kRestaurantCardHeight = 204;
 
 class RestaurantCard extends StatelessWidget {
-  const RestaurantCard(this.restaurant, {super.key, this.width});
+  const RestaurantCard(
+    this.restaurant, {
+    super.key,
+    this.width,
+  });
+
   final Restaurant restaurant;
   final double? width;
 
@@ -192,9 +227,10 @@ class RestaurantCard extends StatelessWidget {
     final catalog = context.watch<CatalogController>();
     final session = context.watch<SessionController>();
     final r = restaurant;
+
     final open = catalog.isOpen(r);
     final campus = campusEligible(r, session.verifiedUniversityId);
-    // Foto de portada arriba (como en las apps de domicilios) y datos abajo.
+
     final card = BiffyCard(
       padding: EdgeInsets.zero,
       onTap: () => context.push('/restaurante/${r.id}'),
@@ -267,13 +303,19 @@ class RestaurantCard extends StatelessWidget {
         ),
       ),
     );
+
     return width == null ? card : SizedBox(width: width, child: card);
   }
 }
 
 /// Carrusel horizontal nativo con separación de 12 px.
 class HCarousel extends StatelessWidget {
-  const HCarousel({super.key, required this.height, required this.children});
+  const HCarousel({
+    super.key,
+    required this.height,
+    required this.children,
+  });
+
   final double height;
   final List<Widget> children;
 
