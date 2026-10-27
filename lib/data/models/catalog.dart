@@ -2,10 +2,13 @@
 library;
 
 class FoodCategory {
-  const FoodCategory(this.id, this.label, this.emoji);
+  const FoodCategory(this.id, this.label, this.emoji, [this.imageAsset]);
   final String id;
   final String label;
   final String emoji;
+
+  /// Foto representativa de la categoría; si falta se muestra el emoji.
+  final String? imageAsset;
 }
 
 class University {

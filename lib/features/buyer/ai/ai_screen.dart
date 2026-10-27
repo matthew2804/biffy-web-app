@@ -277,7 +277,7 @@ class _Bubble extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: ActionChip(
-                  avatar: Text(d.emoji),
+                  avatar: FoodImage.dish(d, size: 24, radius: 12),
                   label: Text('${d.name} · ${cop(d.price)}'),
                   onPressed: () => context.push('/plato/${d.id}'),
                 ),

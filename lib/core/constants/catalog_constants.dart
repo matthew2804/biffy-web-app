@@ -1,15 +1,40 @@
 import '../../data/models/catalog.dart';
 
 const kCategories = <FoodCategory>[
-  FoodCategory('sandwich', 'Sándwiches', '🥪'),
-  FoodCategory('pizza', 'Pizza', '🍕'),
-  FoodCategory('hamburguesa', 'Hamburguesas', '🍔'),
-  FoodCategory('saludable', 'Saludable', '🥗'),
-  FoodCategory('almuerzo', 'Almuerzos', '🍛'),
-  FoodCategory('cafe', 'Café', '☕'),
-  FoodCategory('postres', 'Postres', '🍩'),
-  FoodCategory('mexicana', 'Mexicana', '🌮'),
-  FoodCategory('asiatica', 'Asiática', '🍜'),
+  FoodCategory(
+    'sandwich',
+    'Sándwiches',
+    '🥪',
+    'assets/images/demo-qbano-sandwich.jpg',
+  ),
+  FoodCategory(
+    'pizza',
+    'Pizza',
+    '🍕',
+    'assets/images/dishes/pizza-margarita.jpg',
+  ),
+  FoodCategory(
+    'hamburguesa',
+    'Hamburguesas',
+    '🍔',
+    'assets/images/dishes/smash-doble.jpg',
+  ),
+  FoodCategory(
+    'saludable',
+    'Saludable',
+    '🥗',
+    'assets/images/dishes/bowl-vegano.jpg',
+  ),
+  FoodCategory(
+    'almuerzo',
+    'Almuerzos',
+    '🍛',
+    'assets/images/dishes/almuerzo.jpg',
+  ),
+  FoodCategory('cafe', 'Café', '☕', 'assets/images/dishes/capuchino.jpg'),
+  FoodCategory('postres', 'Postres', '🍩', 'assets/images/dishes/dona.jpg'),
+  FoodCategory('mexicana', 'Mexicana', '🌮', 'assets/images/dishes/tacos.jpg'),
+  FoodCategory('asiatica', 'Asiática', '🍜', 'assets/images/dishes/ramen.jpg'),
 ];
 
 FoodCategory categoryById(String id) => kCategories.firstWhere(

@@ -384,18 +384,11 @@ class HomeScreen extends StatelessWidget {
                         width: 72,
                         child: Column(
                           children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: context.palette.surfaceSoft,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                c.emoji,
-                                style: const TextStyle(fontSize: 26),
-                              ),
+                            FoodImage(
+                              emoji: c.emoji,
+                              asset: c.imageAsset,
+                              size: 56,
+                              radius: 28,
                             ),
                             const SizedBox(height: 4),
                             Text(

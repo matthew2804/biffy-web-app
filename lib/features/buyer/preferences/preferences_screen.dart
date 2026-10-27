@@ -6,6 +6,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/catalog_constants.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
+import '../../../data/models/catalog.dart';
 import '../../../data/models/user.dart';
 import '../../../shared/state/session_controller.dart';
 
@@ -35,6 +36,46 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     ];
     return Scaffold(
       appBar: AppBar(title: Text('Paso ${_step + 1} de 3 · ${titles[_step]}')),
+      // Botones fijos abajo: siempre visibles aunque la lista sea larga.
+      bottomNavigationBar: MobileFrame(
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Row(
+            children: [
+              if (_step > 0)
+                Expanded(
+                  child: SecondaryButton(
+                    label: 'Atrás',
+                    onPressed: () => setState(() => _step--),
+                  ),
+                ),
+              if (_step > 0) const SizedBox(width: 12),
+              Expanded(
+                child: PrimaryButton(
+                  key: const Key('prefs-next'),
+                  label: _step < 2 ? 'Siguiente' : 'Guardar preferencias',
+                  onPressed: () {
+                    if (_step < 2) {
+                      setState(() => _step++);
+                      return;
+                    }
+                    final awarded = session.savePreferences(_p);
+                    showSnack(
+                      context,
+                      awarded > 0
+                          ? '¡Preferencias guardadas! +$awarded Gotas 💧'
+                          : session.isLoggedIn
+                          ? 'Preferencias actualizadas'
+                          : 'Preferencias guardadas. Inicia sesión para ganar $kSurveyGotas Gotas.',
+                    );
+                    context.canPop() ? context.pop() : context.go('/');
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: MobileFrame(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -51,15 +92,18 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               Text('¿Qué te gusta comer?', style: t.titleLarge),
               Text('Selección múltiple. Es opcional.', style: t.bodySmall),
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.25,
                 children: [
                   for (final c in kCategories)
-                    SelectPill(
+                    _TasteTile(
                       key: Key('like-${c.id}'),
-                      label: c.label,
-                      emoji: c.emoji,
+                      category: c,
                       selected: _p.likes.contains(c.id),
                       onTap: () => setState(
                         () => _p = _p.copyWith(likes: _toggle(_p.likes, c.id)),
@@ -156,42 +200,72 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 style: t.bodySmall,
               ),
             ],
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                if (_step > 0)
-                  Expanded(
-                    child: SecondaryButton(
-                      label: 'Atrás',
-                      onPressed: () => setState(() => _step--),
-                    ),
-                  ),
-                if (_step > 0) const SizedBox(width: 12),
-                Expanded(
-                  child: PrimaryButton(
-                    key: const Key('prefs-next'),
-                    label: _step < 2 ? 'Siguiente' : 'Guardar preferencias',
-                    onPressed: () {
-                      if (_step < 2) {
-                        setState(() => _step++);
-                        return;
-                      }
-                      final awarded = session.savePreferences(_p);
-                      showSnack(
-                        context,
-                        awarded > 0
-                            ? '¡Preferencias guardadas! +$awarded Gotas 💧'
-                            : session.isLoggedIn
-                            ? 'Preferencias actualizadas'
-                            : 'Preferencias guardadas. Inicia sesión para ganar $kSurveyGotas Gotas.',
-                      );
-                      context.canPop() ? context.pop() : context.go('/');
-                    },
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta con foto para elegir una categoría que te gusta; borde amarillo si está elegida.
+class _TasteTile extends StatelessWidget {
+  const _TasteTile({
+    super.key,
+    required this.category,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final FoodCategory category;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: category.label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.primary.withValues(alpha: 0.15)
+                : p.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected ? AppColors.primary : p.border,
+              width: 2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (_, box) => FoodImage(
+                    emoji: category.emoji,
+                    asset: category.imageAsset,
+                    size: box.maxHeight,
+                    width: box.maxWidth,
+                    radius: 12,
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                category.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
         ),
       ),
     );
