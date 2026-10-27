@@ -60,26 +60,34 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: Container(
-                height: 160 + MediaQuery.of(context).padding.top,
+                height: 220 + MediaQuery.of(context).padding.top,
                 color: AppColors.primary,
                 padding: EdgeInsets.only(
                   top: MediaQuery.of(context).padding.top,
                 ),
                 child: Stack(
                   children: [
-                    Center(
-                      child: r.imageAsset != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: Image.asset(
-                                r.imageAsset!,
-                                height: 120,
-                                width: 160,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : Text(r.emoji, style: const TextStyle(fontSize: 72)),
-                    ),
+                    // Portada a lo ancho; si el local no tiene foto, se ve su emoji.
+                    if (r.imageAsset != null)
+                      Positioned.fill(
+                        child: Image.asset(
+                          r.imageAsset!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Center(
+                            child: Text(
+                              r.emoji,
+                              style: const TextStyle(fontSize: 72),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Center(
+                        child: Text(
+                          r.emoji,
+                          style: const TextStyle(fontSize: 72),
+                        ),
+                      ),
                     Positioned(
                       left: 12,
                       top: 8,

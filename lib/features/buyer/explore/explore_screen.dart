@@ -354,7 +354,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 if (restaurants.isNotEmpty)
                   SliverToBoxAdapter(
                     child: HCarousel(
-                      height: 124,
+                      height: kRestaurantCardHeight,
                       children: [
                         for (final r in restaurants)
                           RestaurantCard(r, width: 290),

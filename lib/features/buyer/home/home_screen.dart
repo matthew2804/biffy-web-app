@@ -424,7 +424,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 HCarousel(
-                  height: 124,
+                  height: kRestaurantCardHeight,
                   children: [
                     for (final r in catalog.campusRestaurants(uni.id))
                       RestaurantCard(r, width: 290),

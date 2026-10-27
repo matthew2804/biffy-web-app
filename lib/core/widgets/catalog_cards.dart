@@ -178,6 +178,10 @@ class DishTile extends StatelessWidget {
   }
 }
 
+/// Alto de la foto de portada y de la tarjeta completa (los carruseles necesitan un alto fijo).
+const double kRestaurantCoverHeight = 116;
+const double kRestaurantCardHeight = 204;
+
 class RestaurantCard extends StatelessWidget {
   const RestaurantCard(this.restaurant, {super.key, this.width});
   final Restaurant restaurant;
@@ -190,65 +194,77 @@ class RestaurantCard extends StatelessWidget {
     final r = restaurant;
     final open = catalog.isOpen(r);
     final campus = campusEligible(r, session.verifiedUniversityId);
+    // Foto de portada arriba (como en las apps de domicilios) y datos abajo.
     final card = BiffyCard(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.zero,
       onTap: () => context.push('/restaurante/${r.id}'),
-      child: Row(
-        children: [
-          FoodImage(emoji: r.emoji, asset: r.imageAsset, size: 64),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
               children: [
-                Text(
-                  r.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                FoodImage(
+                  emoji: r.emoji,
+                  asset: r.imageAsset,
+                  size: kRestaurantCoverHeight,
+                  width: double.infinity,
+                  radius: 0,
                 ),
-                Text(
-                  r.tagline,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '⭐ ${r.rating.toStringAsFixed(1)} · ${catalog.etaFor(r)} min · ${catalog.distanceFor(r).toStringAsFixed(1)} km',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: Tag(
+                    open ? 'Abierto' : 'Cerrado',
+                    color: open ? AppColors.success : AppColors.error,
+                    textColor: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Tag(
-                      open ? 'Abierto' : 'Cerrado',
-                      color: open
-                          ? AppColors.success.withValues(alpha: 0.15)
-                          : AppColors.error.withValues(alpha: 0.15),
-                      textColor: open ? AppColors.success : AppColors.error,
+                if (campus)
+                  Positioned(
+                    left: 8,
+                    bottom: 8,
+                    child: Tag(
+                      '🎓 -${(r.studentDiscount * 100).round()}% campus',
+                      color: AppColors.primary,
+                      textColor: AppColors.text,
                     ),
-                    if (campus) ...[
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Tag(
-                          '-${(r.studentDiscount * 100).round()}% campus',
-                          color: AppColors.success,
-                          textColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
               ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    r.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    r.tagline,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '⭐ ${r.rating.toStringAsFixed(1)} · ${catalog.etaFor(r)} min · ${catalog.distanceFor(r).toStringAsFixed(1)} km',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
     return width == null ? card : SizedBox(width: width, child: card);
