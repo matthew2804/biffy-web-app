@@ -66,75 +66,165 @@ class OfferCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: BiffyCard(
         key: Key('offer-${o.id}'),
+        padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${o.restaurantName} · ${o.id}',
-                    style: t.titleSmall,
+            // Foto del restaurante con su nombre encima.
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+              child: Stack(
+                children: [
+                  FoodImage(
+                    emoji: r?.emoji ?? '🍽️',
+                    asset: r?.imageAsset,
+                    size: 110,
+                    width: double.infinity,
+                    radius: 0,
                   ),
-                ),
-                Text(
-                  cop(o.courierPay),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
+                  const Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Colors.black87, Colors.transparent],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 14,
+                    right: 14,
+                    bottom: 10,
+                    child: Text(
+                      '${o.restaurantName} · ${o.id}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Lo que más le importa al repartidor: cuánto gana.
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Ganas', style: t.bodySmall),
+                            Text(
+                              cop(o.courierPay),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.success,
+                                fontSize: 30,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${o.distanceKm} km',
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            '~${o.etaMin} min · ${o.itemCount} productos',
+                            style: t.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _RouteStop(
+                    color: AppColors.secondary,
+                    title: 'Recoger',
+                    detail: r?.address ?? '',
+                    line: true,
+                  ),
+                  _RouteStop(
                     color: AppColors.success,
-                    fontSize: 16,
+                    title: 'Entregar',
+                    detail: '${o.address.label} · ${o.address.line}',
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text('📍 Recoger: ${r?.address ?? ''}', style: t.bodySmall),
-            Text(
-              '🏁 Entregar: ${o.address.label} · ${o.address.line}',
-              style: t.bodySmall,
-            ),
-            Text(
-              '${o.distanceKm} km · ~${o.etaMin} min · ${o.itemCount} productos',
-              style: t.bodySmall,
-            ),
-            Text('💳 ${paymentForCourier(o)}', style: t.bodySmall),
-            const SizedBox(height: 4),
-            StatusChip(o.status, kitchen: true),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    key: Key('decline-${o.id}'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(44),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
                     ),
-                    onPressed: () => declineOffer(context, o),
-                    child: const Text('Rechazar'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(44),
+                    decoration: BoxDecoration(
+                      color: context.palette.surfaceSoft,
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    onPressed: () => context.push('/repartidor/oferta/${o.id}'),
-                    child: const Text('Detalles'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton(
-                    key: Key('accept-${o.id}'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(44),
+                    child: Text(
+                      '💳 ${paymentForCourier(o)}',
+                      style: t.bodySmall,
                     ),
-                    onPressed: () => acceptOffer(context, o),
-                    child: const Text('Aceptar'),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  StatusChip(o.status, kitchen: true),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          key: Key('decline-${o.id}'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(44),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          onPressed: () => declineOffer(context, o),
+                          child: const Text('Rechazar'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(44),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          onPressed: () =>
+                              context.push('/repartidor/oferta/${o.id}'),
+                          child: const Text('Detalles'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton(
+                          key: Key('accept-${o.id}'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(44),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          onPressed: () => acceptOffer(context, o),
+                          child: const Text('Aceptar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -235,4 +325,77 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GridPainter old) => old.color != color;
+}
+
+/// Un punto del recorrido (recoger o entregar) con la línea punteada que los une.
+class _RouteStop extends StatelessWidget {
+  const _RouteStop({
+    required this.color,
+    required this.title,
+    required this.detail,
+    this.line = false,
+  });
+
+  final Color color;
+  final String title;
+  final String detail;
+  final bool line;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 14,
+            child: Column(
+              children: [
+                const SizedBox(height: 4),
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                if (line)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      color: AppColors.primary.withValues(alpha: 0.5),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: line ? 10 : 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: context.palette.muted,
+                    ),
+                  ),
+                  Text(
+                    detail,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
