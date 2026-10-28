@@ -201,6 +201,17 @@ y opciones) usando el mismo seed que la app. Es **idempotente**: crea lo que
 falta, completa campos y no duplica. Cada negocio queda con su cuenta de dueño
 (contraseña `biffy123`).
 
+## Smoke test contra el proyecto
+
+```bash
+flutter test test/integration/supabase_smoke_test.dart \
+  --dart-define=SUPABASE_URL=https://jwdzpwsfwtkdeeuceaco.supabase.co \
+  --dart-define=SUPABASE_KEY=<clave publicable>
+```
+
+Valida perfil, catálogo, recompensas y que RLS no filtre pedidos ajenos. Sin
+`--dart-define` el test se salta (el `flutter test` normal no toca la red).
+
 ## Campus y geocerca
 
 `universities.boundary_polygon` guarda el contorno de cada campus (SRID 4326).

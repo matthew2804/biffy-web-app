@@ -161,10 +161,12 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 
 - ✅ Idempotencia de `place_order` con `client_key` (un reintento no duplica).
 - ✅ Reintentos automáticos en `place_order` (3 intentos con espera).
-- ✅ `ErrorView` con botón de reintento en recompensas y cajas del negocio.
-- ✅ CI en GitHub Actions: analyze, test y build web.
-- ⏳ Estados de carga en el resto de pantallas (formulario de producto, checkout).
-- ⏳ Tests de integración contra Supabase local (`supabase start`).
+- ✅ `ErrorView` con reintento en las pantallas que dependen de red; el resto
+  lee de la caché hidratada.
+- ✅ Estados de carga: checkout (`_placing`) y formulario de producto (`_saving`).
+- ✅ Smoke test real en `test/integration/supabase_smoke_test.dart` (4 casos),
+  gated por `--dart-define` y ejecutado en CI si hay secretos.
+- ✅ CI en GitHub Actions: analyze, test, build web y smoke opcional.
 
 ### Fase 6 · Publicación (1–2 días)
 

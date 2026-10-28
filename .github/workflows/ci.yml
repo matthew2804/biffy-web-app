@@ -28,3 +28,16 @@ jobs:
 
       - name: Build web (modo demo)
         run: flutter build web --release
+
+      - name: Smoke test Supabase (si hay secretos)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_KEY" ]; then
+            flutter test test/integration/supabase_smoke_test.dart \
+              --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+              --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
+          else
+            echo "Sin secretos configurados: se omite el smoke test."
+          fi
