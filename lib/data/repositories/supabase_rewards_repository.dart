@@ -110,6 +110,7 @@ class RewardRedemption {
     this.prizeType,
     this.status = 'granted',
     this.claimCode,
+    this.branchName,
   });
 
   /// Gotas descontadas.
@@ -135,6 +136,9 @@ class RewardRedemption {
 
   /// Código que el comprador muestra en la sede (solo platos).
   final String? claimCode;
+
+  /// Sede donde se reclama el plato.
+  final String? branchName;
 
   /// `true` si es un plato pendiente de reclamar.
   bool get isPendingPrize =>
@@ -254,7 +258,7 @@ class SupabaseRewardsRepository {
         .from('reward_redemptions')
         .select(
           'id, gotas_spent, prize_label, prize_type, status, claim_code, '
-          'created_at, reward:gotas_rewards(code)',
+          'created_at, reward:gotas_rewards(code), branch:branches(name)',
         )
         .order('created_at', ascending: false)
         .limit(30);
@@ -271,6 +275,10 @@ class SupabaseRewardsRepository {
             prizeType: row['prize_type'] as String?,
             status: (row['status'] as String?) ?? 'granted',
             claimCode: row['claim_code'] as String?,
+            branchName:
+                (row['branch'] is Map
+                    ? (row['branch'] as Map)['name'] as String?
+                    : null),
             rewardCode:
                 (row['reward'] is Map
                     ? (row['reward'] as Map)['code'] as String?

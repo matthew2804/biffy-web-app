@@ -485,6 +485,11 @@ class _PrizeCard extends StatelessWidget {
                 letterSpacing: 4,
               ),
             ),
+            if (prize.branchName != null)
+              Text(
+                'Reclama en: ${prize.branchName}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             const Text('Válido por 30 días desde el canje.'),
           ],
         ),
