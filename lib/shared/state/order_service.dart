@@ -322,7 +322,7 @@ class OrderService extends ChangeNotifier {
 
     final payload = <String, dynamic>{
       'branch_id': order.restaurantId,
-      'address_id': order.address.id,
+      'address_id': order.address.dbId ?? order.address.id,
       'payment': order.payment.name,
       'lines': [
         for (final l in order.lines)

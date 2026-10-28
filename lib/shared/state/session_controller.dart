@@ -6,6 +6,7 @@ import '../../data/models/address.dart';
 import '../../data/models/catalog.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../data/repositories/supabase_profile_repository.dart';
 import 'notification_center.dart';
 
 /// Beneficio canjeable con Gotas (valores de demostración).
@@ -59,11 +60,19 @@ enum VerifyResult { ok, invalidEmail, domainMismatch, notLoggedIn }
 /// Sesión simulada: usuario, rol activo, datos personales y preferencias.
 class SessionController extends ChangeNotifier {
   /// Recibe el repositorio de auth, las notificaciones y el reloj.
-  SessionController(this._auth, this._notifications, this._clock);
+  SessionController(
+    this._auth,
+    this._notifications,
+    this._clock, {
+    SupabaseProfileRepository? profile,
+  }) : _profile = profile; // ignore: prefer_initializing_formals
 
   final AuthRepository _auth;
   final NotificationCenter _notifications;
   final Clock _clock;
+
+  /// Repositorio de datos personales; null en modo demo.
+  final SupabaseProfileRepository? _profile;
 
   AppUser? _user;
   UserRole _activeRole = UserRole.buyer;
@@ -296,6 +305,29 @@ class SessionController extends ChangeNotifier {
           : CourierZone.campus;
     }
 
+    // Preferencias, ajustes y favoritos del usuario.
+    final profile = _profile;
+    if (profile != null) {
+      final p = await profile.preferences(u.id);
+      if (p.prefs != null) d.prefs = p.prefs!;
+      d.prefsCompleted = p.completed;
+      d.surveyRewarded = p.rewarded;
+
+      final favs = await profile.favorites(u.id);
+      d.favoriteDishes
+        ..clear()
+        ..addAll(favs.dishes);
+      d.favoriteRestaurants
+        ..clear()
+        ..addAll(favs.branches);
+
+      final s = await profile.settings(u.id);
+      if (s != null) {
+        _settings = s;
+        _clock.simulateLunch = s.demoLunch;
+      }
+    }
+
     notifyListeners();
   }
 
@@ -350,6 +382,15 @@ class SessionController extends ChangeNotifier {
         route: '/recompensas',
       );
     }
+
+    // Persistencia remota: preferencias + recompensa única de la encuesta.
+    final u = _user;
+    final profile = _profile;
+    if (u != null && profile != null) {
+      profile.savePreferences(u.id, p, completed: true);
+      if (awarded > 0) profile.completeSurvey();
+    }
+
     notifyListeners();
     return awarded;
   }
@@ -398,7 +439,10 @@ class SessionController extends ChangeNotifier {
   bool toggleFavoriteDish(String id) {
     if (!isLoggedIn) return false;
     final f = data.favoriteDishes;
-    f.contains(id) ? f.remove(id) : f.add(id);
+    final on = !f.contains(id);
+    on ? f.add(id) : f.remove(id);
+    final u = _user;
+    if (u != null && _profile != null) _profile.setFavoriteDish(u.id, id, on);
     notifyListeners();
     return true;
   }
@@ -407,7 +451,12 @@ class SessionController extends ChangeNotifier {
   bool toggleFavoriteRestaurant(String id) {
     if (!isLoggedIn) return false;
     final f = data.favoriteRestaurants;
-    f.contains(id) ? f.remove(id) : f.add(id);
+    final on = !f.contains(id);
+    on ? f.add(id) : f.remove(id);
+    final u = _user;
+    if (u != null && _profile != null) {
+      _profile.setFavoriteBranch(u.id, id, on);
+    }
     notifyListeners();
     return true;
   }
@@ -437,24 +486,66 @@ class SessionController extends ChangeNotifier {
     if (makeDefault || data.defaultAddressId == null) {
       data.defaultAddressId = saved.id;
     }
+
+    // Persistencia remota: alta (guarda su uuid) o edición.
+    final u = _user;
+    final profile = _profile;
+    if (u != null && profile != null) {
+      if (saved.dbId == null) {
+        profile
+            .addAddress(
+              u.id,
+              saved,
+              makeDefault: data.defaultAddressId == saved.id,
+            )
+            .then((dbId) {
+              if (dbId == null) return;
+              saved.dbId = dbId;
+              notifyListeners();
+            });
+      } else {
+        profile.updateAddress(saved.dbId!, saved);
+      }
+    }
+
     notifyListeners();
     return saved;
   }
 
   /// Elimina una dirección y ajusta la predeterminada.
   void deleteAddress(String id) {
+    // Se busca el uuid antes de quitarla de la lista local.
+    String? dbId;
+    for (final a in data.addresses) {
+      if (a.id == id) {
+        dbId = a.dbId;
+        break;
+      }
+    }
     data.addresses.removeWhere((a) => a.id == id);
     if (data.defaultAddressId == id) {
       data.defaultAddressId = data.addresses.isEmpty
           ? null
           : data.addresses.first.id;
     }
+    if (dbId != null && _profile != null) _profile.deleteAddress(dbId);
     notifyListeners();
   }
 
   /// Marca una dirección como predeterminada.
   void setDefaultAddress(String id) {
     data.defaultAddressId = id;
+    final u = _user;
+    String? dbId;
+    for (final a in data.addresses) {
+      if (a.id == id) {
+        dbId = a.dbId;
+        break;
+      }
+    }
+    if (u != null && dbId != null && _profile != null) {
+      _profile.setDefaultAddress(u.id, dbId);
+    }
     notifyListeners();
   }
 
@@ -534,6 +625,8 @@ class SessionController extends ChangeNotifier {
   void updateSettings(AppSettings s) {
     _settings = s;
     _clock.simulateLunch = s.demoLunch;
+    final u = _user;
+    if (u != null && _profile != null) _profile.saveSettings(u.id, s);
     notifyListeners();
   }
 

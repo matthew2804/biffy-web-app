@@ -137,7 +137,7 @@ class SupabaseAuthRepository implements AuthRepository {
               neighborhood: (row['neighborhood'] as String?) ?? '',
               reference: (row['reference'] as String?) ?? '',
               pointId: (row['point_id'] as String?) ?? 'icesi-biblioteca',
-            ),
+            )..dbId = row['id'] as String,
           )
           .toList();
     } on Object {
