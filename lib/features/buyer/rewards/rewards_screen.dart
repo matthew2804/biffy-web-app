@@ -403,13 +403,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
     ];
   }
 
-  /// Texto legible del estado de un canje.
-  String _statusLabel(String status) => switch (status) {
-    'used' => 'Reclamado',
-    'expired' => 'Vencido',
-    'cancelled' => 'Cancelado',
-    _ => 'Disponible',
-  };
 }
 
 /// Tarjeta con el saldo actual de Gotas.
