@@ -230,6 +230,15 @@ class SessionController extends ChangeNotifier {
     return u;
   }
 
+  /// Vuelve a leer saldo, direcciones y perfil desde el backend.
+  ///
+  /// Se usa después de canjear Gotas o de completar preferencias.
+  Future<void> refreshRemote() async {
+    final u = _user;
+    if (u == null || !_auth.isRemote) return;
+    await _hydrateRemote(u);
+  }
+
   Future<void> _hydrateRemote(AppUser u) async {
     final balance = await _auth.gotasBalance(u.id);
     final saved = await _auth.addresses(u.id);

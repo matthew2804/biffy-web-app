@@ -100,10 +100,11 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 
 ### Fase 1 · Recompensas con cajas (2 días)
 
-- `/recompensas` debe leer `gotas_rewards` y `gotas_reward_prizes`.
-- Abrir caja → RPC `redeem_reward` → revelar el premio sorteado.
-- Historial desde `reward_redemptions`; saldo y libro desde `gotas_ledger`.
-- Límite de canjes por día (regla en la base).
+- ✅ `/recompensas` lee `gotas_rewards` y `gotas_reward_prizes` con Supabase.
+- ✅ Abrir caja → RPC `redeem_reward` → diálogo con el premio sorteado.
+- ✅ Historial de canjes desde `reward_redemptions`.
+- ⏳ Saldo y libro de movimientos desde `gotas_ledger` (la pantalla aún usa el historial local en demo).
+- ⏳ Límite de canjes por día (regla en la base).
 - **Hecho cuando:** abrir una caja descuenta en la base y al reabrir la app el
   premio sigue ahí.
 
@@ -181,7 +182,9 @@ Hoy viven solo en memoria (`SessionController`), aunque las tablas existen:
 4. **Secretos fuera del repo:** `env.json`, contraseñas y `service_role` no se
    versionan.
 5. Antes de subir: `flutter analyze` y `flutter test` en verde.
-6. Commits pequeños; la rama de integración es `dev`.
+6. Commits pequeños; la rama de integración es `supabasev2` (creada desde `dev`).
+7. **Comenta cada clase, función y widget** con una línea corta de qué es o qué
+   hace (`///` en miembros públicos). Es requisito para dar algo por terminado.
 
 ---
 

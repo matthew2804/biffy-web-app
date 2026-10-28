@@ -222,7 +222,7 @@ El RPC recibe un único `jsonb`, así se agregan campos sin volver a tocar firma
 | Catálogo remoto (caché hidratada + realtime) | ✅ |
 | Pedidos por RPC (crear, aceptar, recoger, entregar) + realtime | ✅ |
 | Subida real de evidencia y fotos a Storage | ✅ (evidencia) |
-| Pantalla de recompensas con cajas | ⏳ |
+| Pantalla de recompensas con cajas | ✅ (historial de canjes incluido) |
 | Errores, estados de carga y reintentos | ⏳ |
 
 Con `env.json` la app arranca contra Supabase (Auth, catálogo y pedidos);

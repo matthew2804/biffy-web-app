@@ -17,6 +17,7 @@
 - Orders are shared by buyer, restaurant and courier through `OrderService`; every status change goes through its methods (allowed transitions in `kAllowedTransitions`), never by mutating `Order` from a widget.
 - Merchant products are saved into the shared catalog repository via `CatalogController.saveDish`, so buyer screens and the radius rule see them without a second source.
 - Mobile-first touch UI: shared pieces in `lib/core/widgets/`; yellow `#FCBD1A` primary, Sora/Manrope fonts bundled in `assets/fonts/`; every visible control must have a real action.
+- Comment every class, function and widget with one short line saying what it is or does (Spanish, `///` for public members). New code without that comment is not done.
 - Demo accounts (password `biffy123`) and the "Horario de demostración" setting keep the full three-role flow testable offline at any hour; `test/integration/full_flow.dart` drives that flow through the UI.
 
 ## Estado y pendientes
