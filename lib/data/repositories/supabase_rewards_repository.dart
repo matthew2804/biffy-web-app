@@ -145,6 +145,24 @@ class RewardRedemption {
       prizeType == 'product' && status == 'granted' && claimCode != null;
 }
 
+/// Un movimiento del libro de Gotas.
+class GotasMovement {
+  const GotasMovement({
+    required this.amount,
+    required this.reason,
+    required this.at,
+  });
+
+  /// Gotas sumadas (positivo) o restadas (negativo).
+  final int amount;
+
+  /// Motivo del movimiento.
+  final String reason;
+
+  /// Cuándo ocurrió.
+  final DateTime at;
+}
+
 /// Acceso a recompensas y canjes en Supabase.
 ///
 /// Toda la escritura pasa por el RPC `redeem_reward`: la app nunca descuenta
@@ -284,6 +302,27 @@ class SupabaseRewardsRepository {
                     ? (row['reward'] as Map)['code'] as String?
                     : null) ??
                 '',
+          ),
+        )
+        .toList();
+  }
+
+  /// Últimos movimientos del libro de Gotas (RLS solo devuelve los propios).
+  Future<List<GotasMovement>> ledger() async {
+    final rows = await _client
+        .from('gotas_ledger')
+        .select('amount, reason, created_at')
+        .order('created_at', ascending: false)
+        .limit(30);
+
+    return rows
+        .map(
+          (row) => GotasMovement(
+            amount: ((row['amount'] as num?) ?? 0).toInt(),
+            reason: (row['reason'] as String?) ?? '',
+            at:
+                DateTime.tryParse((row['created_at'] as String?) ?? '') ??
+                DateTime.now(),
           ),
         )
         .toList();

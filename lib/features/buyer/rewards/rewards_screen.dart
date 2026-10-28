@@ -32,6 +32,9 @@ class _RewardsScreenState extends State<RewardsScreen> {
   /// Historial de canjes remoto.
   Future<List<RewardRedemption>>? _history;
 
+  /// Libro de movimientos de Gotas.
+  Future<List<GotasMovement>>? _ledger;
+
   /// Evita doble toque mientras un canje está en curso.
   bool _busy = false;
 
@@ -46,10 +49,11 @@ class _RewardsScreenState extends State<RewardsScreen> {
     }
   }
 
-  /// Dispara la carga de cajas e historial.
+  /// Dispara la carga de cajas, historial y movimientos.
   void _reload() {
     _boxes = _repo!.boxes();
     _history = _repo!.history();
+    _ledger = _repo!.ledger();
   }
 
   /// Canjea una caja/recompensa y muestra el premio sorteado.
@@ -361,38 +365,34 @@ class _RewardsScreenState extends State<RewardsScreen> {
           );
         },
       ),
-      const SectionHeader('Historial de canjes'),
-      FutureBuilder<List<RewardRedemption>>(
-        future: _history,
+      const SectionHeader('Movimientos'),
+      FutureBuilder<List<GotasMovement>>(
+        future: _ledger,
         builder: (context, snapshot) {
-          final rows = snapshot.data ?? const <RewardRedemption>[];
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(child: CircularProgressIndicator()),
             );
           }
+          final rows = snapshot.data ?? const <GotasMovement>[];
           if (rows.isEmpty) {
-            return Text('Aún no has canjeado recompensas.', style: t.bodySmall);
+            return Text('Aún no tienes movimientos.', style: t.bodySmall);
           }
           return Column(
             children: [
-              for (final r in rows)
+              for (final m in rows)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Text(
-                    r.prizeType == 'product' ? '🍽️' : '🎁',
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                  title: Text(r.prizeLabel ?? 'Recompensa canjeada'),
-                  subtitle: Text(
-                    '${relativeDay(r.at, now)} · ${_statusLabel(r.status)}',
-                  ),
+                  title: Text(m.reason),
+                  subtitle: Text(relativeDay(m.at, now)),
                   trailing: Text(
-                    '-${r.spent}',
-                    style: const TextStyle(
+                    '${m.amount > 0 ? '+' : ''}${m.amount}',
+                    style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.error,
+                      color: m.amount > 0
+                          ? AppColors.success
+                          : AppColors.error,
                     ),
                   ),
                 ),
