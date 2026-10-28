@@ -126,14 +126,24 @@ class SupabaseRewardsRepository {
 
   /// Catálogo de recompensas activas con su número de premios.
   Future<List<GotasBox>> boxes() async {
-    final rewards = await _client
-        .from('gotas_rewards')
-        .select(
-          'code, name, reward_type, gotas_cost, tier, draw_frequency, '
-          'cooldown_hours, merchant_managed, sort',
-        )
-        .eq('is_active', true)
-        .order('sort');
+    List<Map<String, dynamic>> rewards;
+    try {
+      rewards = await _client
+          .from('gotas_rewards')
+          .select(
+            'code, name, reward_type, gotas_cost, tier, draw_frequency, '
+            'cooldown_hours, merchant_managed, sort',
+          )
+          .eq('is_active', true)
+          .order('sort');
+    } on Object {
+      // Proyecto sin la migración 0012: se lee el esquema anterior.
+      rewards = await _client
+          .from('gotas_rewards')
+          .select('code, name, reward_type, gotas_cost, tier, draw_frequency')
+          .eq('is_active', true)
+          .order('gotas_cost');
+    }
 
     final prizes = await _client
         .from('gotas_reward_prizes')
