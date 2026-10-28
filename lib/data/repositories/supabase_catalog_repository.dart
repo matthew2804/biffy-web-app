@@ -207,14 +207,59 @@ class SupabaseCatalogRepository implements CatalogRepository {
     };
 
     // Los ids `dish-new-*` son temporales: la base asigna el uuid.
+    String dishId;
     if (dish.id.startsWith('dish-new-')) {
-      await _client.from('dishes').insert(row);
+      final inserted = await _client
+          .from('dishes')
+          .insert(row)
+          .select('id')
+          .single();
+      dishId = inserted['id'] as String;
     } else {
       await _client.from('dishes').update(row).eq('id', dish.id);
+      dishId = dish.id;
     }
+
+    await _syncOptions(dishId, dish);
 
     await refresh();
     if (!_changes.isClosed) _changes.add(null);
+  }
+
+  /// Reemplaza los tamaños, acompañantes y extras del plato en `dish_options`.
+  Future<void> _syncOptions(String dishId, Dish dish) async {
+    await _client.from('dish_options').delete().eq('dish_id', dishId);
+
+    final options = <Map<String, dynamic>>[
+      for (var i = 0; i < dish.sizes.length; i++)
+        {
+          'dish_id': dishId,
+          'kind': 'size',
+          'label': dish.sizes[i].label,
+          'price_delta': dish.sizes[i].price,
+          'sort': i,
+        },
+      for (var i = 0; i < dish.sides.length; i++)
+        {
+          'dish_id': dishId,
+          'kind': 'side',
+          'label': dish.sides[i].label,
+          'price_delta': dish.sides[i].price,
+          'sort': i,
+        },
+      for (var i = 0; i < dish.extras.length; i++)
+        {
+          'dish_id': dishId,
+          'kind': 'extra',
+          'label': dish.extras[i].label,
+          'price_delta': dish.extras[i].price,
+          'sort': i,
+        },
+    ];
+
+    if (options.isNotEmpty) {
+      await _client.from('dish_options').insert(options);
+    }
   }
 
   /// Borrado lógico del plato: conserva el historial de pedidos.
