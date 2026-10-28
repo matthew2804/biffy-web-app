@@ -207,7 +207,18 @@ class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
                                 Switch(
                                   key: Key('soldout-${d.id}'),
                                   value: d.soldOut,
-                                  onChanged: (v) => catalog.setSoldOut(d, v),
+                                  onChanged: (v) async {
+                                    try {
+                                      await catalog.setSoldOut(d, v);
+                                    } on Object {
+                                      if (!context.mounted) return;
+                                      showSnack(
+                                        context,
+                                        'No pudimos guardar el cambio.',
+                                        error: true,
+                                      );
+                                    }
+                                  },
                                 ),
                               ],
                             ),

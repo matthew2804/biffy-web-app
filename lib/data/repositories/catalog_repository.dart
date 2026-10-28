@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import '../mock/seed_catalog.dart';
 import '../models/business.dart';
@@ -29,6 +30,18 @@ abstract class CatalogRepository {
   Future<void> deleteDish(String id);
   /// Suma unidades vendidas para controlar las porciones.
   void recordSale(String dishId, int qty);
+
+  /// Marca o desmarca un plato como agotado.
+  Future<void> setDishSoldOut(String dishId, bool soldOut);
+
+  /// Pausa o reanuda una sede.
+  Future<void> setBranchPaused(String branchId, bool paused);
+
+  /// Sube la foto de un plato y devuelve su URL pública (null en demo).
+  Future<String?> uploadDishPhoto({
+    required String businessId,
+    required Uint8List bytes,
+  }) async => null;
 
   /// Emite cuando el backend trae cambios (Realtime). Vacío en memoria.
   Stream<void> get changes => const Stream<void>.empty();
@@ -125,4 +138,25 @@ class InMemoryCatalogRepository implements CatalogRepository {
     final d = dishById(dishId);
     if (d != null) d.soldToday += qty;
   }
+
+  /// Marca el plato como agotado (solo en memoria).
+  @override
+  Future<void> setDishSoldOut(String dishId, bool soldOut) async {
+    final d = dishById(dishId);
+    if (d != null) d.soldOut = soldOut;
+  }
+
+  /// Pausa la sede (solo en memoria).
+  @override
+  Future<void> setBranchPaused(String branchId, bool paused) async {
+    final r = restaurantById(branchId);
+    if (r != null) r.paused = paused;
+  }
+
+  /// En demo no hay Storage: la foto no se sube.
+  @override
+  Future<String?> uploadDishPhoto({
+    required String businessId,
+    required Uint8List bytes,
+  }) async => null;
 }

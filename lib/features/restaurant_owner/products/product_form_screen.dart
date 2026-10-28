@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -63,6 +64,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   late final _fat = TextEditingController(
     text: _orig?.nutrition?.fat.toString() ?? '',
   );
+
+  /// Foto elegida en esta sesión (aún no subida).
+  Uint8List? _photoBytes;
+
+  /// URL o asset actual de la foto.
+  late String? _photoUrl = _orig?.imageAsset;
   late String _category =
       _orig?.category ?? _catalog.businessById(_biz)?.cuisine ?? 'sandwich';
   late String _branch =
@@ -124,9 +131,43 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         ),
   ];
 
+  /// Abre la galería y guarda la foto elegida en memoria.
+  Future<void> _pickPhoto() async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        imageQuality: 75,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      setState(() => _photoBytes = bytes);
+    } catch (_) {
+      if (!mounted) return;
+      showSnack(context, 'No pudimos abrir la galería.', error: true);
+    }
+  }
+
   /// Valida, arma el plato y lo publica en el catálogo compartido.
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
+
+    // Si hay foto nueva, se sube antes de guardar el plato.
+    var image = _photoUrl;
+    if (_photoBytes != null) {
+      final url = await _catalog.uploadDishPhoto(
+        businessId: _biz,
+        bytes: _photoBytes!,
+      );
+      if (url == null) {
+        if (!mounted) return;
+        showSnack(context, 'No pudimos subir la foto.', error: true);
+        return;
+      }
+      image = url;
+    }
+
     final hasNutrition = [
       _kcal,
       _protein,
@@ -171,7 +212,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       soldOut: _soldOut,
       portionLimit: int.tryParse(_limit.text),
       soldToday: _orig?.soldToday ?? 0,
-      imageAsset: _orig?.imageAsset,
+      imageAsset: image,
     );
     try {
       await _catalog.saveDish(dish);
@@ -314,6 +355,67 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 maxLines: 2,
                 decoration: const InputDecoration(labelText: 'Descripción *'),
                 validator: _req,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Foto del plato',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 72,
+                      height: 72,
+                      child: _photoBytes != null
+                          ? Image.memory(_photoBytes!, fit: BoxFit.cover)
+                          : _photoUrl != null
+                          ? catalogImage(
+                              _photoUrl!,
+                              width: 72,
+                              height: 72,
+                              fallback: Text(
+                                categoryById(_category).emoji,
+                                style: const TextStyle(fontSize: 28),
+                              ),
+                            )
+                          : Container(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              alignment: Alignment.center,
+                              child: Text(
+                                categoryById(_category).emoji,
+                                style: const TextStyle(fontSize: 28),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const Key('p-photo'),
+                      onPressed: _pickPhoto,
+                      icon: const Icon(Icons.photo_camera_outlined),
+                      label: Text(
+                        _photoBytes == null && _photoUrl == null
+                            ? 'Agregar foto'
+                            : 'Cambiar foto',
+                      ),
+                    ),
+                  ),
+                  if (_photoBytes != null || _photoUrl != null)
+                    IconButton(
+                      tooltip: 'Quitar foto',
+                      onPressed: () => setState(() {
+                        _photoBytes = null;
+                        _photoUrl = null;
+                      }),
+                      icon: const Icon(Icons.close),
+                    ),
+                ],
               ),
               const SizedBox(height: 12),
               TextFormField(

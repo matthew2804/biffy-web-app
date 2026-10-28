@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
@@ -278,6 +279,50 @@ class SupabaseCatalogRepository implements CatalogRepository {
   void recordSale(String dishId, int qty) {
     final dish = dishById(dishId);
     if (dish != null) dish.soldToday += qty;
+  }
+
+  /// Persiste el estado de agotado y refresca la caché.
+  @override
+  Future<void> setDishSoldOut(String dishId, bool soldOut) async {
+    await _client
+        .from('dishes')
+        .update({'sold_out': soldOut})
+        .eq('id', dishId);
+    await refresh();
+    if (!_changes.isClosed) _changes.add(null);
+  }
+
+  /// Persiste la pausa de una sede y refresca la caché.
+  @override
+  Future<void> setBranchPaused(String branchId, bool paused) async {
+    await _client
+        .from('branches')
+        .update({'paused': paused})
+        .eq('id', branchId);
+    await refresh();
+    if (!_changes.isClosed) _changes.add(null);
+  }
+
+  /// Sube la foto del plato a `dish-images/<business_id>/` y devuelve la URL.
+  @override
+  Future<String?> uploadDishPhoto({
+    required String businessId,
+    required Uint8List bytes,
+  }) async {
+    try {
+      final path =
+          '$businessId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await _client.storage
+          .from('dish-images')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: const sb.FileOptions(contentType: 'image/jpeg'),
+          );
+      return _client.storage.from('dish-images').getPublicUrl(path);
+    } on Object {
+      return null;
+    }
   }
 
   // ------------------------------------------------------------ Mapeo

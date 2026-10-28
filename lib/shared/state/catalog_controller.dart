@@ -157,19 +157,27 @@ class CatalogController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Marca o desmarca un plato como agotado.
-  void setSoldOut(Dish d, bool soldOut) {
+  /// Marca o desmarca un plato como agotado y lo persiste.
+  Future<void> setSoldOut(Dish d, bool soldOut) async {
+    await repo.setDishSoldOut(d.id, soldOut);
     d.soldOut = soldOut;
     notifyListeners();
   }
 
-  /// Pausa o reanuda todas las sedes de un negocio.
-  void setBusinessPaused(String businessId, bool paused) {
+  /// Pausa o reanuda todas las sedes de un negocio y lo persiste.
+  Future<void> setBusinessPaused(String businessId, bool paused) async {
     for (final r in branchesOf(businessId)) {
+      await repo.setBranchPaused(r.id, paused);
       r.paused = paused;
     }
     notifyListeners();
   }
+
+  /// Sube la foto de un plato (null en demo).
+  Future<String?> uploadDishPhoto({
+    required String businessId,
+    required Uint8List bytes,
+  }) => repo.uploadDishPhoto(businessId: businessId, bytes: bytes);
 
   /// Activa la información nutricional en un negocio.
   void setNutritionInfo(String businessId, bool value) {
