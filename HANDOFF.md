@@ -135,8 +135,8 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
   40 opciones** (tamaños, acompañantes y extras).
 - ✅ Cada negocio tiene su cuenta demo (`biffy123`) como dueño real.
 - ✅ `branches.location` sincronizada desde lat/lng (trigger + backfill).
-- ✅ Polígonos de campus **aproximados** en `universities.boundary_polygon`
-  (reemplazables por el contorno real con `st_geomfromgeojson`).
+- ✅ Polígono **real** de Icesi en `universities.boundary_polygon` (OSM).
+  UNAL, Andes y Javeriana quedan sin polígono (respaldo por `campus_id`).
 - ✅ `place_order` valida con PostGIS: radio (`ST_DWithin`) y geocerca
   (`ST_Covers`) cuando la sede es `campus_delivery_only`.
 - **Hecho cuando:** el home en modo Supabase se ve igual que el demo.

@@ -204,8 +204,14 @@ falta, completa campos y no duplica. Cada negocio queda con su cuenta de dueño
 ## Campus y geocerca
 
 `universities.boundary_polygon` guarda el contorno de cada campus (SRID 4326).
-La migración `0014` siembra **rectángulos aproximados** para la demo y sincroniza
-`branches.location` con un trigger.
+
+| Universidad | Polígono |
+|---|---|
+| Icesi | ✅ contorno real de OpenStreetMap (`relation/6784907`, migración `0015`) |
+| UNAL, Andes, Javeriana (Bogotá) | ⛔ sin polígono: la geocerca usa el respaldo por `campus_id` |
+
+La migración `0014` sincroniza `branches.location` con un trigger y deja una
+validación con PostGIS en `place_order`.
 
 **Reemplazar por el contorno real:**
 
