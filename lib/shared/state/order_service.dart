@@ -351,9 +351,25 @@ class OrderService extends ChangeNotifier {
       if (order.couponId != null) 'coupon_id': order.couponId,
     };
 
-    remote.place(payload).then((id) {
-      if (id == null) return;
-      order.dbId = id;
+    remote.place(payload).then((res) {
+      if (res.id != null) {
+        order.dbId = res.id;
+        notifyListeners();
+        return;
+      }
+
+      // El servidor rechazó el pedido (fuera de radio, campus, etc.).
+      final message = switch (res.error) {
+        'out_of_range' => 'La dirección está fuera del radio de entrega.',
+        'outside_campus' => 'Esa sede solo entrega dentro del campus.',
+        _ => 'No pudimos registrar el pedido en el servidor.',
+      };
+      notifications.push(
+        title: 'Pedido no registrado',
+        body: message,
+        audience: 'user:${order.buyerId}',
+        route: '/pedido/${order.id}',
+      );
       notifyListeners();
     });
   }

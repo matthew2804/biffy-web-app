@@ -201,6 +201,37 @@ y opciones) usando el mismo seed que la app. Es **idempotente**: crea lo que
 falta, completa campos y no duplica. Cada negocio queda con su cuenta de dueño
 (contraseña `biffy123`).
 
+## Campus y geocerca
+
+`universities.boundary_polygon` guarda el contorno de cada campus (SRID 4326).
+La migración `0014` siembra **rectángulos aproximados** para la demo y sincroniza
+`branches.location` con un trigger.
+
+**Reemplazar por el contorno real:**
+
+```sql
+-- GeoJSON del campus (OpenStreetMap → Exportar, o el plano de la universidad)
+update public.universities
+   set boundary_polygon = st_setsrid(st_geomfromgeojson('{"type":"Polygon","coordinates":[...]}'), 4326)
+ where id = 'icesi';
+```
+
+Comprobación:
+
+```sql
+select id, st_asgeojson(boundary_polygon) from public.universities;
+```
+
+**Activar la geocerca en una sede** (`place_order` la aplica solo cuando la sede
+es `campus_delivery_only`):
+
+```sql
+update public.branches set campus_delivery_only = true where campus_id = 'icesi';
+```
+
+> `Qbano · Icesi` ya viene con `campus_delivery_only = true`, así que la
+> geocerca está activa ahí.
+
 ## Pendiente para cerrar la base1. Aplicar `apply_all.sql` (o `supabase db push`).
 2. Crear las cuentas demo en Auth y cargar el catálogo semilla
    (`businesses`, `branches`, `dishes`) con la `service_role` desde un script

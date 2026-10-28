@@ -27,7 +27,8 @@ declare
     ['branches', 'paused'], ['orders', 'delivery_code'], ['orders', 'gotas_used'],
     ['profiles', 'gotas'], ['profiles', 'business_id'],
     ['gotas_rewards', 'cooldown_hours'], ['box_items', 'reward_id'],
-    ['reward_redemptions', 'claim_code']
+    ['reward_redemptions', 'claim_code'],
+    ['branches', 'location'], ['universities', 'boundary_polygon']
   ];
   expected_functions text[] := array[
     'place_order', 'restaurant_accept', 'restaurant_reject', 'restaurant_ready',

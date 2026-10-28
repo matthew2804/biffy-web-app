@@ -153,19 +153,26 @@ class SupabaseOrderRepository implements OrderRepository {
 
   // ------------------------------------------------------------ Escritura
 
-  /// Crea el pedido en la base. Devuelve el uuid o `null` si falló.
-  Future<String?> place(Map<String, dynamic> payload) async {
+  /// Crea el pedido en la base. Devuelve el uuid o el motivo del rechazo.
+  Future<({String? id, String? error})> place(
+    Map<String, dynamic> payload,
+  ) async {
     try {
       final res = await _client.rpc(
         'place_order',
         params: {'p_payload': payload},
       );
       final map = res is Map ? res : const {};
-      if (map['result'] != 'ok') return null;
+      if (map['result'] != 'ok') {
+        return (id: null, error: map['result'] as String?);
+      }
       final order = map['order'];
-      return order is Map ? order['id'] as String? : null;
+      return (
+        id: order is Map ? order['id'] as String? : null,
+        error: null,
+      );
     } on Object {
-      return null;
+      return (id: null, error: 'network');
     }
   }
 

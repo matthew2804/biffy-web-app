@@ -134,8 +134,11 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
   `tool/seed_supabase.dart` (idempotente): **14 negocios, 16 sedes, 36 platos y
   40 opciones** (tamaños, acompañantes y extras).
 - ✅ Cada negocio tiene su cuenta demo (`biffy123`) como dueño real.
-- ⏳ Polígonos en `universities.boundary_polygon` (opcional; PostGIS listo).
-- ⏳ Radio con `ST_DWithin` en vez de lat/lng (opcional).
+- ✅ `branches.location` sincronizada desde lat/lng (trigger + backfill).
+- ✅ Polígonos de campus **aproximados** en `universities.boundary_polygon`
+  (reemplazables por el contorno real con `st_geomfromgeojson`).
+- ✅ `place_order` valida con PostGIS: radio (`ST_DWithin`) y geocerca
+  (`ST_Covers`) cuando la sede es `campus_delivery_only`.
 - **Hecho cuando:** el home en modo Supabase se ve igual que el demo.
 
 ### Fase 4 · Datos personales sincronizados (2–3 días)
