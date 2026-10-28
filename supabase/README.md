@@ -190,9 +190,18 @@ Al registrarse:
 - el repartidor obtiene su fila en `courier_profiles`;
 - el restaurante crea negocio y sede con `register_business`.
 
-## Pendiente para cerrar la base
+## Datos demo
 
-1. Aplicar `apply_all.sql` (o `supabase db push`).
+```bash
+dart run tool/seed_supabase.dart
+```
+
+Carga el catálogo de `lib/data/mock/seed_catalog.dart` (negocios, sedes, platos
+y opciones) usando el mismo seed que la app. Es **idempotente**: crea lo que
+falta, completa campos y no duplica. Cada negocio queda con su cuenta de dueño
+(contraseña `biffy123`).
+
+## Pendiente para cerrar la base1. Aplicar `apply_all.sql` (o `supabase db push`).
 2. Crear las cuentas demo en Auth y cargar el catálogo semilla
    (`businesses`, `branches`, `dishes`) con la `service_role` desde un script
    de administración, nunca desde la app.

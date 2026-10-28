@@ -130,9 +130,12 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 
 ### Fase 3 · Catálogo completo (2 días)
 
-- Cargar los 15 restaurantes / 32 platos de `lib/data/mock/seed_catalog.dart`.
-- `dish_options` (tamaños, acompañantes, extras) para los platos que los tengan.
-- Polígonos en `universities.boundary_polygon` (PostGIS ya está instalado).
+- ✅ Catálogo cargado desde `lib/data/mock/seed_catalog.dart` con
+  `tool/seed_supabase.dart` (idempotente): **14 negocios, 16 sedes, 36 platos y
+  40 opciones** (tamaños, acompañantes y extras).
+- ✅ Cada negocio tiene su cuenta demo (`biffy123`) como dueño real.
+- ⏳ Polígonos en `universities.boundary_polygon` (opcional; PostGIS listo).
+- ⏳ Radio con `ST_DWithin` en vez de lat/lng (opcional).
 - **Hecho cuando:** el home en modo Supabase se ve igual que el demo.
 
 ### Fase 4 · Datos personales sincronizados (2–3 días)
