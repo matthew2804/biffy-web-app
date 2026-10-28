@@ -6,12 +6,18 @@ import '../../data/models/user.dart';
 
 /// Notificaciones locales dentro de la app (sin push ni FCM en este sprint).
 class NotificationCenter extends ChangeNotifier {
-  /// Usa el reloj indicado para fechar las notificaciones.
-  NotificationCenter(this._clock);
+  /// Usa el reloj indicado y, opcionalmente, persiste en el backend.
+  NotificationCenter(this._clock, {this.persist, this.onRead});
 
   final Clock _clock;
   final List<AppNotification> _items = [];
   int _seq = 0;
+
+  /// Guarda una notificación nueva (null en modo demo).
+  final Future<void> Function(AppNotification n)? persist;
+
+  /// Marca una notificación como leída en el backend (null en modo demo).
+  final void Function(String id)? onRead;
 
   /// Todas las notificaciones (solo lectura).
   List<AppNotification> get all => List.unmodifiable(_items);
@@ -23,17 +29,31 @@ class NotificationCenter extends ChangeNotifier {
     required String audience,
     String? route,
   }) {
-    _items.insert(
-      0,
-      AppNotification(
-        id: 'n${++_seq}',
-        title: title,
-        body: body,
-        audience: audience,
-        createdAt: _clock.now(),
-        route: route,
-      ),
+    final n = AppNotification(
+      id: 'n${++_seq}',
+      title: title,
+      body: body,
+      audience: audience,
+      createdAt: _clock.now(),
+      route: route,
     );
+    _items.insert(0, n);
+    persist?.call(n);
+    notifyListeners();
+  }
+
+  /// Carga notificaciones ya guardadas sin volver a persistirlas.
+  void seed(Iterable<AppNotification> items) {
+    final known = {for (final n in _items) n.id};
+    var changed = false;
+    for (final n in items) {
+      if (known.add(n.id)) {
+        _items.add(n);
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    _items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
 
@@ -63,6 +83,7 @@ class NotificationCenter extends ChangeNotifier {
     for (final n in _items) {
       if (n.id == id) n.read = true;
     }
+    onRead?.call(id);
     notifyListeners();
   }
 

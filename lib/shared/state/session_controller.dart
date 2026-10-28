@@ -326,6 +326,12 @@ class SessionController extends ChangeNotifier {
         _settings = s;
         _clock.simulateLunch = s.demoLunch;
       }
+
+      // Cupones generados por las cajas y notificaciones guardadas.
+      d.coupons
+        ..clear()
+        ..addAll(await profile.coupons(u.id));
+      _notifications.seed(await profile.notifications(u.id));
     }
 
     notifyListeners();
@@ -396,6 +402,10 @@ class SessionController extends ChangeNotifier {
   }
 
   /// Verifica el correo universitario de forma simulada.
+  ///
+  /// TODO equipo: con Supabase debe llamar al RPC `verify_university` (ya
+  /// existe y valida el dominio) y refrescar `profiles.verified` y
+  /// `university_email`. Hoy solo cambia el estado en memoria.
   VerifyResult verifyUniversity(String universityId, String email) {
     if (!isLoggedIn) return VerifyResult.notLoggedIn;
     final e = email.trim().toLowerCase();

@@ -143,18 +143,19 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 
 ### Fase 4 · Datos personales sincronizados (2–3 días)
 
-Hoy viven solo en memoria (`SessionController`), aunque las tablas existen:
-
-- Direcciones (`addresses`) — crear/editar/borrar.
-- Preferencias y encuesta de 300 Gotas (`preferences`).
-- Favoritos (`favorite_dishes`, `favorite_branches`).
-- Ajustes (`app_settings`).
-- Cupones (`coupons`, `user_coupons`).
-- Notificaciones persistentes (`notifications`) — requiere política INSERT.
+- ✅ Direcciones (`addresses`) — crear/editar/borrar/predeterminada, con `dbId`.
+- ✅ Preferencias y encuesta de 300 Gotas (`preferences` + RPC `complete_survey`).
+- ✅ Favoritos (`favorite_dishes`, `favorite_branches`).
+- ✅ Ajustes (`app_settings`), incluido el modo oscuro real.
+- ✅ Cupones (`coupons`, `user_coupons`): los premios de caja generan cupón.
+- ✅ Notificaciones persistentes (`notifications`) para el propio usuario.
 - **Hecho cuando:** cerrar sesión y volver conserva todo.
 
-> Es la fase de mayor riesgo: `SessionController` lo usan casi todas las
-> pantallas.
+> **Pendiente asignado a otra persona:** verificación universitaria desde la
+> pantalla. El RPC `verify_university` ya existe y valida el dominio; falta que
+> `SessionController.verifyUniversity` lo llame y refresque
+> `profiles.verified` / `university_email`. Ver el TODO en
+> `lib/shared/state/session_controller.dart`.
 
 ### Fase 5 · Robustez (2–3 días)
 

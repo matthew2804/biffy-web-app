@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../models/address.dart';
+import '../models/app_notification.dart';
 import '../models/user.dart';
 
 /// Datos personales del comprador en Supabase: preferencias, ajustes,
@@ -217,6 +218,102 @@ class SupabaseProfileRepository {
         .update({'is_default': false})
         .eq('user_id', userId);
     await _client.from('addresses').update({'is_default': true}).eq('id', dbId);
+  }
+
+  // ------------------------------------------------------------ Cupones
+
+  /// Cupones del usuario (premios de caja ya convertidos en cupón).
+  Future<List<Coupon>> coupons(String userId) async {
+    final rows = await _client
+        .from('user_coupons')
+        .select('used_at, coupon:coupons(id,title,kind,amount,active,valid_until)')
+        .eq('user_id', userId);
+
+    final out = <Coupon>[];
+    for (final row in rows) {
+      final c = row['coupon'];
+      if (c is! Map) continue;
+      if (c['active'] == false) continue;
+
+      final until = DateTime.tryParse((c['valid_until'] as String?) ?? '');
+      if (until != null && until.isBefore(DateTime.now())) continue;
+
+      out.add(
+        Coupon(
+          id: c['id'] as String,
+          title: (c['title'] as String?) ?? 'Cupón',
+          kind: c['kind'] == 'free_delivery'
+              ? CouponKind.freeDelivery
+              : CouponKind.fixed,
+          amount: ((c['amount'] as num?) ?? 0).toInt(),
+        )..used = row['used_at'] != null,
+      );
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------ Notificaciones
+
+  /// Notificaciones guardadas del usuario (solo las dirigidas a él).
+  Future<List<AppNotification>> notifications(String userId) async {
+    final rows = await _client
+        .from('notifications')
+        .select('id, title, body, audience, route, read_at, created_at')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(50);
+
+    return rows
+        .map(
+          (row) => AppNotification(
+            id: row['id'] as String,
+            title: (row['title'] as String?) ?? '',
+            body: (row['body'] as String?) ?? '',
+            audience: (row['audience'] as String?) ?? 'all',
+            createdAt:
+                DateTime.tryParse((row['created_at'] as String?) ?? '') ??
+                DateTime.now(),
+            route: row['route'] as String?,
+            read: row['read_at'] != null,
+          ),
+        )
+        .toList();
+  }
+
+  /// Guarda una notificación dirigida al usuario actual.
+  Future<void> saveNotification(AppNotification n) async {
+    // Solo se persisten las notificaciones personales (`user:<id>`).
+    if (!n.audience.startsWith('user:')) return;
+    final userId = n.audience.substring(5);
+    try {
+      await _client.from('notifications').insert({
+        'user_id': userId,
+        'audience': n.audience,
+        'title': n.title,
+        'body': n.body,
+        'route': n.route,
+      });
+    } on Object {
+      // Si falla, la notificación local se conserva igual.
+    }
+  }
+
+  /// Marca como leída una notificación guardada.
+  Future<void> markNotificationRead(String id) async {
+    // Los ids locales (`n1`) no son uuid: se ignoran.
+    if (!RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    ).hasMatch(id)) {
+      return;
+    }
+    try {
+      await _client
+          .from('notifications')
+          .update({'read_at': DateTime.now().toUtc().toIso8601String()})
+          .eq('id', id);
+    } on Object {
+      // Silencioso: el estado local ya cambió.
+    }
   }
 
   /// Convierte el arreglo de Postgres en un conjunto de textos.

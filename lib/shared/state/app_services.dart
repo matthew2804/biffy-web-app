@@ -80,12 +80,17 @@ class AppServices {
     final remoteAuth = auth ?? SupabaseAuthRepository();
     final repo = catalogRepo ?? await SupabaseCatalogRepository.load();
     final orderStore = orderRepo ?? await SupabaseOrderRepository.load();
-    final notifications = NotificationCenter(c);
+    final profileRepo = SupabaseProfileRepository();
+    final notifications = NotificationCenter(
+      c,
+      persist: profileRepo.saveNotification,
+      onRead: profileRepo.markNotificationRead,
+    );
     final session = SessionController(
       remoteAuth,
       notifications,
       c,
-      profile: SupabaseProfileRepository(),
+      profile: profileRepo,
     );
     final catalog = CatalogController(repo, session, c);
     final cart = CartController(repo);
