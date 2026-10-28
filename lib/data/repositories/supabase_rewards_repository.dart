@@ -176,12 +176,15 @@ class SupabaseRewardsRepository {
 
   /// Catálogo de recompensas activas con su número de premios.
   Future<List<GotasBox>> boxes() async {
+    // Los premios se piden en paralelo con las recompensas.
+    final prizesF = _client.from('gotas_reward_prizes').select('reward_id');
+
     List<Map<String, dynamic>> rewards;
     try {
       rewards = await _client
           .from('gotas_rewards')
           .select(
-            'code, name, reward_type, gotas_cost, tier, draw_frequency, '
+            'id, code, name, reward_type, gotas_cost, tier, draw_frequency, '
             'cooldown_hours, merchant_managed, sort',
           )
           .eq('is_active', true)
@@ -190,14 +193,12 @@ class SupabaseRewardsRepository {
       // Proyecto sin la migración 0012: se lee el esquema anterior.
       rewards = await _client
           .from('gotas_rewards')
-          .select('code, name, reward_type, gotas_cost, tier, draw_frequency')
+          .select('id, code, name, reward_type, gotas_cost, tier, draw_frequency')
           .eq('is_active', true)
           .order('gotas_cost');
     }
 
-    final prizes = await _client
-        .from('gotas_reward_prizes')
-        .select('reward_id');
+    final prizes = await prizesF;
 
     final countByReward = <String, int>{};
     for (final row in prizes) {
@@ -205,17 +206,6 @@ class SupabaseRewardsRepository {
       if (id == null) continue;
       countByReward[id] = (countByReward[id] ?? 0) + 1;
     }
-
-    // Se consulta el id de cada recompensa para contar sus premios.
-    final withIds = await _client
-        .from('gotas_rewards')
-        .select('id, code')
-        .eq('is_active', true);
-
-    final prizeCountByCode = <String, int>{
-      for (final row in withIds)
-        row['code'] as String: countByReward[row['id']] ?? 0,
-    };
 
     return rewards
         .map(
@@ -225,7 +215,7 @@ class SupabaseRewardsRepository {
             type: (row['reward_type'] as String?) ?? 'discount',
             cost: ((row['gotas_cost'] as num?) ?? 0).toInt(),
             tier: (row['tier'] as num?)?.toInt(),
-            prizes: prizeCountByCode[row['code']] ?? 0,
+            prizes: countByReward[row['id']] ?? 0,
             drawFrequency: row['draw_frequency'] as String?,
             cooldownHours: ((row['cooldown_hours'] as num?) ?? 0).toInt(),
             merchantManaged: (row['merchant_managed'] as bool?) ?? false,

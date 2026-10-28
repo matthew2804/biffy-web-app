@@ -84,10 +84,16 @@ class SupabaseCatalogRepository implements CatalogRepository {
   @override
   Future<void> refresh() async {
     try {
-      final businessRows = await _client.from('businesses').select();
-      final branchRows = await _client.from('branches').select();
-      final dishRows = await _client.from('dishes').select();
-      final optionRows = await _client.from('dish_options').select();
+      // Las cuatro lecturas van en paralelo: el login no espera en cadena.
+      final businessF = _client.from('businesses').select();
+      final branchF = _client.from('branches').select();
+      final dishF = _client.from('dishes').select();
+      final optionF = _client.from('dish_options').select();
+
+      final businessRows = await businessF;
+      final branchRows = await branchF;
+      final dishRows = await dishF;
+      final optionRows = await optionF;
 
       final optionsByDish = <String, Map<String, List<DishOption>>>{};
       for (final row in optionRows) {

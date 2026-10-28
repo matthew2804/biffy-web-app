@@ -277,8 +277,13 @@ class SessionController extends ChangeNotifier {
 
   /// Trae saldo, direcciones y perfil de repartidor del backend.
   Future<void> _hydrateRemote(AppUser u) async {
-    final balance = await _auth.gotasBalance(u.id);
-    final saved = await _auth.addresses(u.id);
+    // Las tres lecturas base van en paralelo.
+    final balanceF = _auth.gotasBalance(u.id);
+    final savedF = _auth.addresses(u.id);
+    final courierF = _auth.courierProfile(u.id);
+
+    final balance = await balanceF;
+    final saved = await savedF;
     final d = dataFor(u.id);
 
     if (balance != null) {
@@ -296,7 +301,7 @@ class SessionController extends ChangeNotifier {
     }
 
     // Perfil de repartidor: evita pedirle el registro a una cuenta que ya lo tiene.
-    final courier = await _auth.courierProfile(u.id);
+    final courier = await courierF;
     if (courier != null) {
       d.courierProfile = courier;
       d.courierOnline = true;
@@ -305,15 +310,21 @@ class SessionController extends ChangeNotifier {
           : CourierZone.campus;
     }
 
-    // Preferencias, ajustes y favoritos del usuario.
+    // Preferencias, ajustes y favoritos del usuario (en paralelo).
     final profile = _profile;
     if (profile != null) {
-      final p = await profile.preferences(u.id);
+      final prefsF = profile.preferences(u.id);
+      final favsF = profile.favorites(u.id);
+      final settingsF = profile.settings(u.id);
+      final couponsF = profile.coupons(u.id);
+      final notifsF = profile.notifications(u.id);
+
+      final p = await prefsF;
       if (p.prefs != null) d.prefs = p.prefs!;
       d.prefsCompleted = p.completed;
       d.surveyRewarded = p.rewarded;
 
-      final favs = await profile.favorites(u.id);
+      final favs = await favsF;
       d.favoriteDishes
         ..clear()
         ..addAll(favs.dishes);
@@ -321,7 +332,7 @@ class SessionController extends ChangeNotifier {
         ..clear()
         ..addAll(favs.branches);
 
-      final s = await profile.settings(u.id);
+      final s = await settingsF;
       if (s != null) {
         _settings = s;
         _clock.simulateLunch = s.demoLunch;
@@ -330,8 +341,8 @@ class SessionController extends ChangeNotifier {
       // Cupones generados por las cajas y notificaciones guardadas.
       d.coupons
         ..clear()
-        ..addAll(await profile.coupons(u.id));
-      _notifications.seed(await profile.notifications(u.id));
+        ..addAll(await couponsF);
+      _notifications.seed(await notifsF);
     }
 
     notifyListeners();
