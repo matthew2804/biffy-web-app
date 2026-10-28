@@ -7,24 +7,36 @@ import '../models/catalog.dart';
 /// Contrato del catálogo. En un sprint posterior puede implementarse con
 /// Firebase/Firestore sin cambiar las pantallas.
 abstract class CatalogRepository {
+  /// Negocios con sus datos legales y de contacto.
   List<Business> get businesses;
+  /// Sedes visibles en el catálogo.
   List<Restaurant> get restaurants;
+  /// Platos del catálogo.
   List<Dish> get dishes;
 
+  /// Negocio por id, o `null` si no existe.
   Business? businessById(String id);
+  /// Sede por id, o `null` si no existe.
   Restaurant? restaurantById(String id);
+  /// Plato por id, o `null` si no existe.
   Dish? dishById(String id);
 
+  /// Agrega un negocio con sus sedes.
   void addBusiness(Business business, List<Restaurant> branches);
+  /// Crea o actualiza un plato.
   void upsertDish(Dish dish);
+  /// Elimina un plato del catálogo.
   void deleteDish(String id);
+  /// Suma unidades vendidas para controlar las porciones.
   void recordSale(String dishId, int qty);
 
   /// Emite cuando el backend trae cambios (Realtime). Vacío en memoria.
   Stream<void> get changes => const Stream<void>.empty();
 }
 
+/// Catálogo de demostración guardado en memoria.
 class InMemoryCatalogRepository implements CatalogRepository {
+  /// Crea el catálogo con los datos semilla por defecto.
   InMemoryCatalogRepository({
     List<Business>? businesses,
     List<Restaurant>? restaurants,
@@ -37,16 +49,21 @@ class InMemoryCatalogRepository implements CatalogRepository {
   final List<Restaurant> _restaurants;
   final List<Dish> _dishes;
 
+  /// En memoria no hay cambios remotos que emitir.
   @override
   Stream<void> get changes => const Stream<void>.empty();
 
+  /// Negocios registrados (solo lectura).
   @override
   List<Business> get businesses => List.unmodifiable(_businesses);
+  /// Sedes registradas (solo lectura).
   @override
   List<Restaurant> get restaurants => List.unmodifiable(_restaurants);
+  /// Platos registrados (solo lectura).
   @override
   List<Dish> get dishes => List.unmodifiable(_dishes);
 
+  /// Negocio por id dentro del catálogo.
   @override
   Business? businessById(String id) {
     for (final b in _businesses) {
@@ -55,6 +72,7 @@ class InMemoryCatalogRepository implements CatalogRepository {
     return null;
   }
 
+  /// Sede por id dentro del catálogo.
   @override
   Restaurant? restaurantById(String id) {
     for (final r in _restaurants) {
@@ -63,6 +81,7 @@ class InMemoryCatalogRepository implements CatalogRepository {
     return null;
   }
 
+  /// Plato por id dentro del catálogo.
   @override
   Dish? dishById(String id) {
     for (final d in _dishes) {
@@ -71,12 +90,14 @@ class InMemoryCatalogRepository implements CatalogRepository {
     return null;
   }
 
+  /// Registra un negocio y sus sedes.
   @override
   void addBusiness(Business business, List<Restaurant> branches) {
     _businesses.add(business);
     _restaurants.addAll(branches);
   }
 
+  /// Inserta o reemplaza un plato.
   @override
   void upsertDish(Dish dish) {
     final i = _dishes.indexWhere((d) => d.id == dish.id);
@@ -87,9 +108,11 @@ class InMemoryCatalogRepository implements CatalogRepository {
     }
   }
 
+  /// Quita un plato del catálogo.
   @override
   void deleteDish(String id) => _dishes.removeWhere((d) => d.id == id);
 
+  /// Suma las unidades vendidas de un plato.
   @override
   void recordSale(String dishId, int qty) {
     final d = dishById(dishId);

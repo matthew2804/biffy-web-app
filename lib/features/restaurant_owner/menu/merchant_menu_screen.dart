@@ -9,6 +9,7 @@ import '../../../core/widgets/ui.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Menú del negocio con búsqueda, filtros y acciones por producto.
 class MerchantMenuScreen extends StatefulWidget {
   const MerchantMenuScreen({super.key});
 
@@ -16,10 +17,12 @@ class MerchantMenuScreen extends StatefulWidget {
   State<MerchantMenuScreen> createState() => _MerchantMenuScreenState();
 }
 
+/// Estado que filtra el menú por texto y categoría.
 class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
   String _q = '';
   String? _cat;
 
+  /// Lista los productos filtrados con interruptores de disponibilidad.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();

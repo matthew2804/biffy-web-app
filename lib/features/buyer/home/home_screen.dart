@@ -15,9 +15,11 @@ import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 import '../ai/recommendation_input.dart';
 
+/// Página de inicio del comprador con accesos, promociones y catálogo.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  /// Construye la cabecera, las tarjetas y los listados de comida.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -482,6 +484,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+/// Tipo de una promoción del carrusel de la portada.
 typedef _Promo = ({
   String title,
   String body,
@@ -523,20 +526,24 @@ const List<_Promo> _promos = [
 class _PromoBanner extends StatefulWidget {
   const _PromoBanner();
 
+  /// Crea el estado del carrusel de promociones.
   @override
   State<_PromoBanner> createState() => _PromoBannerState();
 }
 
+/// Estado con la página visible del carrusel.
 class _PromoBannerState extends State<_PromoBanner> {
   final _controller = PageController();
   int _page = 0;
 
+  /// Libera el controlador del PageView.
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
+  /// Dibuja el PageView de promos y los puntos de página.
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -580,10 +587,12 @@ class _PromoBannerState extends State<_PromoBanner> {
   }
 }
 
+/// Diapositiva de promoción con foto, textos y llamada a la acción.
 class _PromoSlide extends StatelessWidget {
   const _PromoSlide({required this.promo});
   final _Promo promo;
 
+  /// Dibuja la imagen, el degradado y el botón de la promoción.
   @override
   Widget build(BuildContext context) {
     return ClipRRect(

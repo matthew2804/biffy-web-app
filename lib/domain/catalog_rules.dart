@@ -3,6 +3,7 @@ import '../core/utils/format.dart';
 import '../core/utils/geo.dart';
 import '../data/models/catalog.dart';
 
+/// Distancia en km entre el restaurante y el punto de entrega.
 double distanceTo(Restaurant r, DeliveryPoint p) =>
     distanceKm(r.lat, r.lng, p.lat, p.lng);
 
@@ -13,12 +14,14 @@ bool isReachable(Restaurant r, DeliveryPoint p) {
   return r.couriersNearby > 0 && distanceTo(r, p) <= r.radiusKm;
 }
 
+/// Indica si el restaurante está abierto en ese momento.
 bool isOpenAt(Restaurant r, DateTime t) =>
     !r.paused &&
     !r.closedWeekdays.contains(t.weekday) &&
     t.hour >= r.openHour &&
     t.hour < r.closeHour;
 
+/// Texto del horario: horas de atención y días cerrados.
 String scheduleLabel(Restaurant r) {
   final days = r.closedWeekdays.isEmpty
       ? 'Todos los días'
@@ -30,22 +33,27 @@ String scheduleLabel(Restaurant r) {
 int etaMinutes(Restaurant r, DeliveryPoint p, {int? prepMin}) =>
     (prepMin ?? r.prepMin) + (distanceTo(r, p) * 4).round() + 5;
 
+/// Alérgenos del plato que coinciden con las alergias del usuario.
 List<String> allergyConflicts(Dish d, Set<String> allergies) =>
     d.allergens.where(allergies.contains).toList();
 
+/// Indica si el plato es bajo en calorías por etiqueta o nutrición.
 bool _isLowCalorie(Dish d) =>
     d.tags.contains('bajo en calorías') ||
     (d.nutrition != null && d.nutrition!.kcal <= 550);
 
+/// Indica si el plato cumple un estilo de vida o restricción.
 bool matchesLifestyle(Dish d, String style) => switch (style) {
   'vegetariano' => d.tags.contains('vegetariano') || d.tags.contains('vegano'),
   'bajo en calorías' => _isLowCalorie(d),
   _ => d.tags.contains(style),
 };
 
+/// Indica si el plato cumple todos los estilos indicados.
 bool matchesAllLifestyles(Dish d, Set<String> styles) =>
     styles.every((s) => matchesLifestyle(d, s));
 
+/// Indica si el plato o su restaurante coinciden con la búsqueda.
 bool matchesQuery(Dish d, Restaurant? r, String query) {
   final q = normalize(query);
   if (q.isEmpty) return true;
@@ -64,6 +72,7 @@ bool matchesQuery(Dish d, Restaurant? r, String query) {
   return q.split(RegExp(r'\s+')).every(haystack.contains);
 }
 
+/// Filtros combinables que se aplican a la lista de platos.
 class DishFilters {
   const DishFilters({
     this.query = '',
@@ -101,6 +110,7 @@ class DishFilters {
   final bool excludeAllergens;
   final Set<String> lifestyle;
 
+  /// Cantidad de filtros activos, sin contar la búsqueda.
   int get activeCount =>
       categories.length +
       lifestyle.length +
@@ -115,8 +125,10 @@ class DishFilters {
         excludeAllergens,
       ].where((b) => b).length;
 
+  /// Indica si no hay ningún filtro ni búsqueda aplicada.
   bool get isEmpty => activeCount == 0 && query.trim().isEmpty;
 
+  /// Copia los filtros cambiando solo los valores indicados.
   DishFilters copyWith({
     String? query,
     Set<String>? categories,
@@ -150,6 +162,7 @@ class DishFilters {
   DishFilters cleared() => DishFilters(query: query);
 }
 
+/// Datos externos que necesita el filtrado: restaurantes, hora y usuario.
 class FilterContext {
   const FilterContext({
     required this.restaurantOf,
@@ -164,6 +177,7 @@ class FilterContext {
   final String? universityId;
 }
 
+/// Aplica los filtros a los platos y devuelve los que cumplen.
 List<Dish> filterDishes(
   Iterable<Dish> dishes,
   DishFilters f,

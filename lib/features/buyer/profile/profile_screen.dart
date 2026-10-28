@@ -12,9 +12,11 @@ import '../../../data/models/user.dart';
 import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Perfil del comprador con accesos a cuenta, pedidos y modos de rol.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  /// Construye la cabecera del perfil y el menú de accesos.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -255,6 +257,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  /// Cambia al modo repartidor o lleva a su registro.
   Future<void> _courierMode(BuildContext context) async {
     if (!await requireLogin(context, reason: 'usar el modo repartidor')) return;
     if (!context.mounted) return;
@@ -267,6 +270,7 @@ class ProfileScreen extends StatelessWidget {
     }
   }
 
+  /// Cambia al modo restaurante o explica cómo registrar un negocio.
   void _restaurantMode(BuildContext context) {
     final session = context.read<SessionController>();
     if (session.businessId != null) {

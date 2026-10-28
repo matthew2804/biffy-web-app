@@ -12,11 +12,13 @@ import '../utils/format.dart';
 import 'actions.dart';
 import 'ui.dart';
 
+/// Botón circular con signo más que agrega el plato o avisa si está agotado.
 class _AddButton extends StatelessWidget {
   const _AddButton(this.dish);
 
   final Dish dish;
 
+  /// Dibuja el botón habilitado o deshabilitado según la disponibilidad.
   @override
   Widget build(BuildContext context) {
     final enabled = dish.orderable;
@@ -60,6 +62,7 @@ class DishCard extends StatelessWidget {
   final Dish dish;
   final double width;
 
+  /// Dibuja la tarjeta con foto, nombre, precio y botón de agregar.
   @override
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogController>();
@@ -122,6 +125,7 @@ class DishTile extends StatelessWidget {
   final Dish dish;
   final bool showRestaurant;
 
+  /// Dibuja la fila con foto, datos y avisos del plato.
   @override
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogController>();
@@ -212,6 +216,7 @@ class DishTile extends StatelessWidget {
 const double kRestaurantCoverHeight = 116;
 const double kRestaurantCardHeight = 204;
 
+/// Tarjeta de restaurante con portada, estado y datos de entrega.
 class RestaurantCard extends StatelessWidget {
   const RestaurantCard(
     this.restaurant, {
@@ -222,6 +227,7 @@ class RestaurantCard extends StatelessWidget {
   final Restaurant restaurant;
   final double? width;
 
+  /// Dibuja la tarjeta y aplica el ancho si se indicó.
   @override
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogController>();
@@ -319,6 +325,7 @@ class HCarousel extends StatelessWidget {
   final double height;
   final List<Widget> children;
 
+  /// Dibuja el carrusel horizontal de altura fija.
   @override
   Widget build(BuildContext context) {
     return SizedBox(

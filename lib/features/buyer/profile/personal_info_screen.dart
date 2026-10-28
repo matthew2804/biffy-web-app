@@ -5,19 +5,23 @@ import 'package:provider/provider.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Formulario para editar nombre y teléfono del usuario.
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
 
+  /// Crea el estado del formulario de datos personales.
   @override
   State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
 }
 
+/// Estado con los controladores de nombre y teléfono.
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final _form = GlobalKey<FormState>();
   late final _session = context.read<SessionController>();
   late final _name = TextEditingController(text: _session.user?.name);
   late final _phone = TextEditingController(text: _session.user?.phone);
 
+  /// Inicializa los controladores con los datos del usuario.
   @override
   void initState() {
     super.initState();
@@ -25,6 +29,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     _phone;
   }
 
+  /// Libera los controladores de nombre y teléfono.
   @override
   void dispose() {
     _name.dispose();
@@ -32,6 +37,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     super.dispose();
   }
 
+  /// Construye el formulario de datos personales.
   @override
   Widget build(BuildContext context) {
     final u = context.watch<SessionController>().user;

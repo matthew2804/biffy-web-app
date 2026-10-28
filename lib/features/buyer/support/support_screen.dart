@@ -36,25 +36,30 @@ String supportReply(String topic) => switch (topic) {
     'Gracias por escribirnos. Revisaremos tu comentario en el próximo sprint.',
 };
 
+/// Pantalla de ayuda con preguntas frecuentes y mensajes simulados.
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
 
+  /// Crea el estado del formulario de soporte.
   @override
   State<SupportScreen> createState() => _SupportScreenState();
 }
 
+/// Estado con el hilo de mensajes y el tema elegido.
 class _SupportScreenState extends State<SupportScreen> {
   final _form = GlobalKey<FormState>();
   final _msg = TextEditingController();
   String _topic = 'Pedido';
   final List<(String, String)> _thread = [];
 
+  /// Libera el controlador del mensaje.
   @override
   void dispose() {
     _msg.dispose();
     super.dispose();
   }
 
+  /// Construye las FAQ, el formulario y el hilo de respuestas.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

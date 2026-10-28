@@ -7,9 +7,11 @@ import '../../../core/widgets/ui.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Lista los platos y restaurantes marcados como favoritos.
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
 
+  /// Construye la lista de favoritos o el estado vacío.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();

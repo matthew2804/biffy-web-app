@@ -30,14 +30,17 @@ void navigateAfterAuth(BuildContext context, AppUser user, String? from) {
   }
 }
 
+/// Pantalla de inicio de sesión con acceso rápido de demostración.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, this.from});
   final String? from;
 
+  /// Crea el estado del inicio de sesión.
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+/// Estado del formulario de login y de los accesos rápidos.
 class _LoginScreenState extends State<LoginScreen> {
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
@@ -45,6 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
   bool _obscure = true;
 
+  /// Libera los controladores de correo y contraseña.
   @override
   void dispose() {
     _email.dispose();
@@ -52,11 +56,13 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// Valida el formulario y lanza el inicio de sesión.
   void _submit() {
     if (!_form.currentState!.validate()) return;
     _runLogin();
   }
 
+  /// Ejecuta el login y navega según el rol autenticado.
   Future<void> _runLogin() async {
     try {
       final u = await context.read<SessionController>().loginAsync(
@@ -71,6 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Inicia sesión con una cuenta de demostración.
   Future<void> _quick(String email) async {
     final session = context.read<SessionController>();
     try {
@@ -89,6 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Construye el formulario de login y las tarjetas de acceso demo.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -219,6 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+/// Tarjeta de acceso rápido a una cuenta de demostración.
 class _QuickTile extends StatelessWidget {
   const _QuickTile({
     super.key,
@@ -232,6 +241,7 @@ class _QuickTile extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
+  /// Dibuja el emoji, el título y el subtítulo de la cuenta.
   @override
   Widget build(BuildContext context) {
     return Padding(

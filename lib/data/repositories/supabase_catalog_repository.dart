@@ -12,8 +12,10 @@ import 'catalog_repository.dart';
 /// Las escrituras de comercio llegan en la fase 2d; por ahora se aplican solo
 /// en la caché local.
 class SupabaseCatalogRepository implements CatalogRepository {
+  /// Constructor privado: usar [load].
   SupabaseCatalogRepository._(this._client);
 
+  /// Carga la caché, se suscribe a Realtime y devuelve el repositorio.
   static Future<SupabaseCatalogRepository> load({sb.SupabaseClient? client}) async {
     final repo = SupabaseCatalogRepository._(
       client ?? sb.Supabase.instance.client,
@@ -33,18 +35,23 @@ class SupabaseCatalogRepository implements CatalogRepository {
   sb.RealtimeChannel? _channel;
   StreamSubscription<sb.AuthState>? _authSub;
 
+  /// Emite cuando Realtime trae cambios.
   @override
   Stream<void> get changes => _changes.stream;
 
   // ------------------------------------------------------------- Lectura
 
+  /// Negocios en caché (solo lectura).
   @override
   List<Business> get businesses => List.unmodifiable(_businesses);
+  /// Sedes en caché (solo lectura).
   @override
   List<Restaurant> get restaurants => List.unmodifiable(_restaurants);
+  /// Platos en caché (solo lectura).
   @override
   List<Dish> get dishes => List.unmodifiable(_dishes);
 
+  /// Negocio por id dentro de la caché.
   @override
   Business? businessById(String id) {
     for (final b in _businesses) {
@@ -53,6 +60,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     return null;
   }
 
+  /// Sede por id dentro de la caché.
   @override
   Restaurant? restaurantById(String id) {
     for (final r in _restaurants) {
@@ -61,6 +69,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     return null;
   }
 
+  /// Plato por id dentro de la caché.
   @override
   Dish? dishById(String id) {
     for (final d in _dishes) {
@@ -110,6 +119,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
 
   // ------------------------------------------------------------ Realtime
 
+  /// Abre el canal de Realtime y escucha los cambios de sesión.
   void _subscribe() {
     try {
       _channel = _client
@@ -136,6 +146,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     _authSub = _client.auth.onAuthStateChange.listen((_) => _reload());
   }
 
+  /// Recarga la caché y avisa a los oyentes.
   Future<void> _reload() async {
     await refresh();
     if (!_changes.isClosed) _changes.add(null);
@@ -154,12 +165,14 @@ class SupabaseCatalogRepository implements CatalogRepository {
 
   // ------------------------------------------- Escrituras (fase 2d)
 
+  /// Agrega un negocio y sus sedes solo en la caché.
   @override
   void addBusiness(Business business, List<Restaurant> branches) {
     _businesses.add(business);
     _restaurants.addAll(branches);
   }
 
+  /// Inserta o reemplaza un plato en la caché.
   @override
   void upsertDish(Dish dish) {
     final i = _dishes.indexWhere((d) => d.id == dish.id);
@@ -170,9 +183,11 @@ class SupabaseCatalogRepository implements CatalogRepository {
     }
   }
 
+  /// Quita un plato de la caché.
   @override
   void deleteDish(String id) => _dishes.removeWhere((d) => d.id == id);
 
+  /// Suma las unidades vendidas de un plato.
   @override
   void recordSale(String dishId, int qty) {
     final dish = dishById(dishId);
@@ -181,6 +196,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
 
   // ------------------------------------------------------------ Mapeo
 
+  /// Convierte una fila de `businesses` al modelo.
   static Business _business(Map<String, dynamic> row) => Business(
     id: row['id'] as String,
     brand: (row['brand'] as String?) ?? '',
@@ -199,6 +215,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     isDemo: (row['is_demo'] as bool?) ?? false,
   );
 
+  /// Convierte una fila de `branches` al modelo.
   static Restaurant _restaurant(Map<String, dynamic> row) => Restaurant(
     id: row['id'] as String,
     businessId: row['business_id'] as String,
@@ -228,6 +245,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     branchName: (row['branch_name'] as String?) ?? 'Sede principal',
   );
 
+  /// Convierte una fila de `dishes` con sus opciones al modelo.
   static Dish _dish(
     Map<String, dynamic> row,
     Map<String, Map<String, List<DishOption>>> optionsByDish,
@@ -271,6 +289,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     );
   }
 
+  /// Convierte un arreglo JSON en lista de textos.
   static List<String> _strings(Object? value) =>
       (value as List?)?.map((e) => e.toString()).toList() ?? const [];
 }

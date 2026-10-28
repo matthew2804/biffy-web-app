@@ -17,6 +17,7 @@ import '../../buyer/profile/profile_screen.dart';
 class MerchantProfileScreen extends StatelessWidget {
   const MerchantProfileScreen({super.key});
 
+  /// Muestra identidad, sedes, horarios y opciones de la cuenta.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();

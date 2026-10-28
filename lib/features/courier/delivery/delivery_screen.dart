@@ -23,18 +23,21 @@ class DeliveryScreen extends StatefulWidget {
   State<DeliveryScreen> createState() => _DeliveryScreenState();
 }
 
+/// Estado de la entrega: código del cliente y foto de evidencia.
 class _DeliveryScreenState extends State<DeliveryScreen> {
   final _code = TextEditingController();
   String? _evidence;
   Uint8List? _bytes;
   String? _error;
 
+  /// Libera el controlador del código.
   @override
   void dispose() {
     _code.dispose();
     super.dispose();
   }
 
+  /// Toma o elige una foto y la guarda como evidencia local.
   Future<void> _pick(ImageSource source) async {
     try {
       final f = await ImagePicker().pickImage(
@@ -59,6 +62,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     }
   }
 
+  /// Muestra los datos del cliente, el código y la evidencia requerida.
   @override
   Widget build(BuildContext context) {
     final orders = context.watch<OrderService>();
@@ -251,6 +255,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     );
   }
 
+  /// Cierra la entrega validando código y evidencia, y celebra el resultado.
   void _complete(BuildContext context, Order o) {
     final session = context.read<SessionController>();
     final res = context.read<OrderService>().completeDelivery(

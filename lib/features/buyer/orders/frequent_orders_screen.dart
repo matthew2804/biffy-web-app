@@ -11,7 +11,9 @@ import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 import 'reorder_flow.dart';
 
+/// Grupo de pedidos repetidos con su última versión y el número de veces.
 class FrequentOrder {
+  /// Crea el grupo con el pedido más reciente y su conteo.
   FrequentOrder(this.latest, this.times);
   final Order latest;
   int times;
@@ -35,9 +37,11 @@ List<FrequentOrder> frequentOrders(List<Order> orders) {
   return groups.values.toList()..sort((a, b) => b.times.compareTo(a.times));
 }
 
+/// Pantalla con los pedidos que el comprador repite más.
 class FrequentOrdersScreen extends StatelessWidget {
   const FrequentOrdersScreen({super.key});
 
+  /// Construye la lista de pedidos frecuentes o el estado vacío.
   @override
   Widget build(BuildContext context) {
     final orders = context.watch<OrderService>();
@@ -133,6 +137,7 @@ class FrequentOrdersScreen extends StatelessWidget {
     );
   }
 
+  /// Calcula el precio estimado del pedido con el catálogo actual.
   int _estimate(CatalogController catalog, Order o) {
     var sum = 0;
     for (final l in o.lines) {
@@ -142,6 +147,7 @@ class FrequentOrdersScreen extends StatelessWidget {
     return sum;
   }
 
+  /// Abre la hoja con el detalle del último pedido del grupo.
   void _detail(BuildContext context, FrequentOrder f) {
     final o = f.latest;
     showModalBottomSheet<void>(

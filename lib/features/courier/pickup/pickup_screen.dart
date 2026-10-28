@@ -20,9 +20,11 @@ class PickupScreen extends StatefulWidget {
   State<PickupScreen> createState() => _PickupScreenState();
 }
 
+/// Estado de la recogida con los tres checks obligatorios.
 class _PickupScreenState extends State<PickupScreen> {
   final _checks = [false, false, false];
 
+  /// Muestra el código, el checklist y deshabilita la confirmación sin checks.
   @override
   Widget build(BuildContext context) {
     final orders = context.watch<OrderService>();

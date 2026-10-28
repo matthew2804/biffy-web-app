@@ -14,6 +14,7 @@ import 'reorder_flow.dart';
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
 
+  /// Construye las pestañas con los pedidos del comprador.
   @override
   Widget build(BuildContext context) {
     final orders = context.watch<OrderService>();
@@ -86,10 +87,12 @@ class OrdersScreen extends StatelessWidget {
   }
 }
 
+/// Tarjeta resumen de un pedido con estado, total y reorden.
 class OrderCard extends StatelessWidget {
   const OrderCard({super.key, required this.order});
   final Order order;
 
+  /// Dibuja los datos del pedido y el atajo para repetirlo.
   @override
   Widget build(BuildContext context) {
     final o = order;

@@ -9,9 +9,11 @@ import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 import '../home/merchant_home_screen.dart';
 
+/// Estadísticas del negocio con ventas por sede y productos top.
 class MerchantStatsScreen extends StatelessWidget {
   const MerchantStatsScreen({super.key});
 
+  /// Calcula las métricas y dibuja las barras comparativas.
   @override
   Widget build(BuildContext context) {
     context.watch<SessionController>();
@@ -25,6 +27,7 @@ class MerchantStatsScreen extends StatelessWidget {
     );
     final maxTop = m.topProducts.isEmpty ? 1 : m.topProducts.first.qty;
 
+    /// Fila con etiqueta, valor y barra proporcional al máximo.
     Widget bar(String label, String value, double ratio) => Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Column(

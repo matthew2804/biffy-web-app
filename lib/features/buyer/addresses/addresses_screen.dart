@@ -8,9 +8,11 @@ import '../../../core/widgets/ui.dart';
 import '../../../data/models/address.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Lista las direcciones guardadas y permite crear, editar o borrar.
 class AddressesScreen extends StatelessWidget {
   const AddressesScreen({super.key});
 
+  /// Construye la lista de direcciones con sus acciones.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -134,14 +136,17 @@ class AddressesScreen extends StatelessWidget {
   }
 }
 
+/// Formulario para crear o editar una dirección de entrega.
 class AddressFormScreen extends StatefulWidget {
   const AddressFormScreen({super.key, this.id});
   final String? id;
 
+  /// Crea el estado del formulario de dirección.
   @override
   State<AddressFormScreen> createState() => _AddressFormScreenState();
 }
 
+/// Estado con los controladores del formulario de dirección.
 class _AddressFormScreenState extends State<AddressFormScreen> {
   final _form = GlobalKey<FormState>();
   late final SessionController _session = context.read<SessionController>();
@@ -156,12 +161,14 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       ? _session.data.addresses.isEmpty
       : _session.data.defaultAddressId == _orig.id;
 
+  /// Confirma que la sesión se leyó con el contexto activo.
   @override
   void initState() {
     super.initState();
     _orig; // Lee la sesión mientras el contexto está activo.
   }
 
+  /// Libera los controladores de texto del formulario.
   @override
   void dispose() {
     for (final c in [_label, _line, _details, _hood, _ref]) {
@@ -170,9 +177,11 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     super.dispose();
   }
 
+  /// Valida que el campo obligatorio no esté vacío.
   String? _req(String? v) =>
       (v == null || v.trim().isEmpty) ? 'Campo obligatorio' : null;
 
+  /// Construye los campos de la dirección y su guardado.
   @override
   Widget build(BuildContext context) {
     if (widget.id != null && _orig == null) {

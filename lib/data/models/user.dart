@@ -1,6 +1,7 @@
 import 'address.dart';
 import 'catalog.dart';
 
+/// Rol de la cuenta dentro de la app.
 enum UserRole {
   buyer('Comprador', '🛍️'),
   courier('Repartidor', '🛵'),
@@ -11,6 +12,7 @@ enum UserRole {
   final String emoji;
 }
 
+/// Cuenta autenticada (nombre, correo y rol).
 class AppUser {
   AppUser({
     required this.id,
@@ -33,6 +35,7 @@ class AppUser {
   final bool isDemo;
 }
 
+/// Preferencias alimentarias y presupuesto del comprador.
 class Preferences {
   const Preferences({
     this.likes = const {},
@@ -48,8 +51,10 @@ class Preferences {
   final int budget;
   final String? universityId;
 
+  /// `true` si no eligió gustos ni restricciones alimentarias.
   bool get isEmpty => likes.isEmpty && lifestyle.isEmpty && allergies.isEmpty;
 
+  /// Copia las preferencias con los campos indicados cambiados.
   Preferences copyWith({
     Set<String>? likes,
     Set<String>? lifestyle,
@@ -70,6 +75,7 @@ class Preferences {
   }
 }
 
+/// Medio de transporte del repartidor.
 enum Vehicle {
   moto('Moto', '🏍️'),
   bicycle('Bicicleta', '🚲'),
@@ -89,6 +95,7 @@ enum Vehicle {
   };
 }
 
+/// Datos de registro del repartidor.
 class CourierProfile {
   const CourierProfile({
     required this.fullName,
@@ -111,10 +118,13 @@ class CourierProfile {
   final String contactEmail;
 }
 
+/// Zona en la que reparte: general o campus.
 enum CourierZone { general, campus }
 
+/// Tipo de cupón: envío gratis o descuento fijo.
 enum CouponKind { freeDelivery, fixed }
 
+/// Cupón canjeado por el comprador.
 class Coupon {
   Coupon({
     required this.id,
@@ -129,6 +139,7 @@ class Coupon {
   bool used = false;
 }
 
+/// Movimiento del historial de Gotas.
 class GotasEntry {
   const GotasEntry(this.title, this.amount, this.at);
   final String title;
@@ -136,6 +147,7 @@ class GotasEntry {
   final DateTime at;
 }
 
+/// Ajustes locales de la app.
 class AppSettings {
   const AppSettings({
     this.notifications = true,
@@ -152,6 +164,7 @@ class AppSettings {
   /// Simula las 12:00 para que los restaurantes estén abiertos en la demo.
   final bool demoLunch;
 
+  /// Copia los ajustes con los valores indicados.
   AppSettings copyWith({
     bool? notifications,
     bool? promotions,
@@ -192,6 +205,7 @@ class UserData {
   bool courierOnline = false;
   CourierZone courierZone = CourierZone.general;
 
+  /// Dirección predeterminada o la primera guardada.
   Address? get defaultAddress {
     for (final a in addresses) {
       if (a.id == defaultAddressId) return a;

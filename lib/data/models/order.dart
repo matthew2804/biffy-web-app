@@ -12,6 +12,7 @@ enum OrderStatus {
   cancelled,
 }
 
+/// Etiquetas y pasos de los estados según el rol.
 extension OrderStatusLabels on OrderStatus {
   /// Etiqueta para el comprador (4 pasos).
   String get buyerLabel => switch (this) {
@@ -31,6 +32,7 @@ extension OrderStatusLabels on OrderStatus {
     OrderStatus.cancelled => -1,
   };
 
+  /// Etiqueta del estado para la cocina del restaurante.
   String get kitchenLabel => switch (this) {
     OrderStatus.pending => 'Nuevo',
     OrderStatus.preparing => 'En preparación',
@@ -40,10 +42,12 @@ extension OrderStatusLabels on OrderStatus {
     OrderStatus.cancelled => 'Rechazado',
   };
 
+  /// `true` si el pedido ya no puede cambiar de estado.
   bool get isFinal =>
       this == OrderStatus.delivered || this == OrderStatus.cancelled;
 }
 
+/// Línea congelada de un pedido (plato, cantidad y precio).
 class OrderLine {
   const OrderLine({
     required this.dishId,
@@ -67,9 +71,11 @@ class OrderLine {
   final String detail;
   final String note;
 
+  /// Precio total de la línea.
   int get total => unitPrice * qty;
 }
 
+/// Registro de un cambio de estado con su actor.
 class StatusEvent {
   const StatusEvent(this.status, this.at, [this.by = '']);
   final OrderStatus status;
@@ -77,6 +83,7 @@ class StatusEvent {
   final String by;
 }
 
+/// Pedido compartido por comprador, restaurante y repartidor.
 class Order {
   Order({
     required this.id,
@@ -148,7 +155,9 @@ class Order {
   /// RPC `place_order` confirma.
   String? dbId;
 
+  /// Descuento en pesos equivalente a las Gotas usadas.
   int get gotasDiscount => gotasUsed * 10;
+  /// Total de unidades del pedido.
   int get itemCount => lines.fold(0, (s, l) => s + l.qty);
 
   /// Ingreso del restaurante (productos menos descuento de campus).
@@ -157,7 +166,9 @@ class Order {
   /// Ganancia del repartidor (pago base + propina íntegra).
   int get courierEarning => courierPay + tip;
 
+  /// `true` si el pedido está programado para más tarde.
   bool get isScheduled => scheduledFor != null;
 
+  /// Resumen «2× Plato, 1× Bebida» para notificaciones.
   String get itemsSummary => lines.map((l) => '${l.qty}× ${l.name}').join(', ');
 }

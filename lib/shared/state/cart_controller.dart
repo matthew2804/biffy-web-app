@@ -5,10 +5,12 @@ import '../../data/models/catalog.dart';
 import '../../data/repositories/catalog_repository.dart';
 import '../../domain/pricing.dart';
 
+/// Resultado de intentar agregar un plato al carrito.
 enum AddResult { added, differentRestaurant, unavailable }
 
 /// Carrito de un solo restaurante; persiste durante la navegación interna.
 class CartController extends ChangeNotifier {
+  /// Crea el carrito sobre el catálogo indicado.
   CartController(this._catalog);
 
   final CatalogRepository _catalog;
@@ -23,29 +25,38 @@ class CartController extends ChangeNotifier {
   DateTime? scheduledFor;
   String? addressId;
 
+  /// Líneas del carrito (solo lectura).
   List<CartItem> get items => List.unmodifiable(_items);
+  /// `true` si no hay líneas.
   bool get isEmpty => _items.isEmpty;
+  /// Total de unidades en el carrito.
   int get count => _items.fold(0, (s, i) => s + i.qty);
 
+  /// Restaurante del carrito, si ya tiene platos.
   String? get restaurantId {
     if (_items.isEmpty) return null;
     return _catalog.dishById(_items.first.dishId)?.restaurantId;
   }
 
+  /// Restaurante del carrito con sus datos.
   Restaurant? get restaurant {
     final id = restaurantId;
     return id == null ? null : _catalog.restaurantById(id);
   }
 
+  /// Genera un id único para una línea nueva.
   String newLineId() => 'line-${++_seq}';
 
+  /// Líneas con su plato y precio calculado.
   List<PricedLine> get pricedLines => [
     for (final i in _items)
       if (_catalog.dishById(i.dishId) case final d?) PricedLine(d, i),
   ];
 
+  /// Suma de las líneas antes de propina y envío.
   int get subtotal => pricedLines.fold(0, (s, l) => s + l.total);
 
+  /// Busca una línea por id.
   CartItem? lineById(String id) {
     for (final i in _items) {
       if (i.lineId == id) return i;
@@ -53,6 +64,7 @@ class CartController extends ChangeNotifier {
     return null;
   }
 
+  /// Agrega un plato o suma cantidad a una línea igual.
   AddResult add(
     Dish dish, {
     DishSelection? selection,
@@ -120,6 +132,7 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cambia la cantidad; en cero elimina la línea.
   void setQty(String lineId, int qty) {
     if (qty <= 0) {
       remove(lineId);
@@ -129,12 +142,14 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Quita una línea del carrito.
   void remove(String lineId) {
     _items.removeWhere((i) => i.lineId == lineId);
     if (_items.isEmpty) _resetOptions();
     notifyListeners();
   }
 
+  /// Limpia propina, Gotas, cupón y programación.
   void _resetOptions() {
     restaurantNote = '';
     tip = TipOption.none;
@@ -143,42 +158,50 @@ class CartController extends ChangeNotifier {
     scheduledFor = null;
   }
 
+  /// Vacía el carrito y reinicia sus opciones.
   void clear({bool notify = true}) {
     _items.clear();
     _resetOptions();
     if (notify) notifyListeners();
   }
 
+  /// Guarda la nota para el restaurante.
   void setNote(String note) {
     restaurantNote = note;
     notifyListeners();
   }
 
+  /// Cambia la propina elegida.
   void setTip(TipOption t) {
     tip = t;
     notifyListeners();
   }
 
+  /// Activa o desactiva el pago con Gotas.
   void setUseGotas(bool v) {
     useGotas = v;
     notifyListeners();
   }
 
+  /// Aplica o quita un cupón.
   void setCoupon(String? id) {
     couponId = id;
     notifyListeners();
   }
 
+  /// Elige el medio de pago del pedido.
   void setPayment(PaymentMethod m) {
     payment = m;
     notifyListeners();
   }
 
+  /// Programa la entrega para una fecha.
   void setSchedule(DateTime? when) {
     scheduledFor = when;
     notifyListeners();
   }
 
+  /// Elige la dirección de entrega.
   void setAddress(String? id) {
     addressId = id;
     notifyListeners();

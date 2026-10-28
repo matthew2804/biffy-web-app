@@ -86,11 +86,14 @@ class RoleScope extends StatefulWidget {
   final UserRole role;
   final Widget child;
 
+  /// Crea el estado que marca el rol activo.
   @override
   State<RoleScope> createState() => _RoleScopeState();
 }
 
+/// Estado que fija el rol activo y bloquea pantallas no permitidas.
 class _RoleScopeState extends State<RoleScope> {
+  /// Sincroniza el rol activo de la sesión con la sección visible.
   @override
   void initState() {
     super.initState();
@@ -101,6 +104,7 @@ class _RoleScopeState extends State<RoleScope> {
     });
   }
 
+  /// Devuelve el contenido solo si la sesión permite el rol.
   @override
   Widget build(BuildContext context) {
     // Si la sesión dejó de cumplir los requisitos del rol (p. ej. al cambiar
@@ -115,9 +119,11 @@ class _RoleScopeState extends State<RoleScope> {
   }
 }
 
+/// Crea una ruta simple con su constructor de pantalla.
 GoRoute _r(String path, Widget Function(GoRouterState s) build) =>
     GoRoute(path: path, builder: (_, s) => build(s));
 
+/// Construye el router con todas las rutas y las reglas de acceso.
 GoRouter buildRouter(
   SessionController session, {
   String initialLocation = '/splash',

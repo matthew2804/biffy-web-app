@@ -11,9 +11,11 @@ import '../../../data/models/user.dart';
 import '../../../shared/state/session_controller.dart';
 import '../../buyer/profile/profile_screen.dart';
 
+/// Perfil del repartidor con sus datos y accesos de cuenta.
 class CourierProfileScreen extends StatelessWidget {
   const CourierProfileScreen({super.key});
 
+  /// Lista los datos de registro y las opciones de sesión.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();

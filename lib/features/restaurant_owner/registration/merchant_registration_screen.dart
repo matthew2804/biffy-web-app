@@ -32,6 +32,7 @@ class MerchantRegistrationScreen extends StatefulWidget {
       _MerchantRegistrationScreenState();
 }
 
+/// Estado del registro por pasos con todos los datos del negocio.
 class _MerchantRegistrationScreenState
     extends State<MerchantRegistrationScreen> {
   static int _seq = 0;
@@ -62,6 +63,7 @@ class _MerchantRegistrationScreenState
   String _bank = 'Bancolombia';
   String _accountType = 'Ahorros';
 
+  /// Precarga el correo, teléfono y nombre del usuario logueado.
   @override
   void initState() {
     super.initState();
@@ -73,6 +75,7 @@ class _MerchantRegistrationScreenState
     }
   }
 
+  /// Libera todos los controladores del registro.
   @override
   void dispose() {
     for (final c in [
@@ -94,6 +97,7 @@ class _MerchantRegistrationScreenState
     super.dispose();
   }
 
+  /// Rellena el formulario con datos ficticios para probar la demo.
   void _autofill() {
     setState(() {
       _owner.text = _owner.text.isEmpty ? 'Laura Gómez (demo)' : _owner.text;
@@ -116,9 +120,11 @@ class _MerchantRegistrationScreenState
     });
   }
 
+  /// Valida que el campo obligatorio no esté vacío.
   String? _req(String? v) =>
       (v == null || v.trim().isEmpty) ? 'Campo obligatorio' : null;
 
+  /// Valida el paso actual y avanza o confirma el registro.
   void _next() {
     if (_step < 5 && !(_forms[_step].currentState?.validate() ?? true)) return;
     if (_step == 3 && _attached.length < _docs.length) {
@@ -136,6 +142,7 @@ class _MerchantRegistrationScreenState
     }
   }
 
+  /// Crea el negocio y su sede, los registra y abre el menú.
   void _finish() {
     if (_session.auth.isRemote && !_session.isLoggedIn) {
       showSnack(
@@ -216,6 +223,7 @@ class _MerchantRegistrationScreenState
     context.go('/negocio/menu');
   }
 
+  /// Dibuja el paso actual del registro y los botones de navegación.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

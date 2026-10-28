@@ -2,9 +2,11 @@ import '../../core/constants/catalog_constants.dart';
 import '../models/address.dart';
 import '../models/user.dart';
 
+/// Error de autenticación con mensaje para el usuario.
 class AuthException implements Exception {
   AuthException(this.message);
   final String message;
+  /// Muestra solo el mensaje, sin el tipo de excepción.
   @override
   String toString() => message;
 }
@@ -12,8 +14,11 @@ class AuthException implements Exception {
 /// Autenticación SIMULADA y local. No ofrece seguridad real: las contraseñas
 /// de demostración viven solo en memoria durante la sesión de la app.
 abstract class AuthRepository {
+  /// Cuentas de demostración para el acceso rápido.
   List<AppUser> get demoAccounts;
+  /// Inicia sesión de forma síncrona.
   AppUser login(String email, String password);
+  /// Registra una cuenta nueva y la devuelve.
   AppUser register({
     required String name,
     required String email,
@@ -21,7 +26,9 @@ abstract class AuthRepository {
     required UserRole role,
     String phone,
   });
+  /// Usuario por id, si existe en la sesión.
   AppUser? byId(String id);
+  /// Cuenta dueña del negocio indicado.
   AppUser? byBusiness(String businessId);
 
   /// `true` cuando la autenticación vive en un backend real.
@@ -31,6 +38,7 @@ abstract class AuthRepository {
   /// contra los datos en memoria; con Supabase habla con Auth.
   Future<AppUser> signIn(String email, String password);
 
+  /// Registra la cuenta y devuelve el usuario.
   Future<AppUser> signUp({
     required String name,
     required String email,
@@ -39,6 +47,7 @@ abstract class AuthRepository {
     String phone,
   });
 
+  /// Cierra la sesión y limpia el estado guardado.
   Future<void> signOut();
 
   /// Recupera la sesión persistida (solo backend real).
@@ -54,7 +63,9 @@ abstract class AuthRepository {
   Future<CourierProfile?> courierProfile(String userId);
 }
 
+/// Autenticación de demostración con usuarios y contraseñas en memoria.
 class InMemoryAuthRepository implements AuthRepository {
+  /// Registra las cuentas semilla con la contraseña de demo.
   InMemoryAuthRepository(List<AppUser> seedUsers) {    for (final u in seedUsers) {
       _users[u.email.toLowerCase()] = u;
       _passwords[u.email.toLowerCase()] = kDemoPassword;
@@ -65,13 +76,16 @@ class InMemoryAuthRepository implements AuthRepository {
   final Map<String, String> _passwords = {};
   int _seq = 1;
 
+  /// La demo nunca habla con un backend.
   @override
   bool get isRemote => false;
 
+  /// Cuentas marcadas como de demostración.
   @override
   List<AppUser> get demoAccounts =>
       _users.values.where((u) => u.isDemo).toList();
 
+  /// Inicia sesión validando correo y contraseña locales.
   @override
   AppUser login(String email, String password) {
     final key = email.trim().toLowerCase();
@@ -85,6 +99,7 @@ class InMemoryAuthRepository implements AuthRepository {
     return user;
   }
 
+  /// Crea una cuenta nueva en memoria.
   @override
   AppUser register({
     required String name,
@@ -109,6 +124,7 @@ class InMemoryAuthRepository implements AuthRepository {
     return user;
   }
 
+  /// Busca un usuario por id.
   @override
   AppUser? byId(String id) {
     for (final u in _users.values) {
@@ -117,6 +133,7 @@ class InMemoryAuthRepository implements AuthRepository {
     return null;
   }
 
+  /// Busca la cuenta dueña de un negocio.
   @override
   AppUser? byBusiness(String businessId) {
     for (final u in _users.values) {
@@ -127,10 +144,12 @@ class InMemoryAuthRepository implements AuthRepository {
 
   // ------------------------------------------------------- Ruta asíncrona
 
+  /// Inicia sesión en la demo (resuelve al instante).
   @override
   Future<AppUser> signIn(String email, String password) async =>
       login(email, password);
 
+  /// Registra la cuenta en la demo.
   @override
   Future<AppUser> signUp({
     required String name,
@@ -146,18 +165,23 @@ class InMemoryAuthRepository implements AuthRepository {
     phone: phone,
   );
 
+  /// La demo no guarda sesión persistente.
   @override
   Future<void> signOut() async {}
 
+  /// No hay sesión persistida en la demo.
   @override
   Future<AppUser?> restoreSession() async => null;
 
+  /// Saldo de Gotas: no aplica en la demo.
   @override
   Future<int?> gotasBalance(String userId) async => null;
 
+  /// Direcciones guardadas: vacío en la demo.
   @override
   Future<List<Address>> addresses(String userId) async => const [];
 
+  /// Perfil de repartidor: no aplica en la demo.
   @override
   Future<CourierProfile?> courierProfile(String userId) async => null;
 }

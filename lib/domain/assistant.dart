@@ -43,6 +43,7 @@ const _lifestyleWords = {
   'light': 'bajo en calorías',
 };
 
+/// Extrae el presupuesto mencionado en la pregunta ("15 mil", "$20.000").
 int? _parseBudget(String q) {
   final mil = RegExp(r'(\d{1,3})\s*(mil|k)\b').firstMatch(q);
   if (mil != null) return int.parse(mil.group(1)!) * 1000;
@@ -53,11 +54,13 @@ int? _parseBudget(String q) {
   return null;
 }
 
+/// Extrae los minutos máximos mencionados en la pregunta.
 int? _parseMinutes(String q) {
   final m = RegExp(r'(\d{1,3})\s*(min|minutos)').firstMatch(q);
   return m == null ? null : int.parse(m.group(1)!);
 }
 
+/// Busca el plato del catálogo cuyo nombre aparece en la pregunta.
 Dish? _findDishByName(String q, List<Dish> dishes) {
   Dish? best;
   var bestLen = 0;

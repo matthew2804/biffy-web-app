@@ -11,6 +11,7 @@ import '../../../data/models/catalog.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Fila editable de un tamaño o extra del producto.
 class _OptionRow {
   _OptionRow([String label = '', int price = 0, this.id])
     : label = TextEditingController(text: label),
@@ -29,6 +30,7 @@ class ProductFormScreen extends StatefulWidget {
   State<ProductFormScreen> createState() => _ProductFormScreenState();
 }
 
+/// Estado del formulario que crea o edita un producto del menú.
 class _ProductFormScreenState extends State<ProductFormScreen> {
   final _form = GlobalKey<FormState>();
   late final CatalogController _catalog = context.read<CatalogController>();
@@ -78,6 +80,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       _OptionRow(o.label, o.price, o.id),
   ];
 
+  /// Fuerza la carga del producto original y del negocio.
   @override
   void initState() {
     super.initState();
@@ -85,6 +88,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _biz;
   }
 
+  /// Libera todos los controladores del formulario.
   @override
   void dispose() {
     for (final c in [
@@ -105,9 +109,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     super.dispose();
   }
 
+  /// Valida que el campo obligatorio no esté vacío.
   String? _req(String? v) =>
       (v == null || v.trim().isEmpty) ? 'Campo obligatorio' : null;
 
+  /// Convierte las filas editadas en opciones del plato.
   List<DishOption> _options(List<_OptionRow> rows, String prefix) => [
     for (final (i, r) in rows.indexed)
       if (r.label.text.trim().isNotEmpty)
@@ -118,6 +124,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         ),
   ];
 
+  /// Valida, arma el plato y lo publica en el catálogo compartido.
   void _save() {
     if (!_form.currentState!.validate()) return;
     final hasNutrition = [
@@ -174,6 +181,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     context.canPop() ? context.pop() : context.go('/negocio/menu');
   }
 
+  /// Editor de tamaños o extras con botón para agregar filas.
   Widget _optionsEditor(String title, List<_OptionRow> rows, String hint) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,6 +229,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     );
   }
 
+  /// Construye el formulario completo con categorías, alérgenos y nutrición.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

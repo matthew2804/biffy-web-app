@@ -20,13 +20,16 @@ import 'cart_screen.dart';
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
 
+  /// Crea el estado del resumen de checkout.
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
+/// Estado que controla el bloqueo mientras se crea el pedido.
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _placing = false;
 
+  /// Construye el resumen del pedido, totales y errores de validación.
   @override
   Widget build(BuildContext context) {
     context.watch<CartController>();
@@ -195,6 +198,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  /// Crea el pedido, vacía el carrito y navega al seguimiento.
   void _place(BuildContext context) {
     setState(() => _placing = true);
     try {

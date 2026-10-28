@@ -5,6 +5,7 @@ abstract final class AppTypography {
   static const heading = 'Sora';
   static const body = 'Manrope';
 
+  /// Construye el tema de texto para un esquema de color dado.
   static TextTheme textTheme(Color text, Color muted) {
     return TextTheme(
       displaySmall: TextStyle(

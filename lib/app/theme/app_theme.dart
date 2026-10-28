@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
+/// Tema visual global de Biffy con soporte claro y oscuro.
 abstract final class AppTheme {
+  /// Tema claro de la app.
   static ThemeData light() => _build(Brightness.light, BiffyPalette.light);
+  /// Tema oscuro de la app.
   static ThemeData dark() => _build(Brightness.dark, BiffyPalette.dark);
 
+  /// Construye el ThemeData para la luminosidad y la paleta indicadas.
   static ThemeData _build(Brightness brightness, BiffyPalette p) {
     final scheme = ColorScheme(
       brightness: brightness,

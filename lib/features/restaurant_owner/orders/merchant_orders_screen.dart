@@ -15,10 +15,15 @@ const _filters = <(String, String, bool Function(Order))>[
   ('listos', 'Listos', _ready),
   ('finalizados', 'Finalizados', _done),
 ];
+/// Filtro que acepta todos los pedidos.
 bool _all(Order o) => true;
+/// Filtro de pedidos nuevos (pendientes).
 bool _new(Order o) => o.status == OrderStatus.pending;
+/// Filtro de pedidos en preparación.
 bool _prep(Order o) => o.status == OrderStatus.preparing;
+/// Filtro de pedidos listos para recoger.
 bool _ready(Order o) => o.status == OrderStatus.ready;
+/// Filtro de pedidos ya finalizados o cancelados.
 bool _done(Order o) =>
     o.status == OrderStatus.onTheWay ||
     o.status == OrderStatus.delivered ||
@@ -31,6 +36,7 @@ const kRejectReasons = [
   'Dirección fuera de cobertura',
 ];
 
+/// Pantalla de pedidos de la cocina con filtros por estado.
 class MerchantOrdersScreen extends StatefulWidget {
   const MerchantOrdersScreen({super.key, this.filter});
   final String? filter;
@@ -39,9 +45,11 @@ class MerchantOrdersScreen extends StatefulWidget {
   State<MerchantOrdersScreen> createState() => _MerchantOrdersScreenState();
 }
 
+/// Estado que conserva el filtro activo de pedidos.
 class _MerchantOrdersScreenState extends State<MerchantOrdersScreen> {
   late String _f = widget.filter ?? 'todos';
 
+  /// Actualiza el filtro cuando cambia el parámetro de la ruta.
   @override
   void didUpdateWidget(covariant MerchantOrdersScreen old) {
     super.didUpdateWidget(old);
@@ -50,6 +58,7 @@ class _MerchantOrdersScreenState extends State<MerchantOrdersScreen> {
     }
   }
 
+  /// Lista los pedidos del negocio según el filtro elegido.
   @override
   Widget build(BuildContext context) {
     final orders = context.watch<OrderService>();
@@ -108,10 +117,12 @@ class _MerchantOrdersScreenState extends State<MerchantOrdersScreen> {
   }
 }
 
+/// Tarjeta de cocina con el detalle del pedido y sus acciones.
 class _KitchenCard extends StatelessWidget {
   const _KitchenCard({required this.order});
   final Order order;
 
+  /// Dibuja líneas, notas y botones según el estado del pedido.
   @override
   Widget build(BuildContext context) {
     final o = order;
@@ -230,6 +241,7 @@ class _KitchenCard extends StatelessWidget {
     );
   }
 
+  /// Pide el motivo y rechaza el pedido con esa razón.
   Future<void> _reject(BuildContext context, Order o) async {
     final reason = await showDialog<String>(
       context: context,
@@ -240,6 +252,7 @@ class _KitchenCard extends StatelessWidget {
     showSnack(context, 'Pedido ${o.id} rechazado');
   }
 
+  /// Abre el recibo de demostración del pedido en una hoja inferior.
   void _receipt(BuildContext context, Order o) {
     showModalBottomSheet<void>(
       context: context,
@@ -278,6 +291,7 @@ class _KitchenCard extends StatelessWidget {
   }
 }
 
+/// Diálogo para elegir el motivo de rechazo de un pedido.
 class _RejectDialog extends StatefulWidget {
   const _RejectDialog({required this.orderId});
   final String orderId;
@@ -286,16 +300,19 @@ class _RejectDialog extends StatefulWidget {
   State<_RejectDialog> createState() => _RejectDialogState();
 }
 
+/// Estado del diálogo de rechazo con el motivo seleccionado.
 class _RejectDialogState extends State<_RejectDialog> {
   String? _reason;
   final _other = TextEditingController();
 
+  /// Libera el controlador del motivo escrito.
   @override
   void dispose() {
     _other.dispose();
     super.dispose();
   }
 
+  /// Lista los motivos y devuelve el elegido al confirmar.
   @override
   Widget build(BuildContext context) {
     final text = _reason == 'Otro' ? _other.text.trim() : _reason;

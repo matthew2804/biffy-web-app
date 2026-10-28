@@ -1,5 +1,6 @@
 import '../../data/models/catalog.dart';
 
+/// Categorías de comida con su nombre, emoji y foto.
 const kCategories = <FoodCategory>[
   FoodCategory(
     'sandwich',
@@ -37,11 +38,13 @@ const kCategories = <FoodCategory>[
   FoodCategory('asiatica', 'Asiática', '🍜', 'assets/images/dishes/ramen.jpg'),
 ];
 
+/// Devuelve la categoría por id o una genérica si no existe.
 FoodCategory categoryById(String id) => kCategories.firstWhere(
   (c) => c.id == id,
   orElse: () => FoodCategory(id, id, '🍽️'),
 );
 
+/// Estilos de vida y restricciones que puede elegir el usuario.
 const kLifestyleOptions = [
   'vegano',
   'vegetariano',
@@ -53,6 +56,7 @@ const kLifestyleOptions = [
 /// Estilos que se tratan como restricción estricta en recomendaciones.
 const kStrictLifestyles = {'vegano', 'vegetariano', 'sin gluten'};
 
+/// Alérgenos que puede declarar el usuario.
 const kAllergyOptions = [
   'gluten',
   'lácteos',
@@ -79,6 +83,7 @@ const kOptionEmoji = {
   'bajo en calorías': '🥗',
 };
 
+/// Universidades del prototipo con su dominio de correo.
 const kUniversities = <University>[
   University(
     id: 'icesi',
@@ -106,6 +111,7 @@ const kUniversities = <University>[
   ),
 ];
 
+/// Devuelve la universidad por id o null si no existe.
 University? universityById(String? id) {
   for (final u in kUniversities) {
     if (u.id == id) return u;
@@ -113,6 +119,7 @@ University? universityById(String? id) {
   return null;
 }
 
+/// Puntos de entrega simulados de la demo.
 const kDeliveryPoints = <DeliveryPoint>[
   DeliveryPoint(
     id: 'icesi-biblioteca',
@@ -178,6 +185,7 @@ const kDeliveryPoints = <DeliveryPoint>[
   ),
 ];
 
+/// Devuelve el punto de entrega por id o el primero por defecto.
 DeliveryPoint pointById(String id) => kDeliveryPoints.firstWhere(
   (p) => p.id == id,
   orElse: () => kDeliveryPoints.first,
@@ -185,7 +193,10 @@ DeliveryPoint pointById(String id) => kDeliveryPoints.firstWhere(
 
 /// Valor de referencia de demostración: 1 Gota = $10 COP.
 const kGotaValue = 10;
+/// Gotas de regalo al registrarse.
 const kWelcomeGotas = 450;
+/// Gotas de regalo al completar la encuesta.
 const kSurveyGotas = 300;
 
+/// Contraseña común de las cuentas de demostración.
 const kDemoPassword = 'biffy123';

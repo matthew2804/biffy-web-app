@@ -95,6 +95,7 @@ void applyDemoSeed(SessionController session, OrderService orders) {
   );
 
   final campusAddress = diego.addresses.first;
+  /// Construye e inserta un pedido semilla con el estado indicado.
   Order seed(
     String id,
     String buyerId,

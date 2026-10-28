@@ -16,10 +16,12 @@ import '../../../shared/state/session_controller.dart';
 class RewardsScreen extends StatefulWidget {
   const RewardsScreen({super.key});
 
+  /// Crea el estado de la pantalla de recompensas.
   @override
   State<RewardsScreen> createState() => _RewardsScreenState();
 }
 
+/// Estado de la pantalla de Gotas con el repositorio remoto opcional.
 class _RewardsScreenState extends State<RewardsScreen> {
   /// Repositorio remoto; null en modo demo.
   SupabaseRewardsRepository? _repo;
@@ -33,6 +35,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
   /// Evita doble toque mientras un canje está en curso.
   bool _busy = false;
 
+  /// Conecta con Supabase solo si la sesión es remota.
   @override
   void initState() {
     super.initState();
@@ -113,6 +116,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
     );
   }
 
+  /// Construye el saldo, los beneficios y el historial.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -344,6 +348,7 @@ class _BalanceCard extends StatelessWidget {
 
   final int gotas;
 
+  /// Dibuja el saldo de Gotas con su equivalencia aproximada.
   @override
   Widget build(BuildContext context) {
     return BiffyCard(
@@ -392,6 +397,7 @@ class _BoxTile extends StatelessWidget {
   final bool busy;
   final VoidCallback onOpen;
 
+  /// Dibuja la caja con su costo y el botón de apertura.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

@@ -12,6 +12,7 @@ import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 import '../cart/cart_screen.dart';
 
+/// Evalúa si un pedido anterior se puede repetir en el catálogo actual.
 ReorderCheck _check(BuildContext context, Order order) {
   final catalog = context.read<CatalogController>();
   final cart = context.read<CartController>();
@@ -25,6 +26,7 @@ ReorderCheck _check(BuildContext context, Order order) {
   );
 }
 
+/// Muestra los avisos del reorden y devuelve si se debe continuar.
 Future<bool> _showWarnings(
   BuildContext context,
   ReorderCheck c, {

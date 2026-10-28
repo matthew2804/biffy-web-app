@@ -21,9 +21,12 @@ import 'catalog_controller.dart';
 import 'notification_center.dart';
 import 'session_controller.dart';
 
+/// Error de negocio al operar un pedido.
 class OrderException implements Exception {
+  /// Guarda el mensaje que verá el usuario.
   OrderException(this.message);
   final String message;
+  /// Muestra solo el mensaje de la excepción.
   @override
   String toString() => message;
 }
@@ -55,13 +58,16 @@ class CheckoutDraft {
   final String restaurantNote;
 }
 
+/// Resultado de que un repartidor acepte una oferta.
 enum CourierAcceptResult { ok, alreadyAssigned, notAvailable, busy, outOfRange }
 
+/// Resultado de confirmar una entrega.
 enum DeliveryResult { ok, wrongCode, missingEvidence, invalidState }
 
 /// Servicio de pedidos compartido por comprador, restaurante y repartidor.
 /// La sincronización se limita a esta instancia de la app (sin backend).
 class OrderService extends ChangeNotifier {
+  /// Conecta el servicio con repositorios, sesión y notificaciones.
   OrderService({
     required this.repo,
     required this.catalog,
@@ -85,9 +91,11 @@ class OrderService extends ChangeNotifier {
   int _counter = 2041;
   StreamSubscription<void>? _changesSub;
 
+  /// Repositorio remoto si hay Supabase configurado.
   SupabaseOrderRepository? get _remote =>
       repo is SupabaseOrderRepository ? repo as SupabaseOrderRepository : null;
 
+  /// Cancela la suscripción a los cambios remotos.
   @override
   void dispose() {
     _changesSub?.cancel();
@@ -102,17 +110,22 @@ class OrderService extends ChangeNotifier {
     remote.call(fn, {'p_order': dbId, ...extra});
   }
 
+  /// Todos los pedidos visibles.
   List<Order> get all => repo.all;
+  /// Pedido por código.
   Order? byId(String id) => repo.byId(id);
 
+  /// Pedidos de un comprador.
   List<Order> forBuyer(String userId) =>
       all.where((o) => o.buyerId == userId).toList();
 
+  /// Pedidos de todas las sedes de un negocio.
   List<Order> forBusiness(String businessId) {
     final ids = catalog.branchesOf(businessId).map((r) => r.id).toSet();
     return all.where((o) => ids.contains(o.restaurantId)).toList();
   }
 
+  /// Pedido activo del repartidor, si tiene uno.
   Order? activeForCourier(String courierId) {
     for (final o in all) {
       if (o.courierId == courierId &&
@@ -123,6 +136,7 @@ class OrderService extends ChangeNotifier {
     return null;
   }
 
+  /// Pedidos entregados por un repartidor.
   List<Order> deliveredBy(String courierId) => all
       .where(
         (o) => o.courierId == courierId && o.status == OrderStatus.delivered,
@@ -150,6 +164,7 @@ class OrderService extends ChangeNotifier {
 
   // ------------------------------------------------------------ Compra
 
+  /// Totales estimados del borrador sin crear el pedido.
   CartTotals preview(CheckoutDraft d) {
     final lines = [
       for (final i in d.items)
@@ -210,6 +225,7 @@ class OrderService extends ChangeNotifier {
     return errors;
   }
 
+  /// Genera un código de pedido libre.
   String _nextId() {
     String id;
     do {
@@ -342,6 +358,7 @@ class OrderService extends ChangeNotifier {
     });
   }
 
+  /// Tiempo de preparación más alto de las líneas.
   int _maxPrep(List<OrderLine> lines, Restaurant r) {
     var m = 0;
     for (final l in lines) {
@@ -351,6 +368,7 @@ class OrderService extends ChangeNotifier {
     return m == 0 ? r.prepMin : m;
   }
 
+  /// Aplica una transición permitida y registra el evento.
   void _move(Order o, OrderStatus to, String by) {
     if (!canTransition(o.status, to)) {
       throw OrderException(
@@ -361,6 +379,7 @@ class OrderService extends ChangeNotifier {
     o.history.add(StatusEvent(to, clock.now(), by));
   }
 
+  /// Negocio dueño de la sede del pedido.
   String? _businessOf(Order o) =>
       catalog.restaurantById(o.restaurantId)?.businessId;
 
@@ -382,6 +401,7 @@ class OrderService extends ChangeNotifier {
     return true;
   }
 
+  /// Devuelve Gotas y libera el cupón al cancelar.
   void _refund(Order o) {
     if (o.gotasUsed > 0) {
       session.creditGotas(o.buyerId, o.gotasUsed, 'Reembolso de ${o.id}');
@@ -393,6 +413,7 @@ class OrderService extends ChangeNotifier {
 
   // ------------------------------------------------------- Restaurante
 
+  /// El restaurante acepta y pasa el pedido a preparación.
   void restaurantAccept(String id) {
     final o = _require(id);
     _move(o, OrderStatus.preparing, 'Restaurante');
@@ -412,6 +433,7 @@ class OrderService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// El restaurante rechaza con un motivo y reembolsa.
   void restaurantReject(String id, String reason) {
     final o = _require(id);
     if (reason.trim().isEmpty) {
@@ -430,6 +452,7 @@ class OrderService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Marca el pedido listo y publica la oferta a repartidores.
   void markReady(String id) {
     final o = _require(id);
     _move(o, OrderStatus.ready, 'Restaurante');
@@ -493,6 +516,7 @@ class OrderService extends ChangeNotifier {
     return CourierAcceptResult.ok;
   }
 
+  /// Registra que el repartidor rechazó la oferta.
   void courierDecline(String id, String courierId) {
     final o = byId(id);
     if (o != null) {
@@ -530,6 +554,7 @@ class OrderService extends ChangeNotifier {
     return true;
   }
 
+  /// Confirma la entrega con código y evidencia.
   DeliveryResult completeDelivery(
     String id,
     String courierId,
@@ -574,6 +599,7 @@ class OrderService extends ChangeNotifier {
     return DeliveryResult.ok;
   }
 
+  /// Devuelve el pedido o lanza error si no existe.
   Order _require(String id) {
     final o = byId(id);
     if (o == null) throw OrderException('Pedido no encontrado');

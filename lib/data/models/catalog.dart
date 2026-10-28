@@ -1,6 +1,7 @@
 /// Modelos del catálogo: categorías, universidades, puntos, restaurantes y platos.
 library;
 
+/// Categoría de comida mostrada en el catálogo.
 class FoodCategory {
   const FoodCategory(this.id, this.label, this.emoji, [this.imageAsset]);
   final String id;
@@ -11,6 +12,7 @@ class FoodCategory {
   final String? imageAsset;
 }
 
+/// Universidad con dominio de correo para la verificación.
 class University {
   const University({
     required this.id,
@@ -42,6 +44,7 @@ class DeliveryPoint {
   final String? campusId;
 }
 
+/// Medios de pago disponibles en la demo.
 enum PaymentMethod {
   nequi('Nequi', '📱'),
   daviplata('Daviplata', '📲'),
@@ -54,6 +57,7 @@ enum PaymentMethod {
   final String emoji;
 }
 
+/// Valores nutricionales de un plato.
 class Nutrition {
   const Nutrition({
     required this.kcal,
@@ -132,6 +136,7 @@ class Restaurant {
   String branchName;
 }
 
+/// Plato del menú de un restaurante.
 class Dish {
   Dish({
     required this.id,
@@ -197,15 +202,18 @@ class Dish {
   int soldToday;
   String? imageAsset;
 
+  /// `true` si ya se agotó el límite de porciones del día.
   bool get reachedPortionLimit =>
       portionLimit != null && soldToday >= portionLimit!;
 
   /// Disponible para agregar al carrito.
   bool get orderable => active && !soldOut && !reachedPortionLimit;
 
+  /// Porciones que quedan hoy; `null` si no hay límite.
   int? get remainingPortions =>
       portionLimit == null ? null : (portionLimit! - soldToday).clamp(0, 9999);
 
+  /// Busca una opción (tamaño, acompañante o extra) por id.
   DishOption? optionById(String id) {
     for (final o in [...sizes, ...sides, ...extras]) {
       if (o.id == id) return o;

@@ -10,9 +10,11 @@ import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Pantalla de ganancias del repartidor con historial, semana y metas.
 class EarningsScreen extends StatelessWidget {
   const EarningsScreen({super.key});
 
+  /// Calcula totales del día, la semana y las medallas por meta.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -143,6 +145,7 @@ class _WeekChart extends StatelessWidget {
 
   static const _days = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
+  /// Dibuja el total y las barras de la semana.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -231,6 +234,7 @@ class _MedalCard extends StatelessWidget {
   final int bonus;
   final int done;
 
+  /// Muestra la medalla con el progreso hacia su meta.
   @override
   Widget build(BuildContext context) {
     final won = done >= goal;

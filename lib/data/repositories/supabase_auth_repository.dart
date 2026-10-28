@@ -9,20 +9,24 @@ import 'auth_repository.dart';
 /// El perfil (rol, nombre, teléfono, negocio y Gotas) vive en la tabla
 /// `profiles` y lo crea el trigger `handle_new_user` en el registro.
 class SupabaseAuthRepository implements AuthRepository {
+  /// Usa el cliente de Supabase indicado o el global.
   SupabaseAuthRepository({sb.SupabaseClient? client})
     : _client = client ?? sb.Supabase.instance.client;
 
   final sb.SupabaseClient _client;
   final Map<String, AppUser> _cache = {};
 
+  /// La autenticación vive en el backend.
   @override
   bool get isRemote => true;
 
+  /// El modo remoto no expone cuentas de demostración.
   @override
   List<AppUser> get demoAccounts => const [];
 
   // ------------------------------------------------------------- Escrituras
 
+  /// Inicia sesión con Supabase Auth y carga el perfil.
   @override
   Future<AppUser> signIn(String email, String password) async {
     try {
@@ -42,6 +46,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Crea la cuenta con Supabase Auth y carga el perfil.
   @override
   Future<AppUser> signUp({
     required String name,
@@ -78,12 +83,14 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Limpia la caché y cierra la sesión remota.
   @override
   Future<void> signOut() async {
     _cache.clear();
     await _client.auth.signOut();
   }
 
+  /// Recupera la sesión persistida del cliente.
   @override
   Future<AppUser?> restoreSession() async {
     final user = _client.auth.currentUser;
@@ -95,6 +102,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Lee el saldo de Gotas de `profiles`.
   @override
   Future<int?> gotasBalance(String userId) async {
     try {
@@ -109,6 +117,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Lee las direcciones activas del usuario.
   @override
   Future<List<Address>> addresses(String userId) async {
     try {
@@ -136,6 +145,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Lee el perfil de repartidor del usuario.
   @override
   Future<CourierProfile?> courierProfile(String userId) async {
     try {
@@ -162,6 +172,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Traduce el vehículo guardado a su enum.
   static Vehicle _vehicle(String? value) => switch (value) {
     'bicycle' => Vehicle.bicycle,
     'scooter' => Vehicle.scooter,
@@ -171,9 +182,11 @@ class SupabaseAuthRepository implements AuthRepository {
 
   // --------------------------------------------------------- Lectura local
 
+  /// Usuario cacheado por id.
   @override
   AppUser? byId(String id) => _cache[id];
 
+  /// Cuenta cacheada dueña del negocio.
   @override
   AppUser? byBusiness(String businessId) {
     for (final u in _cache.values) {
@@ -188,6 +201,7 @@ class SupabaseAuthRepository implements AuthRepository {
   AppUser login(String email, String password) =>
       throw AuthException('Usa loginAsync cuando Supabase está configurado.');
 
+  /// El registro remoto es asíncrono.
   @override
   AppUser register({
     required String name,
@@ -201,6 +215,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
   // -------------------------------------------------------------- Interno
 
+  /// Lee el perfil de `profiles` y lo guarda en caché.
   Future<AppUser> _loadProfile(
     String id, {
     required String fallbackEmail,
@@ -226,18 +241,21 @@ class SupabaseAuthRepository implements AuthRepository {
     return user;
   }
 
+  /// Convierte el rol al valor de la base.
   static String _roleValue(UserRole role) => switch (role) {
     UserRole.buyer => 'buyer',
     UserRole.courier => 'courier',
     UserRole.restaurant => 'restaurant',
   };
 
+  /// Convierte el rol de la base al enum local.
   static UserRole _roleFrom(String? value) => switch (value) {
     'courier' => UserRole.courier,
     'restaurant' => UserRole.restaurant,
     _ => UserRole.buyer,
   };
 
+  /// Traduce los mensajes de Supabase a español.
   static String _message(String raw) {
     final m = raw.toLowerCase();
     if (m.contains('invalid login credentials')) {

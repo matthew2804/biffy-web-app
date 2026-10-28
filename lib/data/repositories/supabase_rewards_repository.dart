@@ -98,6 +98,7 @@ class RewardRedemption {
 /// Toda la escritura pasa por el RPC `redeem_reward`: la app nunca descuenta
 /// Gotas por su cuenta en modo remoto.
 class SupabaseRewardsRepository {
+  /// Usa el cliente de Supabase indicado o el global.
   SupabaseRewardsRepository({sb.SupabaseClient? client})
     : _client = client ?? sb.Supabase.instance.client;
 

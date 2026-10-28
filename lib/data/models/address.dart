@@ -22,6 +22,7 @@ class Address {
   /// Zona de cobertura simulada asociada a la dirección.
   final String pointId;
 
+  /// Devuelve una copia con los campos indicados reemplazados.
   Address copyWith({
     String? label,
     String? line,
@@ -41,6 +42,7 @@ class Address {
     );
   }
 
+  /// Dirección completa en una sola línea legible.
   String get full =>
       [line, if (details.isNotEmpty) details, neighborhood].join(' · ');
 }

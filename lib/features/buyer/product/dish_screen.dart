@@ -21,22 +21,26 @@ class DishScreen extends StatefulWidget {
   final String id;
   final String? editLineId;
 
+  /// Crea el estado de personalización del plato.
   @override
   State<DishScreen> createState() => _DishScreenState();
 }
 
+/// Estado con la selección, cantidad y nota del plato.
 class _DishScreenState extends State<DishScreen> {
   DishSelection? _sel;
   int _qty = 1;
   final _note = TextEditingController();
   bool _initialized = false;
 
+  /// Libera el controlador de la nota.
   @override
   void dispose() {
     _note.dispose();
     super.dispose();
   }
 
+  /// Carga la selección inicial o la de la línea que se edita.
   void _init(Dish d) {
     if (_initialized) return;
     _initialized = true;
@@ -52,6 +56,7 @@ class _DishScreenState extends State<DishScreen> {
     }
   }
 
+  /// Construye el detalle, las opciones y el botón de agregar.
   @override
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogController>();
@@ -395,6 +400,7 @@ class _DishScreenState extends State<DishScreen> {
   }
 }
 
+/// Fila seleccionable de tamaño, acompañante o extra.
 class _OptionTile extends StatelessWidget {
   const _OptionTile({
     super.key,
@@ -411,6 +417,7 @@ class _OptionTile extends StatelessWidget {
   final bool radio;
   final VoidCallback onTap;
 
+  /// Dibuja el indicador de selección y el precio adicional.
   @override
   Widget build(BuildContext context) {
     return InkWell(

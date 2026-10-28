@@ -1,6 +1,7 @@
 /// Personalización de un plato y líneas del carrito.
 library;
 
+/// Personalización elegida para un plato (tamaño, acompañante, extras).
 class DishSelection {
   const DishSelection({
     this.sizeId,
@@ -16,6 +17,7 @@ class DishSelection {
   /// Ingredientes que el comprador pidió quitar.
   final Set<String> removed;
 
+  /// Copia la selección aplicando los cambios indicados.
   DishSelection copyWith({
     String? sizeId,
     String? sideId,
@@ -38,14 +40,17 @@ class DishSelection {
     return '${sizeId ?? ''}|${sideId ?? ''}|${e.join(',')}|${r.join(',')}';
   }
 
+  /// Dos selecciones son iguales si tienen la misma firma.
   @override
   bool operator ==(Object other) =>
       other is DishSelection && other.signature == signature;
 
+  /// Hash coherente con la firma de la selección.
   @override
   int get hashCode => signature.hashCode;
 }
 
+/// Línea del carrito: plato, cantidad, personalización y nota.
 class CartItem {
   CartItem({
     required this.lineId,
@@ -61,6 +66,7 @@ class CartItem {
   DishSelection selection;
   String note;
 
+  /// Copia la línea conservando todos sus datos.
   CartItem copy() => CartItem(
     lineId: lineId,
     dishId: dishId,

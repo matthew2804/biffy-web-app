@@ -13,17 +13,21 @@ import '../../../domain/pricing.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Menú de un restaurante con portada, filtros de sección y platos.
 class RestaurantScreen extends StatefulWidget {
   const RestaurantScreen({super.key, required this.id});
   final String id;
 
+  /// Crea el estado del menú del restaurante.
   @override
   State<RestaurantScreen> createState() => _RestaurantScreenState();
 }
 
+/// Estado con la sección del menú seleccionada.
 class _RestaurantScreenState extends State<RestaurantScreen> {
   String? _section;
 
+  /// Construye la portada, los datos del local y su menú.
   @override
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogController>();
@@ -275,6 +279,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
     );
   }
 
+  /// Abre la hoja explicativa del pedido grupal de demostración.
   void _groupOrder(BuildContext context, String id) {
     showModalBottomSheet<void>(
       context: context,

@@ -10,10 +10,12 @@ import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 import 'offer_widgets.dart';
 
+/// Detalle de una oferta con productos y botones para aceptar o rechazar.
 class OfferDetailScreen extends StatelessWidget {
   const OfferDetailScreen({super.key, required this.id});
   final String id;
 
+  /// Muestra la oferta o un aviso si ya no está disponible.
   @override
   Widget build(BuildContext context) {
     final orders = context.watch<OrderService>();

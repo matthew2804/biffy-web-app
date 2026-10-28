@@ -16,6 +16,7 @@ class ReorderCheck {
   final List<String> warnings;
   final Restaurant? restaurant;
 
+  /// Indica si el pedido anterior se puede repetir tal cual.
   bool get canReorder => items.isNotEmpty && restaurant != null;
 }
 

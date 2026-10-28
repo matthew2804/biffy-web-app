@@ -14,17 +14,21 @@ import '../../../shared/state/session_controller.dart';
 class PreferencesScreen extends StatefulWidget {
   const PreferencesScreen({super.key});
 
+  /// Crea el estado de la encuesta de preferencias.
   @override
   State<PreferencesScreen> createState() => _PreferencesScreenState();
 }
 
+/// Estado con el paso actual y las preferencias en edición.
 class _PreferencesScreenState extends State<PreferencesScreen> {
   int _step = 0;
   late Preferences _p = context.read<SessionController>().prefs;
 
+  /// Agrega o quita un valor del conjunto de selección.
   Set<String> _toggle(Set<String> s, String v) =>
       s.contains(v) ? ({...s}..remove(v)) : {...s, v};
 
+  /// Construye el paso actual y los botones de navegación fijos.
   @override
   Widget build(BuildContext context) {
     final session = context.read<SessionController>();
@@ -222,6 +226,7 @@ class _TasteTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  /// Dibuja la categoría con foto y el borde activo si está elegida.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;

@@ -6,9 +6,11 @@ import '../../../core/widgets/ui.dart';
 import '../../../data/models/catalog.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Selector del método de pago predeterminado del comprador.
 class PaymentsScreen extends StatelessWidget {
   const PaymentsScreen({super.key});
 
+  /// Construye la lista de métodos de pago simulados.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();

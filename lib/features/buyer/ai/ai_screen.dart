@@ -13,7 +13,9 @@ import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 import 'recommendation_input.dart';
 
+/// Mensaje del chat local con Biffy AI y sus platos sugeridos.
 class _Msg {
+  /// Crea el mensaje indicando si viene del usuario.
   const _Msg(this.text, this.fromUser, [this.dishes = const []]);
   final String text;
   final bool fromUser;
@@ -28,13 +30,16 @@ const _suggestions = [
   '¿Qué me recomiendas para mi descanso de 20 minutos?',
 ];
 
+/// Asistente con recomendaciones por reglas y preguntas frecuentes.
 class AiScreen extends StatefulWidget {
   const AiScreen({super.key});
 
+  /// Crea el estado del asistente.
   @override
   State<AiScreen> createState() => _AiScreenState();
 }
 
+/// Estado con el modo, la semilla y el historial del chat.
 class _AiScreenState extends State<AiScreen> {
   RecommendationMode _mode = RecommendationMode.tastes;
   int _seed = 1;
@@ -47,6 +52,7 @@ class _AiScreenState extends State<AiScreen> {
     ),
   ];
 
+  /// Libera el campo de texto y el control de scroll.
   @override
   void dispose() {
     _input.dispose();
@@ -54,6 +60,7 @@ class _AiScreenState extends State<AiScreen> {
     super.dispose();
   }
 
+  /// Envía la pregunta, agrega la respuesta y baja el scroll.
   void _ask(String q) {
     if (q.trim().isEmpty) return;
     final reply = answer(q, buildRecommendationInput(context));
@@ -73,6 +80,7 @@ class _AiScreenState extends State<AiScreen> {
     });
   }
 
+  /// Construye las recomendaciones, el chat y el campo de entrada.
   @override
   Widget build(BuildContext context) {
     context.watch<SessionController>();
@@ -198,10 +206,12 @@ class _AiScreenState extends State<AiScreen> {
   }
 }
 
+/// Tarjeta de una recomendación con sus motivos y coincidencia.
 class _RecCard extends StatelessWidget {
   const _RecCard({required this.rec});
   final Recommendation rec;
 
+  /// Dibuja el plato recomendado y abre su detalle al tocar.
   @override
   Widget build(BuildContext context) {
     final catalog = context.read<CatalogController>();
@@ -248,10 +258,12 @@ class _RecCard extends StatelessWidget {
   }
 }
 
+/// Burbuja de chat alineada según el autor del mensaje.
 class _Bubble extends StatelessWidget {
   const _Bubble({required this.msg});
   final _Msg msg;
 
+  /// Dibuja el texto y los platos adjuntos del mensaje.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;

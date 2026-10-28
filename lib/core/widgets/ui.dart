@@ -24,6 +24,7 @@ class BiffyCard extends StatelessWidget {
   final double radius;
   final BoxBorder? border;
 
+  /// Dibuja la tarjeta con su sombra y su gesto de toque.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -53,6 +54,7 @@ class BiffyCard extends StatelessWidget {
   }
 }
 
+/// Botón principal amarillo de ancho completo.
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     super.key,
@@ -67,6 +69,7 @@ class PrimaryButton extends StatelessWidget {
   final IconData? icon;
   final Color? color;
 
+  /// Dibuja el botón con o sin ícono.
   @override
   Widget build(BuildContext context) {
     final style = color == null
@@ -89,6 +92,7 @@ class PrimaryButton extends StatelessWidget {
   }
 }
 
+/// Botón secundario con borde de ancho completo.
 class SecondaryButton extends StatelessWidget {
   const SecondaryButton({
     super.key,
@@ -103,6 +107,7 @@ class SecondaryButton extends StatelessWidget {
   final IconData? icon;
   final Color? foreground;
 
+  /// Dibuja el botón con o sin ícono.
   @override
   Widget build(BuildContext context) {
     final style = foreground == null
@@ -126,6 +131,7 @@ class SecondaryButton extends StatelessWidget {
   }
 }
 
+/// Encabezado de sección con acción opcional a la derecha.
 class SectionHeader extends StatelessWidget {
   const SectionHeader(this.title, {super.key, this.action, this.onAction});
 
@@ -133,6 +139,7 @@ class SectionHeader extends StatelessWidget {
   final String? action;
   final VoidCallback? onAction;
 
+  /// Dibuja el título y la acción opcional.
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -150,6 +157,7 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
+/// Estado vacío con emoji, título, texto y acción opcional.
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -166,6 +174,7 @@ class EmptyState extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// Dibuja el mensaje vacío centrado.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -210,6 +219,7 @@ class SelectPill extends StatelessWidget {
   final VoidCallback onTap;
   final String? emoji;
 
+  /// Dibuja la píldora según su estado de selección.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -252,6 +262,7 @@ class SelectPill extends StatelessWidget {
   }
 }
 
+/// Botón circular de ícono con insignia numérica opcional.
 class RoundIconButton extends StatelessWidget {
   const RoundIconButton({
     super.key,
@@ -270,6 +281,7 @@ class RoundIconButton extends StatelessWidget {
   final Color? color;
   final Color? iconColor;
 
+  /// Dibuja el botón con su tooltip y su insignia.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -325,6 +337,7 @@ class RoundIconButton extends StatelessWidget {
   }
 }
 
+/// Etiqueta pequeña de color para estados y categorías.
 class Tag extends StatelessWidget {
   const Tag(this.text, {super.key, this.color, this.textColor});
 
@@ -332,6 +345,7 @@ class Tag extends StatelessWidget {
   final Color? color;
   final Color? textColor;
 
+  /// Dibuja la etiqueta con su color de fondo y de texto.
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -354,11 +368,13 @@ class Tag extends StatelessWidget {
   }
 }
 
+/// Insignia que advierte que la app está en modo demostración.
 class DemoBadge extends StatelessWidget {
   const DemoBadge([this.text = 'Demostración · sin cobros reales', Key? key])
     : super(key: key);
   final String text;
 
+  /// Dibuja la insignia sobre una etiqueta estándar.
   @override
   Widget build(BuildContext context) => Tag(
     '🧪 $text',
@@ -367,12 +383,14 @@ class DemoBadge extends StatelessWidget {
   );
 }
 
+/// Chip con el color y la etiqueta del estado de un pedido.
 class StatusChip extends StatelessWidget {
   const StatusChip(this.status, {super.key, this.kitchen = false});
 
   final OrderStatus status;
   final bool kitchen;
 
+  /// Elige los colores del estado y dibuja el chip.
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (status) {
@@ -390,10 +408,12 @@ class StatusChip extends StatelessWidget {
   }
 }
 
+/// Logo de la abeja de Biffy en el tamaño indicado.
 class BeeLogo extends StatelessWidget {
   const BeeLogo({super.key, this.size = 40});
   final double size;
 
+  /// Carga la imagen local del logo.
   @override
   Widget build(BuildContext context) => Image.asset(
     'assets/images/biffy-logo.png',
@@ -441,6 +461,7 @@ class FoodImage extends StatelessWidget {
     this.width,
   });
 
+  /// Construye la foto del plato a partir de su emoji y su asset.
   factory FoodImage.dish(
     Dish d, {
     double size = 72,
@@ -460,6 +481,7 @@ class FoodImage extends StatelessWidget {
   final double? width;
   final double radius;
 
+  /// Dibuja la foto o el emoji sobre la superficie lavanda.
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
@@ -495,6 +517,7 @@ class PersonAvatar extends StatelessWidget {
   final String? asset;
   final double radius;
 
+  /// Dibuja el avatar con foto o con la inicial del nombre.
   @override
   Widget build(BuildContext context) {
     final initial = Text(
@@ -522,6 +545,7 @@ class PersonAvatar extends StatelessWidget {
   }
 }
 
+/// Selector de cantidad con botones de menos y más.
 class QtyStepper extends StatelessWidget {
   const QtyStepper({
     super.key,
@@ -538,6 +562,7 @@ class QtyStepper extends StatelessWidget {
   final int max;
   final bool compact;
 
+  /// Dibuja los controles y el número de unidades.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -588,6 +613,7 @@ class QtyStepper extends StatelessWidget {
   }
 }
 
+/// Fila de etiqueta y valor para resúmenes de pedido.
 class InfoRow extends StatelessWidget {
   const InfoRow(
     this.label,
@@ -602,6 +628,7 @@ class InfoRow extends StatelessWidget {
   final bool bold;
   final Color? valueColor;
 
+  /// Dibuja la etiqueta a la izquierda y el valor a la derecha.
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(
@@ -630,12 +657,14 @@ class InfoRow extends StatelessWidget {
   }
 }
 
+/// Tarjeta con un número grande y su etiqueta.
 class BigNumber extends StatelessWidget {
   const BigNumber(this.label, this.value, {super.key, this.highlight = false});
   final String label;
   final String value;
   final bool highlight;
 
+  /// Dibuja la tarjeta con el valor destacado.
   @override
   Widget build(BuildContext context) {
     return BiffyCard(
@@ -671,6 +700,7 @@ class BigNumber extends StatelessWidget {
   }
 }
 
+/// Muestra un diálogo de confirmación y devuelve la decisión.
 Future<bool> showConfirm(
   BuildContext context, {
   required String title,
@@ -706,6 +736,7 @@ Future<bool> showConfirm(
   return ok ?? false;
 }
 
+/// Muestra un aviso breve en la parte inferior.
 void showSnack(BuildContext context, String message, {bool error = false}) {
   final m = ScaffoldMessenger.maybeOf(context);
   if (m == null) return;
@@ -725,6 +756,7 @@ class MobileFrame extends StatelessWidget {
   const MobileFrame({super.key, required this.child});
   final Widget child;
 
+  /// Dibuja el contenido centrado con ancho máximo móvil.
   @override
   Widget build(BuildContext context) => Align(
     alignment: Alignment.topCenter,

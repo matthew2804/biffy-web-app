@@ -21,6 +21,7 @@ class CourierRegistrationScreen extends StatefulWidget {
       _CourierRegistrationScreenState();
 }
 
+/// Estado del formulario de registro del repartidor.
 class _CourierRegistrationScreenState extends State<CourierRegistrationScreen> {
   final _form = GlobalKey<FormState>();
   late final SessionController _s = context.read<SessionController>();
@@ -36,6 +37,7 @@ class _CourierRegistrationScreenState extends State<CourierRegistrationScreen> {
   late Vehicle _vehicle = _p?.vehicle ?? Vehicle.bicycle;
   late String? _uni = _p?.universityId ?? _s.verifiedUniversityId;
 
+  /// Fuerza la creación de los datos precargados del perfil.
   @override
   void initState() {
     super.initState();
@@ -43,6 +45,7 @@ class _CourierRegistrationScreenState extends State<CourierRegistrationScreen> {
     _uni;
   }
 
+  /// Libera todos los controladores del formulario.
   @override
   void dispose() {
     for (final c in [_name, _doc, _phone, _email, _plate]) {
@@ -51,9 +54,11 @@ class _CourierRegistrationScreenState extends State<CourierRegistrationScreen> {
     super.dispose();
   }
 
+  /// Valida que el campo obligatorio no esté vacío.
   String? _req(String? v) =>
       (v == null || v.trim().isEmpty) ? 'Campo obligatorio' : null;
 
+  /// Arma el formulario y guarda el perfil al confirmar.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

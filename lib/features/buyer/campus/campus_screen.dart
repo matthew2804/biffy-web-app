@@ -16,21 +16,25 @@ import '../../../shared/state/session_controller.dart';
 class CampusScreen extends StatefulWidget {
   const CampusScreen({super.key});
 
+  /// Crea el estado de la verificación universitaria simulada.
   @override
   State<CampusScreen> createState() => _CampusScreenState();
 }
 
+/// Estado con el correo y la universidad elegidos para verificar.
 class _CampusScreenState extends State<CampusScreen> {
   final _email = TextEditingController();
   String? _uniId;
   String? _error;
 
+  /// Libera el controlador del correo universitario.
   @override
   void dispose() {
     _email.dispose();
     super.dispose();
   }
 
+  /// Construye el selector de universidad, la verificación y los populares.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();

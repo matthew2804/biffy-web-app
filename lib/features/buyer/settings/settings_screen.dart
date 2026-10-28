@@ -5,9 +5,11 @@ import '../../../core/widgets/actions.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Preferencias de notificaciones, tema y punto de entrega.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
+  /// Construye los interruptores de ajustes y el acceso al punto de entrega.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();

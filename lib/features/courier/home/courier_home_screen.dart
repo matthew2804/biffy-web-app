@@ -14,9 +14,11 @@ import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 import '../offers/offer_widgets.dart';
 
+/// Pantalla de inicio del repartidor con estado, ofertas y entrega en curso.
 class CourierHomeScreen extends StatelessWidget {
   const CourierHomeScreen({super.key});
 
+  /// Reúne ganancias, metas y ofertas disponibles del día.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();

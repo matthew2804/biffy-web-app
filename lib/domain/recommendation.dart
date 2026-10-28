@@ -6,6 +6,7 @@ import '../data/models/catalog.dart';
 import '../data/models/user.dart';
 import 'catalog_rules.dart';
 
+/// Modos de recomendación que ofrece el motor local.
 enum RecommendationMode {
   tastes('Mis gustos', '💛'),
   fast('Rápido', '⚡'),
@@ -19,6 +20,7 @@ enum RecommendationMode {
   final String emoji;
 }
 
+/// Datos de entrada necesarios para calcular recomendaciones.
 class RecommendationInput {
   const RecommendationInput({
     required this.dishes,
@@ -44,6 +46,7 @@ class RecommendationInput {
   final int seed;
 }
 
+/// Plato recomendado con su puntaje, coincidencia y motivos.
 class Recommendation {
   const Recommendation({
     required this.dish,
