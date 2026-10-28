@@ -143,12 +143,18 @@ los enums de Dart.
 El catálogo está en `gotas_rewards` y cada caja tiene sus premios con peso en
 `gotas_reward_prizes`. `redeem_reward` descuenta las Gotas y sortea el premio:
 
-| Caja | Costo | Premios | Mejor premio |
+| Caja | Costo | Límite | Premios |
 |---|---|---|---|
-| `box_25` · Caja sorpresa | 25 | 5 | $5.000 |
-| `box_50` · Caja premium | 50 | 5 | $12.000 + 2 envíos |
-| `box_100` · Caja sorteo | 100 | 5 | $25.000 + boleto |
-| `free_shipping` | 5 | directo | — |
+| `box_5` · Caja básica | 5 | **ilimitada** | platos de restaurantes o premios de plataforma |
+| `free_shipping` | 10 | cada 12 h | quita el envío del pedido |
+| `box_25` · Caja sorpresa | 25 | cada 12 h | 5 premios |
+| `box_50` · Caja premium | 50 | cada 12 h | 5 premios |
+| `box_100` · Caja sorteo | 100 | cada 24 h | 5 premios + boleto |
+
+Los límites son columnas (`cooldown_hours`, `daily_limit`): se cambian con un
+`update`, sin tocar código. Los restaurantes meten sus platos en `box_items`
+(pantalla `/negocio/cajas`); el sorteo los usa primero y, si una caja no tiene
+platos, cae a `gotas_reward_prizes`.
 
 El peso es relativo: se suma y se sortea con `random()`, así que ajustar
 probabilidades es cambiar `weight` (en `0008_reward_boxes.sql` o con un

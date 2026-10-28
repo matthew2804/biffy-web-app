@@ -20,7 +20,7 @@ declare
     'app_settings', 'addresses', 'gotas_ledger', 'coupons', 'user_coupons',
     'favorite_dishes', 'favorite_branches', 'notifications', 'courier_profiles',
     'orders', 'order_items', 'order_events', 'order_declines', 'reviews',
-    'gotas_rewards', 'reward_redemptions', 'gotas_reward_prizes'
+    'gotas_rewards', 'reward_redemptions', 'gotas_reward_prizes', 'box_items'
   ];
   expected_columns text[][] := array[
     ['dishes', 'active'], ['dishes', 'sold_out'], ['dishes', 'branch_id'],

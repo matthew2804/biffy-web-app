@@ -418,8 +418,8 @@ class _BoxTile extends StatelessWidget {
                 ),
                 Text(
                   box.isRandom
-                      ? '${box.prizes} premios posibles'
-                      : 'Recompensa directa',
+                      ? '${box.prizes} premios · ${box.limitLabel}'
+                      : box.limitLabel,
                   style: t.bodySmall,
                 ),
                 Text(

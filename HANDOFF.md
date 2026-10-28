@@ -103,8 +103,15 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 - ✅ `/recompensas` lee `gotas_rewards` y `gotas_reward_prizes` con Supabase.
 - ✅ Abrir caja → RPC `redeem_reward` → diálogo con el premio sorteado.
 - ✅ Historial de canjes desde `reward_redemptions`.
-- ⏳ Saldo y libro de movimientos desde `gotas_ledger` (la pantalla aún usa el historial local en demo).
-- ⏳ Límite de canjes por día (regla en la base).
+- ✅ Límites configurables en la base (`cooldown_hours`): caja de 5 ilimitada,
+  el resto cada 12 h y la grande cada 24 h.
+- ✅ Los restaurantes meten y sacan sus platos de las cajas (`box_items`,
+  pantalla `/negocio/cajas`); el sorteo usa esos platos y cae a los premios de
+  plataforma si no hay ninguno.
+- ⏳ Saldo y libro de movimientos desde `gotas_ledger` (la pantalla aún usa el
+  historial local en demo).
+- ⏳ **Aplicar `0012_box_items.sql`** en el proyecto (sin eso la app no ve las
+  cajas nuevas ni los platos).
 - **Hecho cuando:** abrir una caja descuenta en la base y al reabrir la app el
   premio sigue ahí.
 

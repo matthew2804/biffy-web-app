@@ -57,6 +57,16 @@ class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
           children: [
             Text('Mi menú', style: t.headlineSmall),
             const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                key: const Key('merchant-boxes'),
+                onPressed: () => context.push('/negocio/cajas'),
+                icon: const Text('📦'),
+                label: const Text('Cajas con Gotas'),
+              ),
+            ),
+            const SizedBox(height: 8),
             TextField(
               key: const Key('menu-search'),
               onChanged: (v) => setState(() => _q = v),

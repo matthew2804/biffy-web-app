@@ -36,6 +36,7 @@ import '../features/courier/pickup/pickup_screen.dart';
 import '../features/courier/profile/courier_profile_screen.dart';
 import '../features/courier/registration/courier_registration_screen.dart';
 import '../features/onboarding/splash_screen.dart';
+import '../features/restaurant_owner/boxes/merchant_boxes_screen.dart';
 import '../features/restaurant_owner/home/merchant_home_screen.dart';
 import '../features/restaurant_owner/menu/merchant_menu_screen.dart';
 import '../features/restaurant_owner/orders/merchant_orders_screen.dart';
@@ -284,6 +285,8 @@ GoRouter buildRouter(
           ),
         ],
       ),
+      // Cajas de Gotas que el negocio puede llenar con sus platos.
+      _r('/negocio/cajas', (_) => const MerchantBoxesScreen()),
     ],
   );
 }

@@ -10,6 +10,9 @@ class GotasBox {
     required this.prizes,
     this.tier,
     this.drawFrequency,
+    this.cooldownHours = 0,
+    this.merchantManaged = false,
+    this.sort = 0,
   });
 
   /// Código estable usado por el RPC (`box_25`, `free_shipping`, ...).
@@ -33,8 +36,21 @@ class GotasBox {
   /// `monthly` para el sorteo mensual; null en el resto.
   final String? drawFrequency;
 
+  /// Horas de espera entre canjes. 0 = ilimitada.
+  final int cooldownHours;
+
+  /// `true` si los restaurantes pueden meter sus platos en esta caja.
+  final bool merchantManaged;
+
+  /// Orden de presentación en la lista.
+  final int sort;
+
   /// `true` si al canjearla se sortea un premio.
   bool get isRandom => type == 'mystery_box' || type == 'monthly_raffle';
+
+  /// Texto corto con el límite de canjes.
+  String get limitLabel =>
+      cooldownHours == 0 ? 'Ilimitada' : 'Cada $cooldownHours h';
 
   /// Emoji que representa la recompensa en la interfaz.
   String get emoji => switch (type) {
@@ -54,6 +70,7 @@ class RedeemOutcome {
     this.prizeType,
     this.prizeAmount = 0,
     this.error,
+    this.cooldownHours = 0,
   });
 
   /// `true` si el canje se completó en la base.
@@ -73,6 +90,9 @@ class RedeemOutcome {
 
   /// Código de error devuelto por el RPC, ya traducido.
   final String? error;
+
+  /// Horas de espera cuando el canje se bloquea por enfriamiento.
+  final int cooldownHours;
 }
 
 /// Un canje del historial.
@@ -108,9 +128,12 @@ class SupabaseRewardsRepository {
   Future<List<GotasBox>> boxes() async {
     final rewards = await _client
         .from('gotas_rewards')
-        .select('code, name, reward_type, gotas_cost, tier, draw_frequency')
+        .select(
+          'code, name, reward_type, gotas_cost, tier, draw_frequency, '
+          'cooldown_hours, merchant_managed, sort',
+        )
         .eq('is_active', true)
-        .order('gotas_cost');
+        .order('sort');
 
     final prizes = await _client
         .from('gotas_reward_prizes')
@@ -144,6 +167,9 @@ class SupabaseRewardsRepository {
             tier: (row['tier'] as num?)?.toInt(),
             prizes: prizeCountByCode[row['code']] ?? 0,
             drawFrequency: row['draw_frequency'] as String?,
+            cooldownHours: ((row['cooldown_hours'] as num?) ?? 0).toInt(),
+            merchantManaged: (row['merchant_managed'] as bool?) ?? false,
+            sort: ((row['sort'] as num?) ?? 0).toInt(),
           ),
         )
         .toList();
@@ -165,6 +191,7 @@ class SupabaseRewardsRepository {
           ok: false,
           balance: ((map['balance'] as num?) ?? 0).toInt(),
           error: _message(result as String?),
+          cooldownHours: ((map['cooldown_hours'] as num?) ?? 0).toInt(),
         );
       }
       final prize = map['prize'];
@@ -203,11 +230,110 @@ class SupabaseRewardsRepository {
         .toList();
   }
 
+  // ---------------------------------------------------- Lado comerciante
+
+  /// Platos que el negocio tiene metidos en cajas (RLS limita a sus sedes).
+  Future<List<BoxItemView>> merchantItems() async {
+    final rows = await _client
+        .from('box_items')
+        .select(
+          'id, reward_id, dish_id, branch_id, '
+          'dish:dishes(name), branch:branches(name), reward:gotas_rewards(code)',
+        );
+
+    return rows
+        .map(
+          (row) => BoxItemView(
+            id: row['id'] as String,
+            rewardCode:
+                (row['reward'] is Map
+                    ? (row['reward'] as Map)['code'] as String?
+                    : null) ??
+                '',
+            dishId: row['dish_id'] as String,
+            branchId: row['branch_id'] as String,
+            dishName:
+                (row['dish'] is Map
+                    ? (row['dish'] as Map)['name'] as String?
+                    : null) ??
+                'Plato',
+            branchName:
+                (row['branch'] is Map
+                    ? (row['branch'] as Map)['name'] as String?
+                    : null) ??
+                'Sede',
+          ),
+        )
+        .toList();
+  }
+
+  /// Mete un plato del negocio en una caja (idempotente).
+  Future<void> addItem({
+    required String rewardCode,
+    required String branchId,
+    required String dishId,
+  }) async {
+    final reward = await _client
+        .from('gotas_rewards')
+        .select('id')
+        .eq('code', rewardCode)
+        .maybeSingle();
+    final rewardId = reward?['id'] as String?;
+    if (rewardId == null) return;
+
+    await _client.from('box_items').upsert(
+      {
+        'reward_id': rewardId,
+        'branch_id': branchId,
+        'dish_id': dishId,
+        'is_active': true,
+      },
+      onConflict: 'reward_id,branch_id,dish_id',
+    );
+  }
+
+  /// Saca un plato de la caja.
+  Future<void> removeItem(String id) async {
+    await _client.from('box_items').delete().eq('id', id);
+  }
+
   /// Traduce los códigos del RPC a mensajes para el usuario.
   static String _message(String? code) => switch (code) {
     'insufficient_gotas' => 'No te alcanzan las Gotas.',
     'reward_not_found' => 'Esa recompensa ya no está disponible.',
     'not_authenticated' => 'Inicia sesión para canjear.',
+    'cooldown' => 'Ya abriste esta caja. Vuelve cuando se recargue.',
+    'daily_limit' => 'Alcanzaste el límite de hoy para esta caja.',
     _ => 'No pudimos completar el canje.',
   };
+}
+
+/// Un plato dentro de una caja, visto por el comerciante.
+class BoxItemView {
+  const BoxItemView({
+    required this.id,
+    required this.rewardCode,
+    required this.dishId,
+    required this.branchId,
+    required this.dishName,
+    required this.branchName,
+  });
+
+  /// Id de la fila en `box_items`.
+  final String id;
+
+  /// Código de la caja (`box_5`, `box_25`, ...).
+  final String rewardCode;
+
+  /// Plato incluido.
+  final String dishId;
+
+  /// Sede a la que pertenece.
+  final String branchId;
+
+  /// Nombre del plato.
+  final String dishName;
+
+  /// Nombre de la sede.
+  final String branchName;
 }
