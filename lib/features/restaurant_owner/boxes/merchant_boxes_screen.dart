@@ -29,6 +29,29 @@ class _MerchantBoxesScreenState extends State<MerchantBoxesScreen> {
   /// Evita doble toque mientras se guarda un cambio.
   bool _busy = false;
 
+  /// Código que el comprador dicta en la sede.
+  final _codeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  /// Valida un código de premio y lo marca como reclamado.
+  Future<void> _validate() async {
+    final code = _codeController.text.trim();
+    if (code.isEmpty) return;
+    final res = await _repo.useRedemption(code);
+    if (!mounted) return;
+    if (res.ok) {
+      _codeController.clear();
+      showSnack(context, 'Premio entregado: ${res.prize}');
+    } else {
+      showSnack(context, res.error ?? 'No se pudo validar', error: true);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -151,6 +174,45 @@ class _MerchantBoxesScreenState extends State<MerchantBoxesScreen> {
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                     children: [
+                      BiffyCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Validar premio',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Escribe el código que muestra el cliente.',
+                              style: t.bodySmall,
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    key: const Key('claim-code-input'),
+                                    controller: _codeController,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    decoration: const InputDecoration(
+                                      hintText: 'ABC123',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                FilledButton(
+                                  key: const Key('claim-code-validate'),
+                                  onPressed: _validate,
+                                  child: const Text('Validar'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       Text(
                         'Elige qué platos puede entregar tu negocio en cada caja.',
                         style: t.bodyMedium,

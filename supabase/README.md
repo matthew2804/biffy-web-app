@@ -131,6 +131,7 @@ Decisiones pensadas para no volver a tocar la base:
 | `courier_pickup(order)` | repartidor | `ready → on_the_way` |
 | `courier_deliver(order, code, evidence)` | repartidor | Valida código y evidencia, entrega y acredita Gotas |
 | `redeem_reward(payload)` | comprador | Canjea con Gotas; en cajas sortea un premio ponderado |
+| `use_reward_redemption(code)` | restaurante | Valida el código del plato ganado y lo marca como reclamado |
 | `verify_university(payload)` | comprador | Verifica el correo contra el dominio de la universidad |
 | `register_business(payload)` | restaurante | Crea negocio + sedes y lo vincula al perfil |
 

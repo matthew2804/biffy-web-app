@@ -25,7 +25,9 @@ declare
   expected_columns text[][] := array[
     ['dishes', 'active'], ['dishes', 'sold_out'], ['dishes', 'branch_id'],
     ['branches', 'paused'], ['orders', 'delivery_code'], ['orders', 'gotas_used'],
-    ['profiles', 'gotas'], ['profiles', 'business_id']
+    ['profiles', 'gotas'], ['profiles', 'business_id'],
+    ['gotas_rewards', 'cooldown_hours'], ['box_items', 'reward_id'],
+    ['reward_redemptions', 'claim_code']
   ];
   expected_functions text[] := array[
     'place_order', 'restaurant_accept', 'restaurant_reject', 'restaurant_ready',

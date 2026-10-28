@@ -108,10 +108,12 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 - ✅ Los restaurantes meten y sacan sus platos de las cajas (`box_items`,
   pantalla `/negocio/cajas`); el sorteo usa esos platos y cae a los premios de
   plataforma si no hay ninguno.
+- ✅ Ciclo completo del plato: al ganarlo se genera un código de 6 caracteres
+  (30 días) que el restaurante valida en `/negocio/cajas` → el canje pasa a
+  `used`.
 - ⏳ Saldo y libro de movimientos desde `gotas_ledger` (la pantalla aún usa el
   historial local en demo).
-- ⏳ **Aplicar `0012_box_items.sql`** en el proyecto (sin eso la app no ve las
-  cajas nuevas ni los platos).
+- ⏳ **Aplicar `0012_box_items.sql` y `0013_prize_claim.sql`** en el proyecto.
 - **Hecho cuando:** abrir una caja descuenta en la base y al reabrir la app el
   premio sigue ahí.
 

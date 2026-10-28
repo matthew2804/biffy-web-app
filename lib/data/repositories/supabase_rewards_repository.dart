@@ -71,6 +71,7 @@ class RedeemOutcome {
     this.prizeAmount = 0,
     this.error,
     this.cooldownHours = 0,
+    this.claimCode,
   });
 
   /// `true` si el canje se completó en la base.
@@ -93,6 +94,9 @@ class RedeemOutcome {
 
   /// Horas de espera cuando el canje se bloquea por enfriamiento.
   final int cooldownHours;
+
+  /// Código para reclamar un plato en la sede.
+  final String? claimCode;
 }
 
 /// Un canje del historial.
@@ -101,6 +105,11 @@ class RewardRedemption {
     required this.spent,
     required this.at,
     this.prizeLabel,
+    this.id = '',
+    this.rewardCode = '',
+    this.prizeType,
+    this.status = 'granted',
+    this.claimCode,
   });
 
   /// Gotas descontadas.
@@ -111,6 +120,25 @@ class RewardRedemption {
 
   /// Premio obtenido, si la recompensa era aleatoria.
   final String? prizeLabel;
+
+  /// Id del canje (para operaciones del comercio).
+  final String id;
+
+  /// Código de la caja canjeada (`box_5`, ...).
+  final String rewardCode;
+
+  /// `discount`, `free_shipping`, `product` o `raffle_ticket`.
+  final String? prizeType;
+
+  /// `granted`, `used`, `expired` o `cancelled`.
+  final String status;
+
+  /// Código que el comprador muestra en la sede (solo platos).
+  final String? claimCode;
+
+  /// `true` si es un plato pendiente de reclamar.
+  bool get isPendingPrize =>
+      prizeType == 'product' && status == 'granted' && claimCode != null;
 }
 
 /// Acceso a recompensas y canjes en Supabase.
@@ -213,6 +241,7 @@ class SupabaseRewardsRepository {
         prizeAmount: prize is Map
             ? ((prize['amount'] as num?) ?? 0).toInt()
             : 0,
+        claimCode: prize is Map ? prize['claim_code'] as String? : null,
       );
     } on Object {
       return const RedeemOutcome(ok: false, balance: 0, error: 'Sin conexión');
@@ -223,21 +252,59 @@ class SupabaseRewardsRepository {
   Future<List<RewardRedemption>> history() async {
     final rows = await _client
         .from('reward_redemptions')
-        .select('gotas_spent, prize_label, created_at')
+        .select(
+          'id, gotas_spent, prize_label, prize_type, status, claim_code, '
+          'created_at, reward:gotas_rewards(code)',
+        )
         .order('created_at', ascending: false)
-        .limit(20);
+        .limit(30);
 
     return rows
         .map(
           (row) => RewardRedemption(
+            id: (row['id'] as String?) ?? '',
             spent: ((row['gotas_spent'] as num?) ?? 0).toInt(),
             at:
                 DateTime.tryParse((row['created_at'] as String?) ?? '') ??
                 DateTime.now(),
             prizeLabel: row['prize_label'] as String?,
+            prizeType: row['prize_type'] as String?,
+            status: (row['status'] as String?) ?? 'granted',
+            claimCode: row['claim_code'] as String?,
+            rewardCode:
+                (row['reward'] is Map
+                    ? (row['reward'] as Map)['code'] as String?
+                    : null) ??
+                '',
           ),
         )
         .toList();
+  }
+
+  /// Valida el código de un premio en la sede (solo el negocio dueño).
+  Future<({bool ok, String? prize, String? error})> useRedemption(
+    String code,
+  ) async {
+    try {
+      final res = await _client.rpc(
+        'use_reward_redemption',
+        params: {'p_code': code.trim().toUpperCase()},
+      );
+      final map = res is Map ? res : const {};
+      if (map['result'] == 'ok') {
+        return (ok: true, prize: map['prize'] as String?, error: null);
+      }
+      final message = switch (map['result']) {
+        'not_found' => 'Código no encontrado.',
+        'already_used' => 'Ese premio ya fue reclamado.',
+        'expired' => 'El premio venció.',
+        'forbidden' => 'Ese premio no es de tu negocio.',
+        _ => 'No se pudo validar el código.',
+      };
+      return (ok: false, prize: null, error: message);
+    } on Object {
+      return (ok: false, prize: null, error: 'Sin conexión');
+    }
   }
 
   // ---------------------------------------------------- Lado comerciante

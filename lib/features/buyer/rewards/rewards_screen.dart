@@ -104,6 +104,20 @@ class _RewardsScreenState extends State<RewardsScreen> {
             ),
             const SizedBox(height: 8),
             Text('Gastaste ${box.cost} Gotas · saldo: ${out.balance}'),
+            if (out.claimCode != null) ...[
+              const SizedBox(height: 12),
+              const Text('Muestra este código en el restaurante:'),
+              Text(
+                out.claimCode!,
+                style: const TextStyle(
+                  fontFamily: AppTypography.heading,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4,
+                ),
+              ),
+              const Text('Válido por 30 días.'),
+            ],
           ],
         ),
         actions: [
@@ -234,43 +248,62 @@ class _RewardsScreenState extends State<RewardsScreen> {
     ];
   }
 
-  /// Sección de cajas de Supabase.
+  /// Sección de cajas de Supabase, con el tiempo de recarga de cada una.
   List<Widget> _remoteBoxes(BuildContext context, int gotas) {
     return [
       const SectionHeader('Cajas y recompensas'),
-      FutureBuilder<List<GotasBox>>(
-        future: _boxes,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
-            );
+      FutureBuilder<List<RewardRedemption>>(
+        // El historial define cuándo vuelve a estar disponible cada caja.
+        future: _history,
+        builder: (context, historySnap) {
+          final lastByReward = <String, DateTime>{};
+          for (final r in historySnap.data ?? const <RewardRedemption>[]) {
+            lastByReward.putIfAbsent(r.rewardCode, () => r.at);
           }
-          if (snapshot.hasError) {
-            return Text('No pudimos cargar las recompensas.');
-          }
-          final boxes = snapshot.data ?? const <GotasBox>[];
-          if (boxes.isEmpty) {
-            return const Text('Todavía no hay recompensas activas.');
-          }
-          return Column(
-            children: [
-              for (final box in boxes)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _BoxTile(
-                    box: box,
-                    gotas: gotas,
-                    busy: _busy,
-                    onOpen: () => _open(box, gotas),
-                  ),
-                ),
-            ],
+
+          return FutureBuilder<List<GotasBox>>(
+            future: _boxes,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snapshot.hasError) {
+                return const Text('No pudimos cargar las recompensas.');
+              }
+              final boxes = snapshot.data ?? const <GotasBox>[];
+              if (boxes.isEmpty) {
+                return const Text('Todavía no hay recompensas activas.');
+              }
+              return Column(
+                children: [
+                  for (final box in boxes)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _BoxTile(
+                        box: box,
+                        gotas: gotas,
+                        busy: _busy,
+                        availableAt: _availableAt(box, lastByReward[box.code]),
+                        onOpen: () => _open(box, gotas),
+                      ),
+                    ),
+                ],
+              );
+            },
           );
         },
       ),
     ];
+  }
+
+  /// Calcula cuándo se puede volver a abrir una caja (null = disponible ya).
+  DateTime? _availableAt(GotasBox box, DateTime? lastUsed) {
+    if (lastUsed == null || box.cooldownHours <= 0) return null;
+    final next = lastUsed.add(Duration(hours: box.cooldownHours));
+    return next.isAfter(DateTime.now()) ? next : null;
   }
 
   /// Historial de movimientos local (modo demo).
@@ -301,10 +334,34 @@ class _RewardsScreenState extends State<RewardsScreen> {
     ];
   }
 
-  /// Historial de canjes remoto (Supabase).
+  /// Premios pendientes de reclamar e historial de canjes (Supabase).
   List<Widget> _remoteHistory(TextTheme t, DateTime now) {
     return [
-      const SectionHeader('Mis canjes'),
+      const SectionHeader('Mis premios'),
+      FutureBuilder<List<RewardRedemption>>(
+        future: _history,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final pending = (snapshot.data ?? const <RewardRedemption>[])
+              .where((r) => r.isPendingPrize)
+              .toList();
+          if (pending.isEmpty) {
+            return Text(
+              'No tienes premios pendientes de reclamar.',
+              style: t.bodySmall,
+            );
+          }
+          return Column(
+            children: [for (final p in pending) _PrizeCard(prize: p)],
+          );
+        },
+      ),
+      const SectionHeader('Historial de canjes'),
       FutureBuilder<List<RewardRedemption>>(
         future: _history,
         builder: (context, snapshot) {
@@ -323,9 +380,14 @@ class _RewardsScreenState extends State<RewardsScreen> {
               for (final r in rows)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Text('🎁', style: TextStyle(fontSize: 24)),
+                  leading: Text(
+                    r.prizeType == 'product' ? '🍽️' : '🎁',
+                    style: const TextStyle(fontSize: 24),
+                  ),
                   title: Text(r.prizeLabel ?? 'Recompensa canjeada'),
-                  subtitle: Text(relativeDay(r.at, now)),
+                  subtitle: Text(
+                    '${relativeDay(r.at, now)} · ${_statusLabel(r.status)}',
+                  ),
                   trailing: Text(
                     '-${r.spent}',
                     style: const TextStyle(
@@ -340,6 +402,14 @@ class _RewardsScreenState extends State<RewardsScreen> {
       ),
     ];
   }
+
+  /// Texto legible del estado de un canje.
+  String _statusLabel(String status) => switch (status) {
+    'used' => 'Reclamado',
+    'expired' => 'Vencido',
+    'cancelled' => 'Cancelado',
+    _ => 'Disponible',
+  };
 }
 
 /// Tarjeta con el saldo actual de Gotas.
@@ -383,6 +453,46 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
+/// Tarjeta de un premio pendiente con su código de reclamación.
+class _PrizeCard extends StatelessWidget {
+  const _PrizeCard({required this.prize});
+
+  final RewardRedemption prize;
+
+  /// Muestra el plato ganado y el código que se dicta en la sede.
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: BiffyCard(
+        color: AppColors.secondary,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              prize.prizeLabel ?? 'Premio',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            ),
+            const SizedBox(height: 6),
+            const Text('Muéstralo en la sede y dicta este código:'),
+            Text(
+              prize.claimCode ?? '',
+              key: const Key('claim-code'),
+              style: const TextStyle(
+                fontFamily: AppTypography.heading,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4,
+              ),
+            ),
+            const Text('Válido por 30 días desde el canje.'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Tarjeta de una caja remota con su botón de apertura.
 class _BoxTile extends StatelessWidget {
   const _BoxTile({
@@ -390,6 +500,7 @@ class _BoxTile extends StatelessWidget {
     required this.gotas,
     required this.busy,
     required this.onOpen,
+    this.availableAt,
   });
 
   final GotasBox box;
@@ -397,11 +508,15 @@ class _BoxTile extends StatelessWidget {
   final bool busy;
   final VoidCallback onOpen;
 
-  /// Dibuja la caja con su costo y el botón de apertura.
+  /// Si no es null, la caja está en recarga hasta esa hora.
+  final DateTime? availableAt;
+
+  /// Dibuja la caja con su costo, el límite y el botón de apertura.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final canPay = gotas >= box.cost && !busy;
+    final cooling = availableAt != null;
+    final canPay = gotas >= box.cost && !busy && !cooling;
 
     return BiffyCard(
       child: Row(
@@ -434,13 +549,23 @@ class _BoxTile extends StatelessWidget {
             style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
             onPressed: canPay ? onOpen : null,
             child: Text(
-              !canPay && gotas < box.cost
-                  ? 'Faltan ${box.cost - gotas}'
-                  : 'Abrir',
+              cooling
+                  ? _remaining(availableAt!)
+                  : (!canPay && gotas < box.cost
+                        ? 'Faltan ${box.cost - gotas}'
+                        : 'Abrir'),
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// Texto corto del tiempo que falta para la recarga.
+  static String _remaining(DateTime until) {
+    final diff = until.difference(DateTime.now());
+    if (diff.inMinutes <= 0) return 'Lista';
+    if (diff.inHours >= 1) return 'En ${diff.inHours} h';
+    return 'En ${diff.inMinutes} min';
   }
 }
