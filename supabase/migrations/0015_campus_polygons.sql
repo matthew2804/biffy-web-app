@@ -2,13 +2,16 @@
 -- 0015 · Polígono real del campus Icesi (OpenStreetMap)
 -- ============================================================================
 -- Fuente: OpenStreetMap, relation/6784907 (© colaboradores de OSM, ODbL).
+--
+-- FILTRO: este trabajo es solo para campus de Cali. La migración aplica el
+-- polígono únicamente si la universidad tiene `city = 'Cali'` y valida que la
+-- geometría caiga dentro del área metropolitana de Cali. Las universidades de
+-- otras ciudades quedan sin polígono y usan el respaldo por `campus_id`.
+--
 -- El export que compartió el equipo es de Cali: de nuestras cuatro
 -- universidades solo Icesi tiene polígono ahí. La Javeriana del archivo es la
 -- sede de Cali, distinta de la fila `javeriana` (Bogotá) del catálogo, así que
 -- no se aplica.
---
--- Para UNAL y Andes (Bogotá) y Javeriana (Bogotá) se deja el polígono en null:
--- la geocerca cae al respaldo por `campus_id` hasta que exista su GeoJSON.
 -- ============================================================================
 
 do $$
@@ -71,11 +74,30 @@ begin
     v_fixed := st_geometryn(v_fixed, 1);
   end if;
 
+  -- Filtro geográfico: el polígono debe caer dentro del área de Cali.
+  if not st_within(
+    v_fixed,
+    st_makeenvelope(-76.75, 3.25, -76.35, 3.60, 4326)
+  ) then
+    raise exception 'El polígono de Icesi no está dentro del área de Cali.';
+  end if;
+
+  -- Filtro por ciudad: solo se aplica a universidades marcadas como Cali.
   update public.universities
      set boundary_polygon = v_fixed
-   where id = 'icesi';
+   where id = 'icesi'
+     and city = 'Cali';
 
-  -- Campus sin GeoJSON: se prefiere el respaldo por `campus_id`.
+  if not exists (
+    select 1 from public.universities
+     where id = 'icesi'
+       and city = 'Cali'
+       and boundary_polygon is not null
+  ) then
+    raise warning 'No se aplicó el polígono: Icesi no está marcada como Cali.';
+  end if;
+
+  -- Campus de otras ciudades: se prefiere el respaldo por `campus_id`.
   update public.universities
      set boundary_polygon = null
    where id in ('unal', 'andes', 'javeriana');
