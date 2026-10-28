@@ -364,6 +364,12 @@ class OrderService extends ChangeNotifier {
         'outside_campus' => 'Esa sede solo entrega dentro del campus.',
         _ => 'No pudimos registrar el pedido en el servidor.',
       };
+      // Se marca cancelado para no dejar un pedido fantasma en la lista.
+      order.status = OrderStatus.cancelled;
+      order.rejectReason = message;
+      order.history.add(
+        StatusEvent(OrderStatus.cancelled, clock.now(), 'Servidor'),
+      );
       notifications.push(
         title: 'Pedido no registrado',
         body: message,
