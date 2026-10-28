@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, supabasev2, main]
+  pull_request:
+    branches: [dev, supabasev2, main]
+
+jobs:
+  analyze-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Dependencias
+        run: flutter pub get
+
+      - name: Análisis estático
+        run: flutter analyze
+
+      - name: Pruebas
+        run: flutter test
+
+      - name: Build web (modo demo)
+        run: flutter build web --release

@@ -275,7 +275,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 );
               }
               if (snapshot.hasError) {
-                return const Text('No pudimos cargar las recompensas.');
+                return ErrorView(
+                  title: 'No pudimos cargar las recompensas',
+                  onRetry: () => setState(_reload),
+                );
               }
               final boxes = snapshot.data ?? const <GotasBox>[];
               if (boxes.isEmpty) {

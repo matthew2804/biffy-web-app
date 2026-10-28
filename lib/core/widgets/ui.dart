@@ -204,6 +204,53 @@ class EmptyState extends StatelessWidget {
   }
 }
 
+/// Estado de error de red con botón de reintento.
+class ErrorView extends StatelessWidget {
+  const ErrorView({
+    super.key,
+    this.title = 'No pudimos cargar esto',
+    this.body = 'Revisa tu conexión e inténtalo de nuevo.',
+    this.onRetry,
+  });
+
+  /// Título del error.
+  final String title;
+
+  /// Texto de apoyo.
+  final String body;
+
+  /// Acción para volver a intentar; si es null no muestra botón.
+  final VoidCallback? onRetry;
+
+  /// Dibuja el mensaje con el botón de reintento.
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('⚠️', style: TextStyle(fontSize: 48)),
+          const SizedBox(height: 12),
+          Text(title, style: t.titleMedium, textAlign: TextAlign.center),
+          const SizedBox(height: 6),
+          Text(body, style: t.bodySmall, textAlign: TextAlign.center),
+          if (onRetry != null) ...[
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(minimumSize: const Size(160, 48)),
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Píldora seleccionable (filtros, categorías, opciones).
 class SelectPill extends StatelessWidget {
   const SelectPill({

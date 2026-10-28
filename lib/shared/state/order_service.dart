@@ -345,6 +345,8 @@ class OrderService extends ChangeNotifier {
       'courier_pay': order.courierPay,
       'distance_km': order.distanceKm,
       'restaurant_note': order.restaurantNote,
+      // Clave de idempotencia: un reintento no duplica el pedido.
+      'client_key': order.id,
       if (order.scheduledFor != null)
         // En UTC con zona explícita: sin ella Postgres la toma como UTC.
         'scheduled_for': order.scheduledFor!.toUtc().toIso8601String(),

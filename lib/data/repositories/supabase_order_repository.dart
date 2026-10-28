@@ -154,26 +154,33 @@ class SupabaseOrderRepository implements OrderRepository {
   // ------------------------------------------------------------ Escritura
 
   /// Crea el pedido en la base. Devuelve el uuid o el motivo del rechazo.
+  ///
+  /// Reintenta hasta 3 veces si falla la red: la `client_key` hace que el
+  /// servidor devuelva el mismo pedido en vez de duplicarlo.
   Future<({String? id, String? error})> place(
     Map<String, dynamic> payload,
   ) async {
-    try {
-      final res = await _client.rpc(
-        'place_order',
-        params: {'p_payload': payload},
-      );
-      final map = res is Map ? res : const {};
-      if (map['result'] != 'ok') {
-        return (id: null, error: map['result'] as String?);
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
+        final res = await _client.rpc(
+          'place_order',
+          params: {'p_payload': payload},
+        );
+        final map = res is Map ? res : const {};
+        if (map['result'] != 'ok') {
+          return (id: null, error: map['result'] as String?);
+        }
+        final order = map['order'];
+        return (
+          id: order is Map ? order['id'] as String? : null,
+          error: null,
+        );
+      } on Object {
+        if (attempt == 3) return (id: null, error: 'network');
+        await Future<void>.delayed(Duration(milliseconds: 400 * attempt));
       }
-      final order = map['order'];
-      return (
-        id: order is Map ? order['id'] as String? : null,
-        error: null,
-      );
-    } on Object {
-      return (id: null, error: 'network');
     }
+    return (id: null, error: 'network');
   }
 
   /// Ejecuta una transición; el estado se reconcilia con Realtime.

@@ -158,10 +158,9 @@ class _MerchantBoxesScreenState extends State<MerchantBoxesScreen> {
                   }
                   final data = snapshot.data;
                   if (data == null) {
-                    return const EmptyState(
-                      emoji: '⚠️',
+                    return ErrorView(
                       title: 'No pudimos cargar las cajas',
-                      body: 'Revisa tu conexión e inténtalo de nuevo.',
+                      onRetry: () => setState(_reload),
                     );
                   }
                   if (data.boxes.isEmpty) {

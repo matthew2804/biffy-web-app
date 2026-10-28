@@ -159,11 +159,12 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 
 ### Fase 5 · Robustez (2–3 días)
 
-- Capa de errores y reintentos (hoy solo hay 6 `try/catch` en formularios).
-- Estados de carga en listas y checkout.
-- Idempotencia de `place_order` (clave de cliente para evitar duplicados).
-- Tests de integración contra Supabase local.
-- CI: `flutter analyze`, `flutter test`, `flutter build web`.
+- ✅ Idempotencia de `place_order` con `client_key` (un reintento no duplica).
+- ✅ Reintentos automáticos en `place_order` (3 intentos con espera).
+- ✅ `ErrorView` con botón de reintento en recompensas y cajas del negocio.
+- ✅ CI en GitHub Actions: analyze, test y build web.
+- ⏳ Estados de carga en el resto de pantallas (formulario de producto, checkout).
+- ⏳ Tests de integración contra Supabase local (`supabase start`).
 
 ### Fase 6 · Publicación (1–2 días)
 
