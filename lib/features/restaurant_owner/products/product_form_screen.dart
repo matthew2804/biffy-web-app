@@ -70,6 +70,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   /// URL o asset actual de la foto.
   late String? _photoUrl = _orig?.imageAsset;
+
+  /// Evita doble envío mientras se guarda el producto.
+  bool _saving = false;
   late String _category =
       _orig?.category ?? _catalog.businessById(_biz)?.cuisine ?? 'sandwich';
   late String _branch =
@@ -151,7 +154,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   /// Valida, arma el plato y lo publica en el catálogo compartido.
   Future<void> _save() async {
+    if (_saving) return;
     if (!_form.currentState!.validate()) return;
+    setState(() => _saving = true);
 
     // Si hay foto nueva, se sube antes de guardar el plato.
     var image = _photoUrl;
@@ -163,6 +168,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       if (url == null) {
         if (!mounted) return;
         showSnack(context, 'No pudimos subir la foto.', error: true);
+        setState(() => _saving = false);
         return;
       }
       image = url;
@@ -223,9 +229,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         'No pudimos guardar el producto. Revisa tu conexión.',
         error: true,
       );
+      setState(() => _saving = false);
       return;
     }
     if (!mounted) return;
+    setState(() => _saving = false);
     showSnack(
       context,
       _orig == null ? 'Producto creado y publicado' : 'Producto actualizado',
@@ -557,7 +565,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               PrimaryButton(
                 key: const Key('p-save'),
                 label: 'Guardar producto',
-                onPressed: _save,
+                onPressed: _saving ? null : _save,
               ),
             ],
           ),
