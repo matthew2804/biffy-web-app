@@ -180,6 +180,21 @@ class SupabaseAuthRepository implements AuthRepository {
     _ => Vehicle.moto,
   };
 
+  @override
+  Future<String?> registerBusiness(Map<String, dynamic> payload) async {
+    try {
+      final res = await _client.rpc(
+        'register_business',
+        params: {'p_payload': payload},
+      );
+      final map = res is Map ? res : const {};
+      if (map['result'] != 'ok') return null;
+      return map['business_id'] as String?;
+    } on Object {
+      return null;
+    }
+  }
+
   // --------------------------------------------------------- Lectura local
 
   /// Usuario cacheado por id.

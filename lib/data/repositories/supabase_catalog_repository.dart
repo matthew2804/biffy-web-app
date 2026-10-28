@@ -80,6 +80,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
 
   /// Vuelve a leer el catálogo completo. Nunca lanza: si falla la red se
   /// conserva lo que ya estaba en caché.
+  @override
   Future<void> refresh() async {
     try {
       final businessRows = await _client.from('businesses').select();

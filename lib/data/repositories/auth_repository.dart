@@ -61,6 +61,10 @@ abstract class AuthRepository {
 
   /// Perfil de repartidor (solo rol `courier`). `null` en la demo.
   Future<CourierProfile?> courierProfile(String userId);
+
+  /// Crea el negocio y sus sedes del usuario autenticado.
+  /// Devuelve el id del negocio o `null` si falló.
+  Future<String?> registerBusiness(Map<String, dynamic> payload);
 }
 
 /// Autenticación de demostración con usuarios y contraseñas en memoria.
@@ -184,4 +188,8 @@ class InMemoryAuthRepository implements AuthRepository {
   /// Perfil de repartidor: no aplica en la demo.
   @override
   Future<CourierProfile?> courierProfile(String userId) async => null;
+
+  @override
+  Future<String?> registerBusiness(Map<String, dynamic> payload) async =>
+      throw AuthException('El alta de negocios necesita Supabase.');
 }

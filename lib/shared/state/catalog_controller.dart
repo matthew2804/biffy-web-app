@@ -52,6 +52,12 @@ class CatalogController extends ChangeNotifier {
   DateTime get now => clock.now();
 
   /// Sede por id.
+  /// Vuelve a leer el catálogo del backend (no-op en demo).
+  Future<void> refresh() async {
+    await repo.refresh();
+    notifyListeners();
+  }
+
   Restaurant? restaurantById(String id) => repo.restaurantById(id);
   /// Plato por id.
   Dish? dishById(String id) => repo.dishById(id);

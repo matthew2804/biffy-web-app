@@ -32,6 +32,9 @@ abstract class CatalogRepository {
 
   /// Emite cuando el backend trae cambios (Realtime). Vacío en memoria.
   Stream<void> get changes => const Stream<void>.empty();
+
+  /// Vuelve a leer el catálogo del backend. No-op en la demo.
+  Future<void> refresh() async {}
 }
 
 /// Catálogo de demostración guardado en memoria.
@@ -52,6 +55,9 @@ class InMemoryCatalogRepository implements CatalogRepository {
   /// En memoria no hay cambios remotos que emitir.
   @override
   Stream<void> get changes => const Stream<void>.empty();
+
+  @override
+  Future<void> refresh() async {}
 
   /// Negocios registrados (solo lectura).
   @override
