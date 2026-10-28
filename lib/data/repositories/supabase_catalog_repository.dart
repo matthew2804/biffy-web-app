@@ -173,20 +173,60 @@ class SupabaseCatalogRepository implements CatalogRepository {
     _restaurants.addAll(branches);
   }
 
-  /// Inserta o reemplaza un plato en la caché.
+  /// Crea o actualiza el plato en la base y refresca la caché.
   @override
-  void upsertDish(Dish dish) {
-    final i = _dishes.indexWhere((d) => d.id == dish.id);
-    if (i >= 0) {
-      _dishes[i] = dish;
+  Future<void> upsertDish(Dish dish) async {
+    final row = <String, dynamic>{
+      'branch_id': dish.restaurantId,
+      'name': dish.name,
+      'description': dish.description,
+      'price': dish.price,
+      'emoji': dish.emoji,
+      'category_id': dish.category,
+      'section': dish.section,
+      'prep_min': dish.prepMin,
+      'rating': dish.rating,
+      'ingredients': dish.ingredients,
+      'allergens': dish.allergens,
+      'tags': dish.tags,
+      'nutrition': dish.nutrition == null
+          ? null
+          : {
+              'kcal': dish.nutrition!.kcal,
+              'protein': dish.nutrition!.protein,
+              'carbs': dish.nutrition!.carbs,
+              'fat': dish.nutrition!.fat,
+            },
+      'popular': dish.popular,
+      'featured': dish.featured,
+      'active': dish.active,
+      'sold_out': dish.soldOut,
+      'portion_limit': dish.portionLimit,
+      'sold_today': dish.soldToday,
+      'image_url': dish.imageAsset,
+    };
+
+    // Los ids `dish-new-*` son temporales: la base asigna el uuid.
+    if (dish.id.startsWith('dish-new-')) {
+      await _client.from('dishes').insert(row);
     } else {
-      _dishes.add(dish);
+      await _client.from('dishes').update(row).eq('id', dish.id);
     }
+
+    await refresh();
+    if (!_changes.isClosed) _changes.add(null);
   }
 
-  /// Quita un plato de la caché.
+  /// Borrado lógico del plato: conserva el historial de pedidos.
   @override
-  void deleteDish(String id) => _dishes.removeWhere((d) => d.id == id);
+  Future<void> deleteDish(String id) async {
+    await _client
+        .from('dishes')
+        .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
+        .eq('id', id);
+    await refresh();
+    if (!_changes.isClosed) _changes.add(null);
+  }
 
   /// Suma las unidades vendidas de un plato.
   @override

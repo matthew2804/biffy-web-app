@@ -145,15 +145,15 @@ class CatalogController extends ChangeNotifier {
   /// Genera un id único para un plato nuevo.
   String newDishId() => 'dish-new-${++_seq}';
 
-  /// Guarda un plato en el catálogo compartido.
-  void saveDish(Dish d) {
-    repo.upsertDish(d);
+  /// Guarda un plato en el catálogo compartido y refresca la vista.
+  Future<void> saveDish(Dish d) async {
+    await repo.upsertDish(d);
     notifyListeners();
   }
 
   /// Elimina un plato del catálogo.
-  void deleteDish(String id) {
-    repo.deleteDish(id);
+  Future<void> deleteDish(String id) async {
+    await repo.deleteDish(id);
     notifyListeners();
   }
 

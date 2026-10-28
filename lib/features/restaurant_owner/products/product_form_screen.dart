@@ -125,7 +125,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   ];
 
   /// Valida, arma el plato y lo publica en el catálogo compartido.
-  void _save() {
+  Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     final hasNutrition = [
       _kcal,
@@ -173,7 +173,18 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       soldToday: _orig?.soldToday ?? 0,
       imageAsset: _orig?.imageAsset,
     );
-    _catalog.saveDish(dish);
+    try {
+      await _catalog.saveDish(dish);
+    } on Object {
+      if (!mounted) return;
+      showSnack(
+        context,
+        'No pudimos guardar el producto. Revisa tu conexión.',
+        error: true,
+      );
+      return;
+    }
+    if (!mounted) return;
     showSnack(
       context,
       _orig == null ? 'Producto creado y publicado' : 'Producto actualizado',

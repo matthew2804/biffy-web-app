@@ -119,10 +119,12 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 
 ### Fase 2 · Comercio real (3–4 días)
 
-- Alta de negocio desde la app con `register_business` (hoy muestra
-  "llega en la siguiente fase" en `merchant_registration_screen.dart`).
-- CRUD de platos remoto (crear, editar, borrar, agotado, pausar sede).
-- Fotos de platos a `dish-images/<business_id>/`.
+- ✅ Alta de negocio desde la app con `register_business` (cuenta + negocio +
+  sede en la base).
+- ✅ CRUD de platos remoto: crear, editar y borrar (borrado lógico) vía
+  `SupabaseCatalogRepository.upsertDish/deleteDish`.
+- ⏳ Agotado y pausa de sede persistidos (hoy solo cambian en memoria).
+- ⏳ Fotos de platos a `dish-images/<business_id>/`.
 - **Hecho cuando:** un comerciante nuevo se registra, crea su menú y al reabrir
   ve lo mismo.
 

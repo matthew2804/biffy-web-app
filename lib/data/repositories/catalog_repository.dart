@@ -23,10 +23,10 @@ abstract class CatalogRepository {
 
   /// Agrega un negocio con sus sedes.
   void addBusiness(Business business, List<Restaurant> branches);
-  /// Crea o actualiza un plato.
-  void upsertDish(Dish dish);
+  /// Crea o actualiza un plato (remoto cuando hay backend).
+  Future<void> upsertDish(Dish dish);
   /// Elimina un plato del catálogo.
-  void deleteDish(String id);
+  Future<void> deleteDish(String id);
   /// Suma unidades vendidas para controlar las porciones.
   void recordSale(String dishId, int qty);
 
@@ -105,7 +105,7 @@ class InMemoryCatalogRepository implements CatalogRepository {
 
   /// Inserta o reemplaza un plato.
   @override
-  void upsertDish(Dish dish) {
+  Future<void> upsertDish(Dish dish) async {
     final i = _dishes.indexWhere((d) => d.id == dish.id);
     if (i >= 0) {
       _dishes[i] = dish;
@@ -116,7 +116,8 @@ class InMemoryCatalogRepository implements CatalogRepository {
 
   /// Quita un plato del catálogo.
   @override
-  void deleteDish(String id) => _dishes.removeWhere((d) => d.id == id);
+  Future<void> deleteDish(String id) async =>
+      _dishes.removeWhere((d) => d.id == id);
 
   /// Suma las unidades vendidas de un plato.
   @override

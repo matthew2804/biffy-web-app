@@ -184,9 +184,18 @@ class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
                                 const Text('Disponible'),
                                 Switch(
                                   value: d.active,
-                                  onChanged: (v) {
+                                  onChanged: (v) async {
                                     d.active = v;
-                                    catalog.saveDish(d);
+                                    try {
+                                      await catalog.saveDish(d);
+                                    } on Object {
+                                      if (!context.mounted) return;
+                                      showSnack(
+                                        context,
+                                        'No pudimos guardar el cambio.',
+                                        error: true,
+                                      );
+                                    }
                                   },
                                 ),
                               ],
@@ -225,9 +234,19 @@ class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
                                   destructive: true,
                                 );
                                 if (ok) {
-                                  catalog.deleteDish(d.id);
-                                  if (context.mounted) {
-                                    showSnack(context, 'Producto eliminado');
+                                  try {
+                                    await catalog.deleteDish(d.id);
+                                    if (context.mounted) {
+                                      showSnack(context, 'Producto eliminado');
+                                    }
+                                  } on Object {
+                                    if (context.mounted) {
+                                      showSnack(
+                                        context,
+                                        'No pudimos eliminar el producto.',
+                                        error: true,
+                                      );
+                                    }
                                   }
                                 }
                               },
