@@ -5,15 +5,14 @@ import '../../data/models/app_notification.dart';
 import '../../data/models/user.dart';
 
 /// Notificaciones locales dentro de la app (sin push ni FCM en este sprint).
-class NotificationCenter extends ChangeNotifier {
+  class NotificationCenter extends ChangeNotifier {
   NotificationCenter(this._clock);
 
   final Clock _clock;
   final List<AppNotification> _items = [];
   int _seq = 0;
 
-  List<AppNotification> get all => List.unmodifiable(_items);
-
+List<AppNotification> get all => List.unmodifiable(_items);
   void push({
     required String title,
     required String body,
