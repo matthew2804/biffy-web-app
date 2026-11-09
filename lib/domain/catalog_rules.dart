@@ -1,7 +1,7 @@
 import '../core/constants/catalog_constants.dart';
 import '../core/utils/format.dart';
 import '../core/utils/geo.dart';
-import '../data/models/catalog.dart';
+import 'entities/catalog.dart';
 
 double distanceTo(Restaurant r, DeliveryPoint p) =>
     distanceKm(r.lat, r.lng, p.lat, p.lng);

@@ -13,7 +13,7 @@ import '../../../domain/catalog_rules.dart';
 import '../../../domain/pricing.dart';
 import '../../../shared/state/cart_controller.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import 'cart_draft.dart';
 import 'schedule_sheet.dart';
@@ -47,7 +47,7 @@ class _CartScreenState extends State<CartScreen> {
     final cart = context.watch<CartController>();
     final session = context.watch<SessionController>();
     final catalog = context.watch<CatalogController>();
-    final orders = context.read<OrderService>();
+    final orders = context.read<OrdersBloc>();
     final t = Theme.of(context).textTheme;
 
     if (cart.isEmpty) {

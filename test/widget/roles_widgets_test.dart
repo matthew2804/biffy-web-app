@@ -8,12 +8,17 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers.dart';
 
 /// Crea un pedido de Diego y lo deja en el estado indicado.
-Order seedOrder(AppServices s, {OrderStatus until = OrderStatus.pending}) {
-  final o = placeQbano(s);
+Future<Order> seedOrder(
+  AppServices s, {
+  OrderStatus until = OrderStatus.pending,
+}) async {
+  final o = await placeQbano(s);
   if (until.index >= OrderStatus.preparing.index) {
-    s.orders.restaurantAccept(o.id);
+    await s.orders.useCases.acceptOrder(o.id);
   }
-  if (until.index >= OrderStatus.ready.index) s.orders.markReady(o.id);
+  if (until.index >= OrderStatus.ready.index) {
+    await s.orders.useCases.markOrderReady(o.id);
+  }
   s.session.logout();
   return o;
 }
@@ -75,7 +80,7 @@ void main() {
     tester,
   ) async {
     final s = makeServices();
-    final o = seedOrder(s);
+    final o = await seedOrder(s);
     s.session.login(kDemoRestaurantEmail, kDemoPassword);
     await pumpBiffy(tester, services: s, initialLocation: '/negocio/pedidos');
     expect(find.byKey(Key('kitchen-${o.id}')), findsOneWidget);
@@ -88,7 +93,7 @@ void main() {
 
   testWidgets('el restaurante rechaza con motivo', (tester) async {
     final s = makeServices();
-    final o = seedOrder(s);
+    final o = await seedOrder(s);
     s.session.login(kDemoRestaurantEmail, kDemoPassword);
     await pumpBiffy(tester, services: s, initialLocation: '/negocio/pedidos');
     await tapVisible(tester, find.byKey(Key('reject-order-${o.id}')));
@@ -102,7 +107,7 @@ void main() {
 
   testWidgets('el repartidor acepta el pedido disponible', (tester) async {
     final s = makeServices();
-    final o = seedOrder(s, until: OrderStatus.ready);
+    final o = await seedOrder(s, until: OrderStatus.ready);
     s.session.login(kDemoCourierEmail, kDemoPassword);
     await pumpBiffy(tester, services: s, initialLocation: '/repartidor');
     expect(find.text('Estás desconectado'), findsOneWidget);
@@ -115,8 +120,8 @@ void main() {
 
   testWidgets('la recogida exige los tres checks', (tester) async {
     final s = makeServices();
-    final o = seedOrder(s, until: OrderStatus.ready);
-    s.orders.courierAccept(o.id, s.session.auth.byId('u-andres')!);
+    final o = await seedOrder(s, until: OrderStatus.ready);
+    await s.orders.useCases.acceptOffer(o.id, s.session.auth.byId('u-andres')!);
     s.session.login(kDemoCourierEmail, kDemoPassword);
     await pumpBiffy(
       tester,
@@ -144,9 +149,9 @@ void main() {
     tester,
   ) async {
     final s = makeServices();
-    final o = seedOrder(s, until: OrderStatus.ready);
-    s.orders.courierAccept(o.id, s.session.auth.byId('u-andres')!);
-    s.orders.confirmPickup(
+    final o = await seedOrder(s, until: OrderStatus.ready);
+    await s.orders.useCases.acceptOffer(o.id, s.session.auth.byId('u-andres')!);
+    await s.orders.useCases.confirmPickup(
       o.id,
       'u-andres',
       codeValidated: true,
@@ -189,16 +194,16 @@ void main() {
 
   testWidgets('el pedido entregado aparece en el historial', (tester) async {
     final s = makeServices();
-    final o = seedOrder(s, until: OrderStatus.ready);
-    s.orders.courierAccept(o.id, s.session.auth.byId('u-andres')!);
-    s.orders.confirmPickup(
+    final o = await seedOrder(s, until: OrderStatus.ready);
+    await s.orders.useCases.acceptOffer(o.id, s.session.auth.byId('u-andres')!);
+    await s.orders.useCases.confirmPickup(
       o.id,
       'u-andres',
       codeValidated: true,
       bagSealed: true,
       productsVerified: true,
     );
-    s.orders.completeDelivery(o.id, 'u-andres', o.deliveryCode, 'foto');
+    await s.orders.useCases.completeDelivery(o.id, 'u-andres', o.deliveryCode, 'foto');
     s.session.login(kDemoBuyerEmail, kDemoPassword);
     await pumpBiffy(tester, services: s, initialLocation: '/pedidos');
     await tapVisible(tester, find.textContaining('Anteriores'));

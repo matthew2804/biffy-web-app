@@ -6,7 +6,7 @@ import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/order.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import 'reorder_flow.dart';
 
@@ -16,7 +16,7 @@ class OrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final session = context.watch<SessionController>();
     final now = context.read<CatalogController>().now;
     if (session.user == null) return const Scaffold();

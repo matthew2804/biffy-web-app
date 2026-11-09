@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../data/models/address.dart';
 import '../../../shared/state/cart_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../domain/usecases/orders/checkout_draft.dart';
 import '../../../shared/state/session_controller.dart';
 
 /// Dirección elegida para el carrito (o la predeterminada del usuario).

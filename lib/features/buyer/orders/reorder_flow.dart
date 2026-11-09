@@ -6,9 +6,10 @@ import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/order.dart';
 import '../../../domain/reorder.dart';
+import '../../../domain/usecases/orders/checkout_draft.dart';
 import '../../../shared/state/cart_controller.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import '../cart/cart_screen.dart';
 
@@ -83,7 +84,7 @@ Future<void> orderNow(BuildContext context, Order order) async {
   if (!await _showWarnings(context, c, confirm: 'Continuar')) return;
   if (!context.mounted) return;
   final session = context.read<SessionController>();
-  final orders = context.read<OrderService>();
+  final orders = context.read<OrdersBloc>();
   final draft = CheckoutDraft(
     buyer: session.user,
     restaurant: c.restaurant,
@@ -141,11 +142,18 @@ Future<void> orderNow(BuildContext context, Order order) async {
     ),
   );
   if (ok != true || !context.mounted) return;
-  try {
-    final created = orders.placeOrder(draft);
-    showSnack(context, 'Pedido ${created.id} creado · sin cobros reales');
-    context.push('/pedido/${created.id}');
-  } on OrderException catch (e) {
-    showSnack(context, e.message, error: true);
+  final outcome = await orders.request(OrderPlaced(draft));
+  if (!context.mounted) return;
+  if (outcome.ok) {
+    final id = outcome.orderId;
+    showSnack(
+      context,
+      orders.isRemote
+          ? 'Pedido $id enviado al restaurante'
+          : 'Pedido $id creado · sin cobros reales',
+    );
+    context.push('/pedido/$id');
+  } else {
+    showSnack(context, outcome.result.message, error: true);
   }
 }

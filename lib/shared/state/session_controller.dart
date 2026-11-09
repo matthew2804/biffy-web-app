@@ -430,6 +430,24 @@ class SessionController extends ChangeNotifier {
     d.gotasHistory.insert(0, GotasEntry(reason, amount, _clock.now()));
   }
 
+  /// Con backend real, el saldo de Gotas lo mueve el servidor (compra,
+  /// reembolso, entrega). Esto vuelve a leerlo; no hace nada en modo demo ni
+  /// sin sesión. Nunca lanza.
+  Future<void> syncGotas() async {
+    final u = _user;
+    if (u == null || !_auth.isRemote) return;
+    try {
+      final balance = await _auth.gotasBalance(u.id);
+      if (balance == null || _user?.id != u.id) return;
+      final d = dataFor(u.id);
+      if (d.gotas == balance) return;
+      d.gotas = balance;
+      notifyListeners();
+    } on Object {
+      // Sin conexión se conserva el último saldo conocido.
+    }
+  }
+
   void creditGotas(String userId, int amount, String reason) {
     if (amount <= 0) return;
     _credit(dataFor(userId), amount, reason);

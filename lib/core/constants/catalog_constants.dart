@@ -1,4 +1,4 @@
-import '../../data/models/catalog.dart';
+import '../../domain/entities/catalog.dart';
 
 const kCategories = <FoodCategory>[
   FoodCategory(

@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
 import '../core/constants/catalog_constants.dart';
-import '../data/models/cart.dart';
-import '../data/models/catalog.dart';
-import '../data/models/user.dart';
+import 'entities/cart.dart';
+import 'entities/catalog.dart';
+import 'entities/user.dart';
 
 /// Selección inicial de un plato: primer tamaño, sin acompañante ni extras.
 DishSelection defaultSelection(Dish d) =>

@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
 import '../core/utils/format.dart';
-import '../data/models/catalog.dart';
-import '../data/models/order.dart';
-import '../data/models/user.dart';
+import 'entities/catalog.dart';
+import 'entities/order.dart';
+import 'entities/user.dart';
 
 /// Transiciones permitidas. El restaurante nunca marca «entregado»: esa
 /// transición pertenece al flujo del repartidor.
