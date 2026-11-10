@@ -8,7 +8,7 @@ import '../../../core/widgets/actions.dart';
 import '../../../core/widgets/catalog_cards.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../features/orders/bloc/orders_bloc.dart';
+import '../../orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 
 /// Campus Live: restaurantes populares de la universidad que entregan en el
@@ -16,21 +16,25 @@ import '../../../shared/state/session_controller.dart';
 class CampusScreen extends StatefulWidget {
   const CampusScreen({super.key});
 
+  /// Crea el estado de la verificación universitaria simulada.
   @override
   State<CampusScreen> createState() => _CampusScreenState();
 }
 
+/// Estado con el correo y la universidad elegidos para verificar.
 class _CampusScreenState extends State<CampusScreen> {
   final _email = TextEditingController();
   String? _uniId;
   String? _error;
 
+  /// Libera el controlador del correo universitario.
   @override
   void dispose() {
     _email.dispose();
     super.dispose();
   }
 
+  /// Construye el selector de universidad, la verificación y los populares.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -116,7 +120,9 @@ class _CampusScreenState extends State<CampusScreen> {
                       const SizedBox(height: 8),
                       PrimaryButton(
                         key: const Key('uni-verify'),
-                        label: 'Verificar (simulado)',
+                        label: session.auth.isRemote
+                            ? 'Verificar correo'
+                            : 'Verificar (simulado)',
                         onPressed: () async {
                           final r = await session.verifyUniversityAsync(
                             uniId,
@@ -130,16 +136,21 @@ class _CampusScreenState extends State<CampusScreen> {
                                 'Escribe un correo válido',
                               VerifyResult.domainMismatch =>
                                 'El correo debe terminar en @${uni.domain}',
+                              VerifyResult.unknownUniversity =>
+                                'No encontramos esa universidad',
+                              VerifyResult.notAuthenticated ||
                               VerifyResult.notLoggedIn =>
                                 'Inicia sesión primero',
-                              VerifyResult.unavailable =>
-                                'Sin conexión. Intenta de nuevo.',
+                              VerifyResult.rpcError =>
+                                'No pudimos verificar tu correo. Intenta de nuevo.',
                             };
                           });
                           if (r == VerifyResult.ok) {
                             showSnack(
                               context,
-                              'Verificación simulada completada 🎓',
+                              session.auth.isRemote
+                                  ? 'Universidad verificada 🎓'
+                                  : 'Verificación simulada completada 🎓',
                             );
                           }
                         },

@@ -26,9 +26,11 @@ RestaurantMetrics businessMetrics(BuildContext context) {
   );
 }
 
+/// Panel del negocio con ventas, pedidos recientes y productos destacados.
 class MerchantHomeScreen extends StatelessWidget {
   const MerchantHomeScreen({super.key});
 
+  /// Muestra el estado del negocio y atajos a pedidos y menú.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -48,6 +50,7 @@ class MerchantHomeScreen extends StatelessWidget {
         .toList();
     final unread = center.unreadFor(session.user, UserRole.restaurant);
 
+    /// Tarjeta de contador que abre los pedidos con ese filtro.
     Widget stat(String label, int n, String filter) => Expanded(
       child: InkWell(
         onTap: () => context.go('/negocio/pedidos?f=$filter'),
@@ -107,7 +110,18 @@ class MerchantHomeScreen extends StatelessWidget {
                       : 'Visible para clientes dentro del radio',
                 ),
                 value: !paused,
-                onChanged: (v) => catalog.setBusinessPaused(b.id, !v),
+                onChanged: (v) async {
+                  try {
+                    await catalog.setBusinessPaused(b.id, !v);
+                  } on Object {
+                    if (!context.mounted) return;
+                    showSnack(
+                      context,
+                      'No pudimos cambiar el estado.',
+                      error: true,
+                    );
+                  }
+                },
               ),
             ),
             const SizedBox(height: 12),

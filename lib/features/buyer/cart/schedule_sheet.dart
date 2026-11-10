@@ -6,6 +6,7 @@ import '../../../data/models/catalog.dart';
 import '../../../domain/scheduling.dart';
 
 /// Selector de día y hora compatible con el horario simulado del restaurante.
+/// Selector de día y hora compatible con el horario simulado del restaurante.
 Future<DateTime?> showScheduleSheet(
   BuildContext context, {
   required Restaurant restaurant,
@@ -20,6 +21,7 @@ Future<DateTime?> showScheduleSheet(
   );
 }
 
+/// Hoja inferior para elegir día y hora del pedido programado.
 class _ScheduleSheet extends StatefulWidget {
   const _ScheduleSheet({
     required this.restaurant,
@@ -30,10 +32,12 @@ class _ScheduleSheet extends StatefulWidget {
   final DateTime now;
   final DateTime? initial;
 
+  /// Crea el estado del selector de horario.
   @override
   State<_ScheduleSheet> createState() => _ScheduleSheetState();
 }
 
+/// Estado con el día y la hora seleccionados.
 class _ScheduleSheetState extends State<_ScheduleSheet> {
   late final List<DateTime> _days = availableDays(
     widget.restaurant,
@@ -42,6 +46,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
   DateTime? _day;
   DateTime? _time;
 
+  /// Preselecciona la hora inicial si sigue siendo válida.
   @override
   void initState() {
     super.initState();
@@ -54,6 +59,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
     }
   }
 
+  /// Construye las pastillas de día, hora y el botón de confirmación.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

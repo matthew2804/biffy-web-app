@@ -11,6 +11,7 @@ import '../../../shared/state/catalog_controller.dart';
 import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Describe el pago del pedido tal como lo ve el repartidor.
 String paymentForCourier(Order o) => o.payment == PaymentMethod.cash
     ? 'Efectivo · cobrar ${cop(o.total)}'
     : '${o.payment.label} · pago simulado';
@@ -42,16 +43,19 @@ Future<void> acceptOffer(BuildContext context, Order o) async {
   );
 }
 
+/// Rechaza la oferta para este repartidor y avisa al usuario.
 void declineOffer(BuildContext context, Order o) {
   final session = context.read<SessionController>();
   context.read<OrdersBloc>().add(OfferDeclined(o.id, session.user!.id));
   showSnack(context, 'Oferta rechazada · no afecta tu nivel');
 }
 
+/// Tarjeta de oferta disponible para el repartidor.
 class OfferCard extends StatelessWidget {
   const OfferCard({super.key, required this.order});
   final Order order;
 
+  /// Arma la tarjeta con ganancia, recorrido y botones de acción.
   @override
   Widget build(BuildContext context) {
     final o = order;
@@ -234,6 +238,7 @@ class DemandMap extends StatelessWidget {
   const DemandMap({super.key, required this.labels});
   final List<String> labels;
 
+  /// Dibuja la cuadrícula y los puntos de demanda sobre el mapa falso.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -294,10 +299,12 @@ class DemandMap extends StatelessWidget {
   }
 }
 
+/// Pinta la cuadrícula y la vía del mapa ilustrativo.
 class _GridPainter extends CustomPainter {
   _GridPainter(this.color);
   final Color color;
 
+  /// Traza las líneas de la cuadrícula y la vía diagonal.
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -319,6 +326,7 @@ class _GridPainter extends CustomPainter {
     );
   }
 
+  /// Solo repinta cuando cambia el color de la cuadrícula.
   @override
   bool shouldRepaint(covariant _GridPainter old) => old.color != color;
 }
@@ -337,6 +345,7 @@ class _RouteStop extends StatelessWidget {
   final String detail;
   final bool line;
 
+  /// Dibuja el punto del recorrido con su título y detalle.
   @override
   Widget build(BuildContext context) {
     return IntrinsicHeight(

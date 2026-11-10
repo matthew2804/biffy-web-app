@@ -14,10 +14,12 @@ class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key, this.from});
   final String? from;
 
+  /// Crea el estado del registro de cuenta.
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
+/// Estado del formulario de registro con selección de rol.
 class _RegisterScreenState extends State<RegisterScreen> {
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
@@ -27,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   UserRole _role = UserRole.buyer;
   String? _error;
 
+  /// Libera los controladores de texto del formulario.
   @override
   void dispose() {
     for (final c in [_name, _email, _password, _phone]) {
@@ -35,6 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  /// Valida el formulario o deriva al registro de negocio y repartidor.
   void _submit() {
     if (_role == UserRole.restaurant) {
       context.push('/negocio/registro');
@@ -44,6 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _runRegister();
   }
 
+  /// Crea la cuenta y continúa el flujo según el rol elegido.
   Future<void> _runRegister() async {
     try {
       final u = await context.read<SessionController>().registerAsync(
@@ -68,6 +73,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  /// Construye el selector de rol y los campos de la cuenta.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

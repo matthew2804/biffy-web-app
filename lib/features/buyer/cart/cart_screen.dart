@@ -18,30 +18,36 @@ import '../../../shared/state/session_controller.dart';
 import 'cart_draft.dart';
 import 'schedule_sheet.dart';
 
+/// Carrito con productos, horario, dirección, pago y totales.
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
 
+  /// Crea el estado del carrito.
   @override
   State<CartScreen> createState() => _CartScreenState();
 }
 
+/// Estado que mantiene la nota del pedido.
 class _CartScreenState extends State<CartScreen> {
   late final TextEditingController _note = TextEditingController(
     text: context.read<CartController>().restaurantNote,
   );
 
+  /// Inicializa la nota con el contexto activo.
   @override
   void initState() {
     super.initState();
     _note; // Inicializa mientras el contexto está activo.
   }
 
+  /// Libera el controlador de la nota.
   @override
   void dispose() {
     _note.dispose();
     super.dispose();
   }
 
+  /// Construye las opciones del carrito o el estado vacío.
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartController>();
@@ -335,6 +341,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  /// Abre el selector de día y hora para programar el pedido.
   Future<void> _schedule(BuildContext context, Restaurant r) async {
     final cart = context.read<CartController>();
     final when = await showScheduleSheet(
@@ -346,6 +353,7 @@ class _CartScreenState extends State<CartScreen> {
     if (when != null) cart.setSchedule(when);
   }
 
+  /// Abre la hoja para elegir la dirección de entrega.
   Future<void> _pickAddress(BuildContext context) async {
     final session = context.read<SessionController>();
     final cart = context.read<CartController>();
@@ -393,10 +401,12 @@ class _CartScreenState extends State<CartScreen> {
   }
 }
 
+/// Línea del carrito con opciones de editar, borrar y cambiar cantidad.
 class _CartLine extends StatelessWidget {
   const _CartLine({required this.line});
   final PricedLine line;
 
+  /// Dibuja el producto, su detalle y los controles de la línea.
   @override
   Widget build(BuildContext context) {
     final cart = context.read<CartController>();
@@ -481,6 +491,7 @@ class TotalsCard extends StatelessWidget {
   const TotalsCard({super.key, required this.totals});
   final CartTotals totals;
 
+  /// Dibuja el desglose de subtotal, descuentos, envío y total.
   @override
   Widget build(BuildContext context) {
     return BiffyCard(

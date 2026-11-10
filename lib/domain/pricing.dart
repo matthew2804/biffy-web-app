@@ -24,6 +24,7 @@ int unitPrice(Dish d, DishSelection s) {
   return math.max(0, price);
 }
 
+/// Total de la línea: precio unitario por cantidad.
 int lineTotal(Dish d, DishSelection s, int qty) => unitPrice(d, s) * qty;
 
 /// Texto legible de la personalización elegida.
@@ -68,6 +69,7 @@ bool campusEligible(Restaurant r, String? verifiedUniversityId) =>
     verifiedUniversityId != null &&
     verifiedUniversityId == r.campusId;
 
+/// Descuento de campus en pesos sobre el subtotal.
 int campusDiscount(int subtotal, Restaurant r, String? verifiedUniversityId) =>
     campusEligible(r, verifiedUniversityId)
     ? (subtotal * r.studentDiscount).round()
@@ -77,19 +79,23 @@ int campusDiscount(int subtotal, Restaurant r, String? verifiedUniversityId) =>
 int deliveryFee(Restaurant r, DeliveryPoint p) =>
     (r.campusId != null && r.campusId == p.campusId) ? 1500 : 3500;
 
+/// Indica si el precio cabe en el presupuesto.
 bool isWithinBudget(int price, int budget) => price <= budget;
 
 /// Valida el presupuesto de la encuesta ($5.000–$50.000 en pasos de $1.000).
 bool isValidBudget(int budget) =>
     budget >= 5000 && budget <= 50000 && budget % 1000 == 0;
 
+/// Línea del carrito con su plato y su total calculado.
 class PricedLine {
   const PricedLine(this.dish, this.item);
   final Dish dish;
   final CartItem item;
+  /// Total de la línea según el plato y la cantidad actuales.
   int get total => lineTotal(dish, item.selection, item.qty);
 }
 
+/// Desglose económico del carrito: subtotal, descuentos, envío y propina.
 class CartTotals {
   const CartTotals({
     required this.subtotal,
@@ -116,8 +122,10 @@ class CartTotals {
   final int gotasUsed;
   final int tip;
 
+  /// Valor en pesos de las Gotas usadas.
   int get gotasDiscount => gotasUsed * kGotaValue;
 
+  /// Total a pagar con descuentos, envío y propina aplicados.
   int get total => math.max(
     0,
     subtotal -
@@ -129,6 +137,7 @@ class CartTotals {
   );
 }
 
+/// Calcula el desglose completo del carrito con las reglas de precio.
 CartTotals computeTotals({
   required List<PricedLine> lines,
   required Restaurant? restaurant,

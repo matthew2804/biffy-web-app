@@ -12,6 +12,7 @@ import '../../../domain/catalog_rules.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Buscador de platos y restaurantes con filtros rápidos y avanzados.
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({
     super.key,
@@ -23,21 +24,25 @@ class ExploreScreen extends StatefulWidget {
   final bool focus;
   final bool restaurantsView;
 
+  /// Crea el estado del buscador.
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
+/// Estado con la búsqueda, el foco y los filtros aplicados.
 class _ExploreScreenState extends State<ExploreScreen> {
   final _search = TextEditingController();
   final _focus = FocusNode();
   DishFilters _filters = DishFilters.none;
 
+  /// Aplica los parámetros de la ruta al abrir la pantalla.
   @override
   void initState() {
     super.initState();
     _applyParams();
   }
 
+  /// Reaplica los parámetros cuando cambia la ruta.
   @override
   void didUpdateWidget(covariant ExploreScreen old) {
     super.didUpdateWidget(old);
@@ -46,6 +51,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
+  /// Lee la categoría y el foco recibidos por parámetros.
   void _applyParams() {
     if (widget.category != null) {
       _filters = _filters.copyWith(categories: {widget.category!});
@@ -57,6 +63,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
+  /// Libera el buscador y su nodo de foco.
   @override
   void dispose() {
     _search.dispose();
@@ -64,8 +71,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
     super.dispose();
   }
 
+  /// Reemplaza los filtros activos.
   void _set(DishFilters f) => setState(() => _filters = f);
 
+  /// Filtra los platos alcanzables con los filtros y preferencias actuales.
   List<Dish> _results(CatalogController catalog, SessionController session) =>
       filterDishes(
         catalog.reachableDishes,
@@ -76,6 +85,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ),
       );
 
+  /// Construye el buscador, los filtros y los resultados.
   @override
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogController>();
@@ -372,6 +382,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
+  /// Construye la lista de platos como sliver.
   Widget _dishList(List<Dish> dishes) => SliverPadding(
     padding: const EdgeInsets.symmetric(horizontal: 16),
     sliver: SliverList.builder(
@@ -380,6 +391,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     ),
   );
 
+  /// Abre la hoja de filtros avanzados y aplica el resultado.
   Future<void> _openFilters(BuildContext context) async {
     final catalog = context.read<CatalogController>();
     final session = context.read<SessionController>();
@@ -402,18 +414,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 }
 
+/// Hoja inferior con todos los filtros del catálogo.
 class _FilterSheet extends StatefulWidget {
   const _FilterSheet({required this.initial, required this.count});
   final DishFilters initial;
   final int Function(DishFilters) count;
 
+  /// Crea el estado de la hoja de filtros.
   @override
   State<_FilterSheet> createState() => _FilterSheetState();
 }
 
+/// Estado con la copia editable de los filtros.
 class _FilterSheetState extends State<_FilterSheet> {
   late DishFilters f = widget.initial;
 
+  /// Construye los controles de filtros y el botón de aplicar.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -11,6 +12,7 @@ import '../../../data/models/catalog.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Fila editable de un tamaño o extra del producto.
 class _OptionRow {
   _OptionRow([String label = '', int price = 0, this.id])
     : label = TextEditingController(text: label),
@@ -29,6 +31,7 @@ class ProductFormScreen extends StatefulWidget {
   State<ProductFormScreen> createState() => _ProductFormScreenState();
 }
 
+/// Estado del formulario que crea o edita un producto del menú.
 class _ProductFormScreenState extends State<ProductFormScreen> {
   final _form = GlobalKey<FormState>();
   late final CatalogController _catalog = context.read<CatalogController>();
@@ -61,6 +64,15 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   late final _fat = TextEditingController(
     text: _orig?.nutrition?.fat.toString() ?? '',
   );
+
+  /// Foto elegida en esta sesión (aún no subida).
+  Uint8List? _photoBytes;
+
+  /// URL o asset actual de la foto.
+  late String? _photoUrl = _orig?.imageAsset;
+
+  /// Evita doble envío mientras se guarda el producto.
+  bool _saving = false;
   late String _category =
       _orig?.category ?? _catalog.businessById(_biz)?.cuisine ?? 'sandwich';
   late String _branch =
@@ -78,6 +90,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       _OptionRow(o.label, o.price, o.id),
   ];
 
+  /// Fuerza la carga del producto original y del negocio.
   @override
   void initState() {
     super.initState();
@@ -85,6 +98,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _biz;
   }
 
+  /// Libera todos los controladores del formulario.
   @override
   void dispose() {
     for (final c in [
@@ -105,9 +119,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     super.dispose();
   }
 
+  /// Valida que el campo obligatorio no esté vacío.
   String? _req(String? v) =>
       (v == null || v.trim().isEmpty) ? 'Campo obligatorio' : null;
 
+  /// Convierte las filas editadas en opciones del plato.
   List<DishOption> _options(List<_OptionRow> rows, String prefix) => [
     for (final (i, r) in rows.indexed)
       if (r.label.text.trim().isNotEmpty)
@@ -118,8 +134,46 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         ),
   ];
 
-  void _save() {
+  /// Abre la galería y guarda la foto elegida en memoria.
+  Future<void> _pickPhoto() async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        imageQuality: 75,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      setState(() => _photoBytes = bytes);
+    } catch (_) {
+      if (!mounted) return;
+      showSnack(context, 'No pudimos abrir la galería.', error: true);
+    }
+  }
+
+  /// Valida, arma el plato y lo publica en el catálogo compartido.
+  Future<void> _save() async {
+    if (_saving) return;
     if (!_form.currentState!.validate()) return;
+    setState(() => _saving = true);
+
+    // Si hay foto nueva, se sube antes de guardar el plato.
+    var image = _photoUrl;
+    if (_photoBytes != null) {
+      final url = await _catalog.uploadDishPhoto(
+        businessId: _biz,
+        bytes: _photoBytes!,
+      );
+      if (url == null) {
+        if (!mounted) return;
+        showSnack(context, 'No pudimos subir la foto.', error: true);
+        setState(() => _saving = false);
+        return;
+      }
+      image = url;
+    }
+
     final hasNutrition = [
       _kcal,
       _protein,
@@ -164,9 +218,22 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       soldOut: _soldOut,
       portionLimit: int.tryParse(_limit.text),
       soldToday: _orig?.soldToday ?? 0,
-      imageAsset: _orig?.imageAsset,
+      imageAsset: image,
     );
-    _catalog.saveDish(dish);
+    try {
+      await _catalog.saveDish(dish);
+    } on Object {
+      if (!mounted) return;
+      showSnack(
+        context,
+        'No pudimos guardar el producto. Revisa tu conexión.',
+        error: true,
+      );
+      setState(() => _saving = false);
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _saving = false);
     showSnack(
       context,
       _orig == null ? 'Producto creado y publicado' : 'Producto actualizado',
@@ -174,6 +241,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     context.canPop() ? context.pop() : context.go('/negocio/menu');
   }
 
+  /// Editor de tamaños o extras con botón para agregar filas.
   Widget _optionsEditor(String title, List<_OptionRow> rows, String hint) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,6 +289,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     );
   }
 
+  /// Construye el formulario completo con categorías, alérgenos y nutrición.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -294,6 +363,67 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 maxLines: 2,
                 decoration: const InputDecoration(labelText: 'Descripción *'),
                 validator: _req,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Foto del plato',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 72,
+                      height: 72,
+                      child: _photoBytes != null
+                          ? Image.memory(_photoBytes!, fit: BoxFit.cover)
+                          : _photoUrl != null
+                          ? catalogImage(
+                              _photoUrl!,
+                              width: 72,
+                              height: 72,
+                              fallback: Text(
+                                categoryById(_category).emoji,
+                                style: const TextStyle(fontSize: 28),
+                              ),
+                            )
+                          : Container(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              alignment: Alignment.center,
+                              child: Text(
+                                categoryById(_category).emoji,
+                                style: const TextStyle(fontSize: 28),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const Key('p-photo'),
+                      onPressed: _pickPhoto,
+                      icon: const Icon(Icons.photo_camera_outlined),
+                      label: Text(
+                        _photoBytes == null && _photoUrl == null
+                            ? 'Agregar foto'
+                            : 'Cambiar foto',
+                      ),
+                    ),
+                  ),
+                  if (_photoBytes != null || _photoUrl != null)
+                    IconButton(
+                      tooltip: 'Quitar foto',
+                      onPressed: () => setState(() {
+                        _photoBytes = null;
+                        _photoUrl = null;
+                      }),
+                      icon: const Icon(Icons.close),
+                    ),
+                ],
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -435,7 +565,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               PrimaryButton(
                 key: const Key('p-save'),
                 label: 'Guardar producto',
-                onPressed: _save,
+                onPressed: _saving ? null : _save,
               ),
             ],
           ),

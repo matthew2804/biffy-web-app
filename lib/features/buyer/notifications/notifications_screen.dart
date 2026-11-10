@@ -12,6 +12,7 @@ import '../../../shared/state/session_controller.dart';
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
+  /// Construye la lista de notificaciones del rol activo.
   @override
   Widget build(BuildContext context) {
     final center = context.watch<NotificationCenter>();

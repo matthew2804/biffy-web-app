@@ -7,8 +7,8 @@ Proyecto: `jwdzpwsfwtkdeeuceaco` · URL: `https://jwdzpwsfwtkdeeuceaco.supabase.
 | Fase | Estado |
 |---|---|
 | Esquema, RLS, RPC, Storage y seed de referencia | ✅ escrito en `supabase/migrations/` |
-| Aplicado al proyecto remoto | ⏳ pendiente (requiere credenciales de administración) |
-| App conectada (`supabase_flutter`) | ⏳ siguiente fase |
+| Aplicado al proyecto remoto | ✅ aplicado; 28 tablas y cuentas demo verificadas por REST y pruebas RLS |
+| App conectada (`supabase_flutter`) | ✅ auth, perfiles, catálogo, pedidos y Storage reales |
 
 La app **sigue funcionando en modo demo local**: sin `SUPABASE_URL` no hace
 ninguna petición de red.
@@ -61,7 +61,7 @@ supabase/
     0009_welcome_gotas.sql        # 450 Gotas al crear el perfil
     0010_realtime.sql             # publica branches/dishes/orders en Realtime
     0011_branch_couriers.sql      # sedes nuevas nacen visibles
-    0012_order_cycle.sql          # ciclo del pedido (HU-3): precios en servidor,
+    0019_order_cycle.sql          # ciclo del pedido (HU-3): precios en servidor,
                                   # order_secrets, reembolso de cupón, idempotencia
     0099_verify.sql               # verifica tablas, columnas y RPC clave
   tests/
@@ -161,6 +161,7 @@ traduce `lib/domain/order_errors.dart`.
 Cada transición escribe en `order_events` quién la hizo y de qué estado a cuál
 (`from_status` → `status`).
 | `redeem_reward(payload)` | comprador | Canjea con Gotas; en cajas sortea un premio ponderado |
+| `use_reward_redemption(code)` | restaurante | Valida el código del plato ganado y lo marca como reclamado |
 | `verify_university(payload)` | comprador | Verifica el correo contra el dominio de la universidad |
 | `register_business(payload)` | restaurante | Crea negocio + sedes y lo vincula al perfil |
 
@@ -173,12 +174,18 @@ los enums de Dart.
 El catálogo está en `gotas_rewards` y cada caja tiene sus premios con peso en
 `gotas_reward_prizes`. `redeem_reward` descuenta las Gotas y sortea el premio:
 
-| Caja | Costo | Premios | Mejor premio |
+| Caja | Costo | Límite | Premios |
 |---|---|---|---|
-| `box_25` · Caja sorpresa | 25 | 5 | $5.000 |
-| `box_50` · Caja premium | 50 | 5 | $12.000 + 2 envíos |
-| `box_100` · Caja sorteo | 100 | 5 | $25.000 + boleto |
-| `free_shipping` | 5 | directo | — |
+| `box_5` · Caja básica | 5 | **ilimitada** | platos de restaurantes o premios de plataforma |
+| `free_shipping` | 10 | cada 12 h | quita el envío del pedido |
+| `box_25` · Caja sorpresa | 25 | cada 12 h | 5 premios |
+| `box_50` · Caja premium | 50 | cada 12 h | 5 premios |
+| `box_100` · Caja sorteo | 100 | cada 24 h | 5 premios + boleto |
+
+Los límites son columnas (`cooldown_hours`, `daily_limit`): se cambian con un
+`update`, sin tocar código. Los restaurantes meten sus platos en `box_items`
+(pantalla `/negocio/cajas`); el sorteo los usa primero y, si una caja no tiene
+platos, cae a `gotas_reward_prizes`.
 
 El peso es relativo: se suma y se sortea con `random()`, así que ajustar
 probabilidades es cambiar `weight` (en `0008_reward_boxes.sql` o con un
@@ -213,13 +220,72 @@ Al registrarse:
 - el repartidor obtiene su fila en `courier_profiles`;
 - el restaurante crea negocio y sede con `register_business`.
 
+## Datos demo
+
+```bash
+dart run tool/seed_supabase.dart
+```
+
+Carga el catálogo de `lib/data/mock/seed_catalog.dart` (negocios, sedes, platos
+y opciones) usando el mismo seed que la app. Es **idempotente**: crea lo que
+falta, completa campos y no duplica. Cada negocio queda con su cuenta de dueño
+(contraseña `biffy123`).
+
+## Smoke test contra el proyecto
+
+```bash
+flutter test test/integration/supabase_smoke_test.dart \
+  --dart-define=SUPABASE_URL=https://jwdzpwsfwtkdeeuceaco.supabase.co \
+  --dart-define=SUPABASE_KEY=<clave publicable>
+```
+
+Valida perfil, catálogo, recompensas y que RLS no filtre pedidos ajenos. Sin
+`--dart-define` el test se salta (el `flutter test` normal no toca la red).
+
+## Campus y geocerca
+
+`universities.boundary_polygon` guarda el contorno de cada campus (SRID 4326).
+
+| Universidad | Polígono |
+|---|---|
+| Icesi | ✅ contorno real de OpenStreetMap (`relation/6784907`, migración `0015`) |
+| UNAL, Andes, Javeriana (Bogotá) | ⛔ sin polígono: la geocerca usa el respaldo por `campus_id` |
+
+La migración `0014` sincroniza `branches.location` con un trigger y deja una
+validación con PostGIS en `place_order`.
+
+**Reemplazar por el contorno real:**
+
+```sql
+-- GeoJSON del campus (OpenStreetMap → Exportar, o el plano de la universidad)
+update public.universities
+   set boundary_polygon = st_setsrid(st_geomfromgeojson('{"type":"Polygon","coordinates":[...]}'), 4326)
+ where id = 'icesi';
+```
+
+Comprobación:
+
+```sql
+select id, st_asgeojson(boundary_polygon) from public.universities;
+```
+
+**Activar la geocerca en una sede** (`place_order` la aplica solo cuando la sede
+es `campus_delivery_only`):
+
+```sql
+update public.branches set campus_delivery_only = true where campus_id = 'icesi';
+```
+
+> `Qbano · Icesi` ya viene con `campus_delivery_only = true`, así que la
+> geocerca está activa ahí.
+
 ## Pendiente para cerrar la base
 
-1. Aplicar `apply_all.sql` (o `supabase db push`).
-2. Crear las cuentas demo en Auth y cargar el catálogo semilla
-   (`businesses`, `branches`, `dishes`) con la `service_role` desde un script
-   de administración, nunca desde la app.
-3. Activar respaldos/PITR en el plan del proyecto.
+1. ✅ Aplicar `apply_all.sql` (o `supabase db push`) al proyecto remoto.
+2. ✅ Crear las cuentas demo en Auth y cargar el catálogo semilla con
+   `service_role` desde scripts locales (`tool/admin_seed.dart` y
+   `tool/seed_supabase.dart`), nunca desde la app.
+3. ⏳ Activar respaldos/PITR según el plan del proyecto.
 
 ## Al desplegar (checklist)
 

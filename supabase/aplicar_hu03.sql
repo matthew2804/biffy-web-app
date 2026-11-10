@@ -4,20 +4,21 @@
 -- Uso: Supabase Dashboard -> SQL Editor -> New query -> pegar todo -> Run.
 --
 -- Contiene, en orden:
---   1. supabase/migrations/0012_order_cycle.sql   (los cambios)
+--   1. supabase/migrations/0019_order_cycle.sql   (los cambios)
 --   2. supabase/migrations/0099_verify.sql        (comprueba que todo quedó bien;
 --                                                  al final debe decir «Biffy OK»)
 --
--- Requiere que 0000-0011 ya estén aplicadas (lo están en el proyecto actual).
+-- Requiere que 0000-0018 ya estén aplicadas (0014 geografía y 0018
+-- idempotencia las reemplaza esta migración conservando sus validaciones).
 -- Es idempotente: si algo falla a medias, se puede volver a ejecutar.
--- Generado: 2026-11-09 16:47
+-- Generado: 2026-11-09 21:20
 -- ============================================================================
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
--- 0012_order_cycle.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0019_order_cycle.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
--- 0012 · Ciclo completo del pedido (HU-3)
+-- 0019 · Ciclo completo del pedido (HU-3)
 -- ============================================================================
 -- Cierra las brechas del ciclo comprador -> restaurante -> repartidor:
 --
@@ -33,6 +34,9 @@
 --   6. courier_deliver exige que la foto exista de verdad en Storage.
 --   7. Escrituras directas a las tablas de pedidos revocadas (defensa en
 --      profundidad además de RLS sin políticas de escritura).
+--
+-- Va DESPUÉS de 0014 (geografía) y 0018 (idempotencia): reemplaza place_order
+-- conservando sus validaciones PostGIS (radio y polígono del campus).
 --
 -- Es idempotente: se puede volver a ejecutar.
 -- ============================================================================
@@ -101,6 +105,9 @@ update public.orders set delivery_code = '' where delivery_code <> '';
 
 alter table public.orders add column if not exists client_key text;
 
+-- 0018 creó un índice único global; el correcto es por comprador.
+drop index if exists public.orders_client_key_idx;
+
 create unique index if not exists orders_buyer_client_key_uidx
   on public.orders (buyer_id, client_key)
   where client_key is not null;
@@ -118,7 +125,7 @@ as $$
     2 * 6371.0 * asin(least(1.0::float8, sqrt(
       power(sin(radians((lat2 - lat1)::float8) / 2), 2)
       + cos(radians(lat1::float8)) * cos(radians(lat2::float8))
-        power(sin(radians((lng2 - lng1)::float8) / 2), 2)
+        * power(sin(radians((lng2 - lng1)::float8) / 2), 2)
     )))
   )::numeric
 $$;
@@ -184,6 +191,7 @@ declare
   v_branch public.branches;
   v_addr public.addresses;
   v_point public.delivery_points;
+  v_poly geometry;
   v_dish public.dishes;
   v_order public.orders;
   v_existing public.orders;
@@ -271,9 +279,19 @@ begin
   v_km := round(public.distance_km(
     v_branch.lat, v_branch.lng, v_point.lat, v_point.lng
   ), 2);
-  if v_branch.campus_delivery_only
-     and v_point.campus_id is distinct from v_branch.campus_id then
-    return jsonb_build_object('result', 'out_of_zone');
+  -- Sede solo campus: polígono real del campus (0014/0015) y, si no hay,
+  -- el campus del punto de entrega.
+  if v_branch.campus_delivery_only then
+    select u.boundary_polygon into v_poly
+      from public.universities u
+     where u.id = v_branch.campus_id;
+    if v_poly is not null and v_point.location is not null then
+      if not st_covers(v_poly, v_point.location) then
+        return jsonb_build_object('result', 'outside_campus');
+      end if;
+    elsif v_point.campus_id is distinct from v_branch.campus_id then
+      return jsonb_build_object('result', 'outside_campus');
+    end if;
   end if;
   if v_branch.couriers_nearby <= 0 or v_km > v_branch.radius_km then
     return jsonb_build_object('result', 'out_of_zone');
@@ -936,9 +954,9 @@ revoke execute on function public.order_json(public.orders) from public, anon, a
 revoke execute on function public.credit_gotas(uuid, int, text, uuid) from public, anon, authenticated;
 revoke execute on function public.order_event(uuid, public.order_status, text, public.order_status) from public, anon, authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0099_verify.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0007 · Verificación final
 -- ============================================================================
@@ -961,13 +979,16 @@ declare
     'app_settings', 'addresses', 'gotas_ledger', 'coupons', 'user_coupons',
     'favorite_dishes', 'favorite_branches', 'notifications', 'courier_profiles',
     'orders', 'order_items', 'order_events', 'order_declines', 'reviews',
-    'gotas_rewards', 'reward_redemptions', 'gotas_reward_prizes',
+    'gotas_rewards', 'reward_redemptions', 'gotas_reward_prizes', 'box_items',
     'order_secrets'
   ];
   expected_columns text[][] := array[
     ['dishes', 'active'], ['dishes', 'sold_out'], ['dishes', 'branch_id'],
     ['branches', 'paused'], ['orders', 'delivery_code'], ['orders', 'gotas_used'],
     ['profiles', 'gotas'], ['profiles', 'business_id'],
+    ['gotas_rewards', 'cooldown_hours'], ['box_items', 'reward_id'],
+    ['reward_redemptions', 'claim_code'],
+    ['branches', 'location'], ['universities', 'boundary_polygon'],
     ['order_events', 'from_status'], ['orders', 'client_key']
   ];
   expected_functions text[] := array[
@@ -1069,3 +1090,4 @@ begin
   raise notice 'Biffy OK · % tablas · % políticas RLS · % funciones en public',
     v_tables, v_policies, v_functions;
 end $$;
+

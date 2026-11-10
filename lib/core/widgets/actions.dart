@@ -62,6 +62,7 @@ Future<bool> requireLogin(
   return session.isLoggedIn;
 }
 
+/// Indica si el plato necesita pasar por la pantalla de personalización.
 bool needsCustomization(Dish d) =>
     d.sizes.length > 1 || d.sides.isNotEmpty || d.extras.isNotEmpty;
 
@@ -108,6 +109,7 @@ Future<void> quickAdd(BuildContext context, Dish dish) async {
   await addToCart(context, dish);
 }
 
+/// Agrega o quita el plato de favoritos y avisa al usuario.
 Future<void> toggleFavoriteDish(BuildContext context, Dish dish) async {
   if (!await requireLogin(context, reason: 'guardar favoritos')) return;
   if (!context.mounted) return;
@@ -121,6 +123,7 @@ Future<void> toggleFavoriteDish(BuildContext context, Dish dish) async {
   );
 }
 
+/// Copia un enlace de demostración del plato o restaurante.
 Future<void> copyShareLink(
   BuildContext context,
   String path,
@@ -225,6 +228,7 @@ Future<void> showDeliveryPointSheet(BuildContext context) {
   );
 }
 
+/// Ruta inicial de cada rol.
 String homeForRole(UserRole role) => switch (role) {
   UserRole.buyer => '/',
   UserRole.courier => '/repartidor',
@@ -288,7 +292,9 @@ Future<void> showDemoAccountsSheet(BuildContext context) {
   );
 }
 
+/// Texto del tiempo estimado de entrega.
 String etaLabel(int minutes) => '$minutes min';
 
+/// Texto del cambio de precio de una opción.
 String priceDelta(int p) =>
     p == 0 ? 'Incluido' : (p > 0 ? '+${cop(p)}' : '−${cop(-p)}');

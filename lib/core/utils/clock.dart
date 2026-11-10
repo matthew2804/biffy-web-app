@@ -11,6 +11,7 @@ class Clock {
   /// 12 (almuerzo) para probar pedidos inmediatos a cualquier hora.
   bool simulateLunch = false;
 
+  /// Hora actual, respetando el modo de demostración.
   DateTime now() {
     final n = _now();
     return simulateLunch

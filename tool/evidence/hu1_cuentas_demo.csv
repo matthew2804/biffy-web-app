@@ -1,0 +1,4 @@
+email,role,gotas,tiene_negocio,tiene_perfil_repartidor,movimientos_gotas
+andres.repartidor@demo.biffy.co,courier,450,false,true,1
+diego.demo@icesi.edu.co,buyer,332,false,false,5
+qbano@demo.biffy.co,restaurant,450,true,false,1

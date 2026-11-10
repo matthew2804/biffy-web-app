@@ -14,14 +14,17 @@ void celebrate(BuildContext context) {
   overlay.insert(entry);
 }
 
+/// Overlay privado que anima el confeti y se borra al terminar.
 class _ConfettiBurst extends StatefulWidget {
   const _ConfettiBurst({required this.onDone});
   final VoidCallback onDone;
 
+  /// Crea el estado de la animación de confeti.
   @override
   State<_ConfettiBurst> createState() => _ConfettiBurstState();
 }
 
+/// Estado que controla la animación de confeti de duración fija.
 class _ConfettiBurstState extends State<_ConfettiBurst>
     with SingleTickerProviderStateMixin {
   // Dura un tiempo fijo y se borra solo (una animación infinita colgaría los tests).
@@ -32,12 +35,14 @@ class _ConfettiBurstState extends State<_ConfettiBurst>
 
   final _pieces = List.generate(70, (i) => _Piece(Random(i)));
 
+  /// Libera el controlador de animación.
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
+  /// Dibuja el confeti sobre toda la pantalla sin bloquear toques.
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
@@ -76,11 +81,13 @@ class _Piece {
   final Color color;
 }
 
+/// Pintor que dibuja cada papelito en su posición actual.
 class _ConfettiPainter extends CustomPainter {
   _ConfettiPainter(this.pieces, this.t);
   final List<_Piece> pieces;
   final double t;
 
+  /// Dibuja los papelitos con gravedad y desvanecimiento.
   @override
   void paint(Canvas canvas, Size size) {
     final origin = Offset(size.width / 2, size.height * 0.4);
@@ -108,6 +115,7 @@ class _ConfettiPainter extends CustomPainter {
     }
   }
 
+  /// Repinta mientras avance la animación.
   @override
   bool shouldRepaint(_ConfettiPainter old) => old.t != t;
 }

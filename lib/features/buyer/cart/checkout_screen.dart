@@ -21,10 +21,12 @@ import 'cart_screen.dart';
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
 
+  /// Crea el estado del resumen de checkout.
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
+/// Estado que controla el bloqueo mientras se crea el pedido.
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _placing = false;
 
@@ -199,6 +201,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+
+  /// Crea el pedido, vacía el carrito y navega al seguimiento.
   Future<void> _place(BuildContext context) async {
     if (_placing) return;
     setState(() => _placing = true);

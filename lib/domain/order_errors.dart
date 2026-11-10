@@ -23,6 +23,7 @@ String orderErrorMessage(String code, [Map<String, dynamic> data = const {}]) {
       'No encontramos esa dirección. Elige o crea otra para continuar.',
     'point_not_found' => 'El punto de entrega de esa dirección ya no existe.',
     'out_of_zone' => 'El restaurante no entrega en la zona de esa dirección.',
+    'outside_campus' => 'Esa sede solo entrega dentro del campus.',
     'empty_cart' => 'Tu carrito está vacío.',
     'invalid_qty' => 'Revisa las cantidades: hay un producto con cantidad no válida.',
     'dish_not_found' => 'Un producto de tu carrito ya no existe.',

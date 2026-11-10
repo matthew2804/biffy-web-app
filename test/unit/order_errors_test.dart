@@ -3,10 +3,10 @@ import 'package:biffy/domain/order_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Todos los `result` que pueden devolver los RPC de pedidos
-/// (`0003_functions.sql` + `0012_order_cycle.sql`) más los de transporte.
+/// (`0003_functions.sql` + `0019_order_cycle.sql`) más los de transporte.
 const _serverCodes = [
   'not_authenticated', 'no_profile', 'forbidden', 'branch_not_found',
-  'branch_paused', 'address_not_found', 'point_not_found', 'out_of_zone',
+  'branch_paused', 'address_not_found', 'point_not_found', 'out_of_zone', 'outside_campus',
   'empty_cart', 'invalid_qty', 'dish_not_found', 'dish_unavailable',
   'no_portions', 'invalid_option', 'subtotal_mismatch', 'total_mismatch',
   'insufficient_gotas', 'invalid_gotas', 'invalid_tip', 'invalid_payment',

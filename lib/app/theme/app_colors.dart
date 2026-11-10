@@ -59,6 +59,7 @@ class BiffyPalette extends ThemeExtension<BiffyPalette> {
     muted: AppColors.darkMuted,
   );
 
+  /// Copia la paleta cambiando solo los colores indicados.
   @override
   BiffyPalette copyWith({
     Color? background,
@@ -78,6 +79,7 @@ class BiffyPalette extends ThemeExtension<BiffyPalette> {
     );
   }
 
+  /// Interpola los colores entre dos paletas para las transiciones de tema.
   @override
   BiffyPalette lerp(BiffyPalette? other, double t) {
     if (other == null) return this;
@@ -92,7 +94,9 @@ class BiffyPalette extends ThemeExtension<BiffyPalette> {
   }
 }
 
+/// Acceso rápido a la paleta del tema desde cualquier BuildContext.
 extension PaletteContext on BuildContext {
+  /// Paleta activa según el tema claro u oscuro.
   BiffyPalette get palette =>
       Theme.of(this).extension<BiffyPalette>() ?? BiffyPalette.light;
 }

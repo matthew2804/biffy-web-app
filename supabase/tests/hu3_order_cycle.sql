@@ -3,7 +3,7 @@
 -- ============================================================================
 -- Uso: Supabase Dashboard -> SQL Editor -> pegar todo -> Run.
 --
--- Requisitos: migraciones aplicadas hasta 0012 y las 3 cuentas demo
+-- Requisitos: migraciones aplicadas hasta 0019 y las 3 cuentas demo
 --   diego.demo@icesi.edu.co · andres.repartidor@demo.biffy.co · qbano@demo.biffy.co
 --
 -- Todo corre dentro de una transacción que termina en ROLLBACK: no deja

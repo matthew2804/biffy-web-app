@@ -17,6 +17,7 @@ import '../../buyer/profile/profile_screen.dart';
 class MerchantProfileScreen extends StatelessWidget {
   const MerchantProfileScreen({super.key});
 
+  /// Muestra identidad, sedes, horarios y opciones de la cuenta.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -85,7 +86,18 @@ class MerchantProfileScreen extends StatelessWidget {
                           : 'Recibiendo pedidos',
                     ),
                     value: !paused,
-                    onChanged: (v) => catalog.setBusinessPaused(b.id, !v),
+                    onChanged: (v) async {
+                      try {
+                        await catalog.setBusinessPaused(b.id, !v);
+                      } on Object {
+                        if (!context.mounted) return;
+                        showSnack(
+                          context,
+                          'No pudimos cambiar el estado.',
+                          error: true,
+                        );
+                      }
+                    },
                   ),
                   SwitchListTile(
                     title: const Text('Mostrar información nutricional'),

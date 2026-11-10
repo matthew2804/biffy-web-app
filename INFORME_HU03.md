@@ -27,93 +27,93 @@ Me autorizaste, pero **no tengo con qué ejecutarla**: en el proyecto solo exist
 4. Si sale una ventana de "destructive operations", pulsa **Run this query** (el script reemplaza funciones y políticas; no borra datos de tus tablas).
 5. **Éxito** = no hay recuadro rojo. Debe aparecer el aviso `Biffy OK · 28 tablas · 35 políticas RLS · 63 funciones`.
 
-Ese archivo es `0012_order_cycle.sql` + `0099_verify.sql` pegados en orden. Es **idempotente** (si algo falla se puede volver a ejecutar) y lo probé sobre una base con exactamente tus migraciones 0000–0011.
+Ese archivo es `0019_order_cycle.sql` + `0099_verify.sql` pegados en orden. Es **idempotente** (si algo falla se puede volver a ejecutar) y lo probé sobre una base con exactamente tus migraciones 0000–0011.
 
 Opcional: para correr la prueba, pega [supabase/tests/hu3_order_cycle.sql](supabase/tests/hu3_order_cycle.sql). Todo ocurre dentro de una transacción con `ROLLBACK`, no deja datos. Si falla al crear usuarios de prueba, es una diferencia con mi Postgres local; pásame el mensaje.
 
 ---
 
-## 3. Base de datos · [supabase/migrations/0012_order_cycle.sql](supabase/migrations/0012_order_cycle.sql) (919 líneas)
+## 3. Base de datos · [supabase/migrations/0019_order_cycle.sql](supabase/migrations/0019_order_cycle.sql) (919 líneas)
 
 ### 3.1 Historial de eventos
 | Líneas | Qué hace |
 |---|---|
-| [24-26](supabase/migrations/0012_order_cycle.sql#L24-L26) | Agrega `order_events.from_status`: de qué estado venía cada evento. |
-| [28-38](supabase/migrations/0012_order_cycle.sql#L28-L38) | Rellena `from_status` en los eventos que ya existían (usa el evento anterior del mismo pedido). |
-| [40](supabase/migrations/0012_order_cycle.sql#L40) | Borra la versión vieja de `order_event` (3 parámetros) para no tener dos. |
-| [42-56](supabase/migrations/0012_order_cycle.sql#L42-L56) | Crea `order_event(pedido, estado, etiqueta, desde)`: inserta el evento con quién lo hizo (`auth.uid()`), cuándo (por defecto `now()`) y de qué estado a cuál. |
+| [24-26](supabase/migrations/0019_order_cycle.sql#L24-L26) | Agrega `order_events.from_status`: de qué estado venía cada evento. |
+| [28-38](supabase/migrations/0019_order_cycle.sql#L28-L38) | Rellena `from_status` en los eventos que ya existían (usa el evento anterior del mismo pedido). |
+| [40](supabase/migrations/0019_order_cycle.sql#L40) | Borra la versión vieja de `order_event` (3 parámetros) para no tener dos. |
+| [42-56](supabase/migrations/0019_order_cycle.sql#L42-L56) | Crea `order_event(pedido, estado, etiqueta, desde)`: inserta el evento con quién lo hizo (`auth.uid()`), cuándo (por defecto `now()`) y de qué estado a cuál. |
 
 ### 3.2 Código de entrega secreto
 | Líneas | Qué hace |
 |---|---|
-| [59-63](supabase/migrations/0012_order_cycle.sql#L59-L63) | Tabla `order_secrets` (pedido, comprador, código). El código ya no vive en `orders`. |
-| [65-69](supabase/migrations/0012_order_cycle.sql#L65-L69) | RLS: **solo el comprador** puede leer su código. El repartidor no, así `wrong_code` protege de verdad. |
-| [72-76](supabase/migrations/0012_order_cycle.sql#L72-L76) | Mueve a `order_secrets` los códigos de pedidos existentes. |
-| [78-80](supabase/migrations/0012_order_cycle.sql#L78-L80) | Deja `orders.delivery_code` vacío (por defecto y en filas viejas) para que no se filtre. |
+| [59-63](supabase/migrations/0019_order_cycle.sql#L59-L63) | Tabla `order_secrets` (pedido, comprador, código). El código ya no vive en `orders`. |
+| [65-69](supabase/migrations/0019_order_cycle.sql#L65-L69) | RLS: **solo el comprador** puede leer su código. El repartidor no, así `wrong_code` protege de verdad. |
+| [72-76](supabase/migrations/0019_order_cycle.sql#L72-L76) | Mueve a `order_secrets` los códigos de pedidos existentes. |
+| [78-80](supabase/migrations/0019_order_cycle.sql#L78-L80) | Deja `orders.delivery_code` vacío (por defecto y en filas viejas) para que no se filtre. |
 
 ### 3.3 Idempotencia
 | Líneas | Qué hace |
 |---|---|
-| [84](supabase/migrations/0012_order_cycle.sql#L84) | Columna `orders.client_key`: clave que manda la app por intento de compra. |
-| [86-88](supabase/migrations/0012_order_cycle.sql#L86-L88) | Índice único (comprador, clave): la misma clave nunca crea dos pedidos. |
+| [84](supabase/migrations/0019_order_cycle.sql#L84) | Columna `orders.client_key`: clave que manda la app por intento de compra. |
+| [86-88](supabase/migrations/0019_order_cycle.sql#L86-L88) | Índice único (comprador, clave): la misma clave nunca crea dos pedidos. |
 
 ### 3.4 Funciones auxiliares
 | Líneas | Qué hace |
 |---|---|
-| [93-107](supabase/migrations/0012_order_cycle.sql#L93-L107) | `distance_km`: distancia Haversine en km (misma fórmula que `geo.dart`). |
-| [109-135](supabase/migrations/0012_order_cycle.sql#L109-L135) | `refund_order`: devuelve las Gotas ([116-121](supabase/migrations/0012_order_cycle.sql#L116-L121)) **y el cupón** ([123-134](supabase/migrations/0012_order_cycle.sql#L123-L134): vuelve a "sin usar" y baja `used_count`). |
-| [139-153](supabase/migrations/0012_order_cycle.sql#L139-L153) | `order_json`: el pedido en JSON, con el código de entrega solo si lo pide su comprador. |
+| [93-107](supabase/migrations/0019_order_cycle.sql#L93-L107) | `distance_km`: distancia Haversine en km (misma fórmula que `geo.dart`). |
+| [109-135](supabase/migrations/0019_order_cycle.sql#L109-L135) | `refund_order`: devuelve las Gotas ([116-121](supabase/migrations/0019_order_cycle.sql#L116-L121)) **y el cupón** ([123-134](supabase/migrations/0019_order_cycle.sql#L123-L134): vuelve a "sin usar" y baja `used_count`). |
+| [139-153](supabase/migrations/0019_order_cycle.sql#L139-L153) | `order_json`: el pedido en JSON, con el código de entrega solo si lo pide su comprador. |
 
-### 3.5 `place_order` ([157-526](supabase/migrations/0012_order_cycle.sql#L157-L526)): crear el pedido
+### 3.5 `place_order` ([157-526](supabase/migrations/0019_order_cycle.sql#L157-L526)): crear el pedido
 Todo el cálculo ocurre en el servidor; lo que mande el cliente solo sirve para comparar.
 
 | Líneas | Qué hace |
 |---|---|
-| [164-202](supabase/migrations/0012_order_cycle.sql#L164-L202) | Variables y comprobación de sesión (`not_authenticated`). |
-| [204-215](supabase/migrations/0012_order_cycle.sql#L204-L215) | **Reintento**: si ya hay un pedido con esa `client_key`, lo devuelve (`duplicate: true`) sin crear otro. |
-| [217-226](supabase/migrations/0012_order_cycle.sql#L217-L226) | Bloquea el perfil (`for update`) para que dos pedidos simultáneos no gasten las mismas Gotas; valida perfil (`no_profile`) y método de pago (`invalid_payment`). |
-| [228-250](supabase/migrations/0012_order_cycle.sql#L228-L250) | Valida sede (`branch_not_found`, `branch_paused`), dirección **del propio comprador** (`address_not_found`) y punto de entrega (`point_not_found`). |
-| [252-263](supabase/migrations/0012_order_cycle.sql#L252-L263) | Regla de alcance (espejo de `isReachable`): solo-campus, repartidores cerca y radio → `out_of_zone`. |
-| [265-267](supabase/migrations/0012_order_cycle.sql#L265-L267) | Carrito vacío → `empty_cart`. |
-| [269-349](supabase/migrations/0012_order_cycle.sql#L269-L349) | **Líneas**: valida cantidad 1-50, plato activo y con porciones; el precio sale de `dishes` + `dish_options` (tamaño [301-310](supabase/migrations/0012_order_cycle.sql#L301-L310), acompañante [312-321](supabase/migrations/0012_order_cycle.sql#L312-L321), extras [323-333](supabase/migrations/0012_order_cycle.sql#L323-L333)). **Ignora cualquier `unit_price` del cliente.** |
-| [351-357](supabase/migrations/0012_order_cycle.sql#L351-L357) | Descuento de campus: solo si el perfil está verificado en esa universidad. |
-| [359-364](supabase/migrations/0012_order_cycle.sql#L359-L364) | Tarifa: $1.500 dentro del campus, $3.500 fuera. |
-| [366-386](supabase/migrations/0012_order_cycle.sql#L366-L386) | Cupón: del usuario, vigente, sin usar y con usos disponibles; se bloquea la fila para evitar doble uso. |
-| [388-395](supabase/migrations/0012_order_cycle.sql#L388-L395) | Gotas: no más que el saldo (`insufficient_gotas`) ni que lo que falta por pagar (`invalid_gotas`). |
-| [397-400](supabase/migrations/0012_order_cycle.sql#L397-L400) | Propina: máximo 20 % del subtotal (`invalid_tip`). |
-| [402-405](supabase/migrations/0012_order_cycle.sql#L402-L405) | Total calculado por el servidor. |
-| [406-424](supabase/migrations/0012_order_cycle.sql#L406-L424) | **Antimanipulación**: si el cliente declaró otro subtotal/total → `subtotal_mismatch` / `total_mismatch` (con el total correcto) y **no se crea nada**. |
-| [426-432](supabase/migrations/0012_order_cycle.sql#L426-L432) | Tiempo estimado y pago al repartidor calculados aquí; códigos de entrega y recogida aleatorios de 4 dígitos. |
-| [434-467](supabase/migrations/0012_order_cycle.sql#L434-L467) | Inserta el pedido y guarda el código en `order_secrets`. |
-| [469-481](supabase/migrations/0012_order_cycle.sql#L469-L481) | Inserta las líneas con los precios calculados. |
-| [483](supabase/migrations/0012_order_cycle.sql#L483) | Primer evento: `pending` (sin estado de origen). |
-| [485-499](supabase/migrations/0012_order_cycle.sql#L485-L499) | Descuenta Gotas y marca el cupón como usado. |
-| [501-503](supabase/migrations/0012_order_cycle.sql#L501-L503) | Responde `ok` con el pedido (incluye el código solo para su comprador). |
-| [505-526](supabase/migrations/0012_order_cycle.sql#L505-L526) | Errores: carrera de la misma clave → devuelve el ganador; datos mal formados → `invalid_payload` (nunca un error crudo). |
+| [164-202](supabase/migrations/0019_order_cycle.sql#L164-L202) | Variables y comprobación de sesión (`not_authenticated`). |
+| [204-215](supabase/migrations/0019_order_cycle.sql#L204-L215) | **Reintento**: si ya hay un pedido con esa `client_key`, lo devuelve (`duplicate: true`) sin crear otro. |
+| [217-226](supabase/migrations/0019_order_cycle.sql#L217-L226) | Bloquea el perfil (`for update`) para que dos pedidos simultáneos no gasten las mismas Gotas; valida perfil (`no_profile`) y método de pago (`invalid_payment`). |
+| [228-250](supabase/migrations/0019_order_cycle.sql#L228-L250) | Valida sede (`branch_not_found`, `branch_paused`), dirección **del propio comprador** (`address_not_found`) y punto de entrega (`point_not_found`). |
+| [252-263](supabase/migrations/0019_order_cycle.sql#L252-L263) | Regla de alcance (espejo de `isReachable`): solo-campus, repartidores cerca y radio → `out_of_zone`. |
+| [265-267](supabase/migrations/0019_order_cycle.sql#L265-L267) | Carrito vacío → `empty_cart`. |
+| [269-349](supabase/migrations/0019_order_cycle.sql#L269-L349) | **Líneas**: valida cantidad 1-50, plato activo y con porciones; el precio sale de `dishes` + `dish_options` (tamaño [301-310](supabase/migrations/0019_order_cycle.sql#L301-L310), acompañante [312-321](supabase/migrations/0019_order_cycle.sql#L312-L321), extras [323-333](supabase/migrations/0019_order_cycle.sql#L323-L333)). **Ignora cualquier `unit_price` del cliente.** |
+| [351-357](supabase/migrations/0019_order_cycle.sql#L351-L357) | Descuento de campus: solo si el perfil está verificado en esa universidad. |
+| [359-364](supabase/migrations/0019_order_cycle.sql#L359-L364) | Tarifa: $1.500 dentro del campus, $3.500 fuera. |
+| [366-386](supabase/migrations/0019_order_cycle.sql#L366-L386) | Cupón: del usuario, vigente, sin usar y con usos disponibles; se bloquea la fila para evitar doble uso. |
+| [388-395](supabase/migrations/0019_order_cycle.sql#L388-L395) | Gotas: no más que el saldo (`insufficient_gotas`) ni que lo que falta por pagar (`invalid_gotas`). |
+| [397-400](supabase/migrations/0019_order_cycle.sql#L397-L400) | Propina: máximo 20 % del subtotal (`invalid_tip`). |
+| [402-405](supabase/migrations/0019_order_cycle.sql#L402-L405) | Total calculado por el servidor. |
+| [406-424](supabase/migrations/0019_order_cycle.sql#L406-L424) | **Antimanipulación**: si el cliente declaró otro subtotal/total → `subtotal_mismatch` / `total_mismatch` (con el total correcto) y **no se crea nada**. |
+| [426-432](supabase/migrations/0019_order_cycle.sql#L426-L432) | Tiempo estimado y pago al repartidor calculados aquí; códigos de entrega y recogida aleatorios de 4 dígitos. |
+| [434-467](supabase/migrations/0019_order_cycle.sql#L434-L467) | Inserta el pedido y guarda el código en `order_secrets`. |
+| [469-481](supabase/migrations/0019_order_cycle.sql#L469-L481) | Inserta las líneas con los precios calculados. |
+| [483](supabase/migrations/0019_order_cycle.sql#L483) | Primer evento: `pending` (sin estado de origen). |
+| [485-499](supabase/migrations/0019_order_cycle.sql#L485-L499) | Descuenta Gotas y marca el cupón como usado. |
+| [501-503](supabase/migrations/0019_order_cycle.sql#L501-L503) | Responde `ok` con el pedido (incluye el código solo para su comprador). |
+| [505-526](supabase/migrations/0019_order_cycle.sql#L505-L526) | Errores: carrera de la misma clave → devuelve el ganador; datos mal formados → `invalid_payload` (nunca un error crudo). |
 
 ### 3.6 Acciones por rol
 Todas: bloquean la fila del pedido (`for update`), validan **quién eres** (`forbidden`) y **el estado** (`invalid_state`) y escriben el evento con su estado de origen.
 
 | Función | Líneas | Qué hace |
 |---|---|---|
-| `restaurant_accept` | [530-558](supabase/migrations/0012_order_cycle.sql#L530-L558) | Solo el dueño de la sede; `pending → preparing`. |
-| `restaurant_reject` | [560-595](supabase/migrations/0012_order_cycle.sql#L560-L595) | `pending → cancelled`, guarda el motivo y llama a `refund_order` ([591](supabase/migrations/0012_order_cycle.sql#L591)). |
-| `restaurant_ready` | [597-625](supabase/migrations/0012_order_cycle.sql#L597-L625) | `preparing → ready` (publica la oferta). |
-| `buyer_cancel` | [627-659](supabase/migrations/0012_order_cycle.sql#L627-L659) | Solo el comprador dueño; `pending → cancelled` + reembolso. |
-| `courier_accept` | [661-728](supabase/migrations/0012_order_cycle.sql#L661-L728) | Asignación **atómica**: bloquea al repartidor ([672](supabase/migrations/0012_order_cycle.sql#L672)) → `busy` ([685](supabase/migrations/0012_order_cycle.sql#L685)); bloquea el pedido ([688](supabase/migrations/0012_order_cycle.sql#L688)) → `already_assigned` ([695](supabase/migrations/0012_order_cycle.sql#L695)); `out_of_range` según el vehículo ([698](supabase/migrations/0012_order_cycle.sql#L698)); `out_of_zone` para zona campus ([701-707](supabase/migrations/0012_order_cycle.sql#L701-L707)); `declined_before` ([709-714](supabase/migrations/0012_order_cycle.sql#L709-L714)). |
-| `courier_decline` | [730-752](supabase/migrations/0012_order_cycle.sql#L730-L752) | Registra el rechazo (solo si la oferta sigue disponible). |
-| `courier_pickup` | [754-782](supabase/migrations/0012_order_cycle.sql#L754-L782) | Solo el repartidor asignado; `ready → on_the_way`. |
-| `courier_deliver` | [784-850](supabase/migrations/0012_order_cycle.sql#L784-L850) | Compara el código con `order_secrets` ([812](supabase/migrations/0012_order_cycle.sql#L812)); exige que la foto exista en Storage **dentro de la carpeta de ese pedido** ([815-823](supabase/migrations/0012_order_cycle.sql#L815-L823)); entrega y acredita Gotas. |
+| `restaurant_accept` | [530-558](supabase/migrations/0019_order_cycle.sql#L530-L558) | Solo el dueño de la sede; `pending → preparing`. |
+| `restaurant_reject` | [560-595](supabase/migrations/0019_order_cycle.sql#L560-L595) | `pending → cancelled`, guarda el motivo y llama a `refund_order` ([591](supabase/migrations/0019_order_cycle.sql#L591)). |
+| `restaurant_ready` | [597-625](supabase/migrations/0019_order_cycle.sql#L597-L625) | `preparing → ready` (publica la oferta). |
+| `buyer_cancel` | [627-659](supabase/migrations/0019_order_cycle.sql#L627-L659) | Solo el comprador dueño; `pending → cancelled` + reembolso. |
+| `courier_accept` | [661-728](supabase/migrations/0019_order_cycle.sql#L661-L728) | Asignación **atómica**: bloquea al repartidor ([672](supabase/migrations/0019_order_cycle.sql#L672)) → `busy` ([685](supabase/migrations/0019_order_cycle.sql#L685)); bloquea el pedido ([688](supabase/migrations/0019_order_cycle.sql#L688)) → `already_assigned` ([695](supabase/migrations/0019_order_cycle.sql#L695)); `out_of_range` según el vehículo ([698](supabase/migrations/0019_order_cycle.sql#L698)); `out_of_zone` para zona campus ([701-707](supabase/migrations/0019_order_cycle.sql#L701-L707)); `declined_before` ([709-714](supabase/migrations/0019_order_cycle.sql#L709-L714)). |
+| `courier_decline` | [730-752](supabase/migrations/0019_order_cycle.sql#L730-L752) | Registra el rechazo (solo si la oferta sigue disponible). |
+| `courier_pickup` | [754-782](supabase/migrations/0019_order_cycle.sql#L754-L782) | Solo el repartidor asignado; `ready → on_the_way`. |
+| `courier_deliver` | [784-850](supabase/migrations/0019_order_cycle.sql#L784-L850) | Compara el código con `order_secrets` ([812](supabase/migrations/0019_order_cycle.sql#L812)); exige que la foto exista en Storage **dentro de la carpeta de ese pedido** ([815-823](supabase/migrations/0019_order_cycle.sql#L815-L823)); entrega y acredita Gotas. |
 
 ### 3.7 Storage, lectura y permisos
 | Líneas | Qué hace |
 |---|---|
-| [852-856](supabase/migrations/0012_order_cycle.sql#L852-L856) | Bucket `delivery-evidence`: máx. 5 MB y solo jpeg/png/webp. |
-| [858-869](supabase/migrations/0012_order_cycle.sql#L858-L869) | Solo el repartidor asignado puede subir fotos, y solo mientras el pedido va `on_the_way`. |
-| [875-893](supabase/migrations/0012_order_cycle.sql#L875-L893) | `can_read_order`: las ofertas "listas sin repartidor" solo las ven **repartidores** (antes, cualquier usuario). |
-| [895-903](supabase/migrations/0012_order_cycle.sql#L895-L903) | Misma regla en la política de lectura de `orders`. |
-| [907-914](supabase/migrations/0012_order_cycle.sql#L907-L914) | Revoca `insert/update/delete/truncate` sobre las tablas de pedidos: solo se escribe por RPC. |
-| [916-919](supabase/migrations/0012_order_cycle.sql#L916-L919) | Funciones internas (`refund_order`, `order_json`, **`credit_gotas`**, `order_event`) no llamables por clientes. Esto cierra el hueco por el que cualquier usuario podía regalarse Gotas. |
+| [852-856](supabase/migrations/0019_order_cycle.sql#L852-L856) | Bucket `delivery-evidence`: máx. 5 MB y solo jpeg/png/webp. |
+| [858-869](supabase/migrations/0019_order_cycle.sql#L858-L869) | Solo el repartidor asignado puede subir fotos, y solo mientras el pedido va `on_the_way`. |
+| [875-893](supabase/migrations/0019_order_cycle.sql#L875-L893) | `can_read_order`: las ofertas "listas sin repartidor" solo las ven **repartidores** (antes, cualquier usuario). |
+| [895-903](supabase/migrations/0019_order_cycle.sql#L895-L903) | Misma regla en la política de lectura de `orders`. |
+| [907-914](supabase/migrations/0019_order_cycle.sql#L907-L914) | Revoca `insert/update/delete/truncate` sobre las tablas de pedidos: solo se escribe por RPC. |
+| [916-919](supabase/migrations/0019_order_cycle.sql#L916-L919) | Funciones internas (`refund_order`, `order_json`, **`credit_gotas`**, `order_event`) no llamables por clientes. Esto cierra el hueco por el que cualquier usuario podía regalarse Gotas. |
 
 ### 3.8 Archivos relacionados
 | Archivo | Para qué sirve |

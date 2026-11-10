@@ -222,7 +222,7 @@ El RPC recibe un único `jsonb`, así se agregan campos sin volver a tocar firma
 | Catálogo remoto (caché hidratada + realtime) | ✅ |
 | Pedidos por RPC (crear, aceptar, recoger, entregar) + realtime | ✅ |
 | Subida real de evidencia y fotos a Storage | ✅ (evidencia) |
-| Pantalla de recompensas con cajas | ⏳ |
+| Pantalla de recompensas con cajas | ✅ (historial de canjes incluido) |
 | Errores, estados de carga y reintentos | ⏳ |
 
 Con `env.json` la app arranca contra Supabase (Auth, catálogo y pedidos);
@@ -236,6 +236,7 @@ Copia de la app React/Lovable original, conservada como referencia. No se compil
 ## Documentación
 
 - [`HANDOFF.md`](HANDOFF.md): qué está hecho, qué falta, reglas de trabajo y trampas conocidas. **Empieza por aquí si retomas el proyecto.**
+- [`DEPLOY.md`](DEPLOY.md): checklist para publicar (Supabase, build web, hosting, secretos y respaldos).
 - [`INFORME_SPRINT_1.md`](INFORME_SPRINT_1.md): alcance, arquitectura, pruebas, limitaciones y pendientes del Sprint 1.
 - [`AGENTS.md`](AGENTS.md): reglas de arquitectura que debe respetar cualquier cambio.
 

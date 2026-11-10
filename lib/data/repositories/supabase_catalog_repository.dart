@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
@@ -12,8 +13,10 @@ import 'catalog_repository.dart';
 /// Las escrituras de comercio llegan en la fase 2d; por ahora se aplican solo
 /// en la caché local.
 class SupabaseCatalogRepository implements CatalogRepository {
+  /// Constructor privado: usar [load].
   SupabaseCatalogRepository._(this._client);
 
+  /// Carga la caché, se suscribe a Realtime y devuelve el repositorio.
   static Future<SupabaseCatalogRepository> load({sb.SupabaseClient? client}) async {
     final repo = SupabaseCatalogRepository._(
       client ?? sb.Supabase.instance.client,
@@ -33,18 +36,23 @@ class SupabaseCatalogRepository implements CatalogRepository {
   sb.RealtimeChannel? _channel;
   StreamSubscription<sb.AuthState>? _authSub;
 
+  /// Emite cuando Realtime trae cambios.
   @override
   Stream<void> get changes => _changes.stream;
 
   // ------------------------------------------------------------- Lectura
 
+  /// Negocios en caché (solo lectura).
   @override
   List<Business> get businesses => List.unmodifiable(_businesses);
+  /// Sedes en caché (solo lectura).
   @override
   List<Restaurant> get restaurants => List.unmodifiable(_restaurants);
+  /// Platos en caché (solo lectura).
   @override
   List<Dish> get dishes => List.unmodifiable(_dishes);
 
+  /// Negocio por id dentro de la caché.
   @override
   Business? businessById(String id) {
     for (final b in _businesses) {
@@ -53,6 +61,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     return null;
   }
 
+  /// Sede por id dentro de la caché.
   @override
   Restaurant? restaurantById(String id) {
     for (final r in _restaurants) {
@@ -61,6 +70,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     return null;
   }
 
+  /// Plato por id dentro de la caché.
   @override
   Dish? dishById(String id) {
     for (final d in _dishes) {
@@ -71,12 +81,19 @@ class SupabaseCatalogRepository implements CatalogRepository {
 
   /// Vuelve a leer el catálogo completo. Nunca lanza: si falla la red se
   /// conserva lo que ya estaba en caché.
+  @override
   Future<void> refresh() async {
     try {
-      final businessRows = await _client.from('businesses').select();
-      final branchRows = await _client.from('branches').select();
-      final dishRows = await _client.from('dishes').select();
-      final optionRows = await _client.from('dish_options').select();
+      // Las cuatro lecturas van en paralelo: el login no espera en cadena.
+      final businessF = _client.from('businesses').select();
+      final branchF = _client.from('branches').select();
+      final dishF = _client.from('dishes').select();
+      final optionF = _client.from('dish_options').select();
+
+      final businessRows = await businessF;
+      final branchRows = await branchF;
+      final dishRows = await dishF;
+      final optionRows = await optionF;
 
       final optionsByDish = <String, Map<String, List<DishOption>>>{};
       for (final row in optionRows) {
@@ -110,6 +127,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
 
   // ------------------------------------------------------------ Realtime
 
+  /// Abre el canal de Realtime y escucha los cambios de sesión.
   void _subscribe() {
     try {
       _channel = _client
@@ -136,6 +154,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     _authSub = _client.auth.onAuthStateChange.listen((_) => _reload());
   }
 
+  /// Recarga la caché y avisa a los oyentes.
   Future<void> _reload() async {
     await refresh();
     if (!_changes.isClosed) _changes.add(null);
@@ -154,33 +173,167 @@ class SupabaseCatalogRepository implements CatalogRepository {
 
   // ------------------------------------------- Escrituras (fase 2d)
 
+  /// Agrega un negocio y sus sedes solo en la caché.
   @override
   void addBusiness(Business business, List<Restaurant> branches) {
     _businesses.add(business);
     _restaurants.addAll(branches);
   }
 
+  /// Crea o actualiza el plato en la base y refresca la caché.
   @override
-  void upsertDish(Dish dish) {
-    final i = _dishes.indexWhere((d) => d.id == dish.id);
-    if (i >= 0) {
-      _dishes[i] = dish;
+  Future<void> upsertDish(Dish dish) async {
+    final row = <String, dynamic>{
+      'branch_id': dish.restaurantId,
+      'name': dish.name,
+      'description': dish.description,
+      'price': dish.price,
+      'emoji': dish.emoji,
+      'category_id': dish.category,
+      'section': dish.section,
+      'prep_min': dish.prepMin,
+      'rating': dish.rating,
+      'ingredients': dish.ingredients,
+      'allergens': dish.allergens,
+      'tags': dish.tags,
+      'nutrition': dish.nutrition == null
+          ? null
+          : {
+              'kcal': dish.nutrition!.kcal,
+              'protein': dish.nutrition!.protein,
+              'carbs': dish.nutrition!.carbs,
+              'fat': dish.nutrition!.fat,
+            },
+      'popular': dish.popular,
+      'featured': dish.featured,
+      'active': dish.active,
+      'sold_out': dish.soldOut,
+      'portion_limit': dish.portionLimit,
+      'sold_today': dish.soldToday,
+      'image_url': dish.imageAsset,
+    };
+
+    // Los ids `dish-new-*` son temporales: la base asigna el uuid.
+    String dishId;
+    if (dish.id.startsWith('dish-new-')) {
+      final inserted = await _client
+          .from('dishes')
+          .insert(row)
+          .select('id')
+          .single();
+      dishId = inserted['id'] as String;
     } else {
-      _dishes.add(dish);
+      await _client.from('dishes').update(row).eq('id', dish.id);
+      dishId = dish.id;
+    }
+
+    await _syncOptions(dishId, dish);
+
+    await refresh();
+    if (!_changes.isClosed) _changes.add(null);
+  }
+
+  /// Reemplaza los tamaños, acompañantes y extras del plato en `dish_options`.
+  Future<void> _syncOptions(String dishId, Dish dish) async {
+    await _client.from('dish_options').delete().eq('dish_id', dishId);
+
+    final options = <Map<String, dynamic>>[
+      for (var i = 0; i < dish.sizes.length; i++)
+        {
+          'dish_id': dishId,
+          'kind': 'size',
+          'label': dish.sizes[i].label,
+          'price_delta': dish.sizes[i].price,
+          'sort': i,
+        },
+      for (var i = 0; i < dish.sides.length; i++)
+        {
+          'dish_id': dishId,
+          'kind': 'side',
+          'label': dish.sides[i].label,
+          'price_delta': dish.sides[i].price,
+          'sort': i,
+        },
+      for (var i = 0; i < dish.extras.length; i++)
+        {
+          'dish_id': dishId,
+          'kind': 'extra',
+          'label': dish.extras[i].label,
+          'price_delta': dish.extras[i].price,
+          'sort': i,
+        },
+    ];
+
+    if (options.isNotEmpty) {
+      await _client.from('dish_options').insert(options);
     }
   }
 
+  /// Borrado lógico del plato: conserva el historial de pedidos.
   @override
-  void deleteDish(String id) => _dishes.removeWhere((d) => d.id == id);
+  Future<void> deleteDish(String id) async {
+    await _client
+        .from('dishes')
+        .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
+        .eq('id', id);
+    await refresh();
+    if (!_changes.isClosed) _changes.add(null);
+  }
 
+  /// Suma las unidades vendidas de un plato.
   @override
   void recordSale(String dishId, int qty) {
     final dish = dishById(dishId);
     if (dish != null) dish.soldToday += qty;
   }
 
+  /// Persiste el estado de agotado y refresca la caché.
+  @override
+  Future<void> setDishSoldOut(String dishId, bool soldOut) async {
+    await _client
+        .from('dishes')
+        .update({'sold_out': soldOut})
+        .eq('id', dishId);
+    await refresh();
+    if (!_changes.isClosed) _changes.add(null);
+  }
+
+  /// Persiste la pausa de una sede y refresca la caché.
+  @override
+  Future<void> setBranchPaused(String branchId, bool paused) async {
+    await _client
+        .from('branches')
+        .update({'paused': paused})
+        .eq('id', branchId);
+    await refresh();
+    if (!_changes.isClosed) _changes.add(null);
+  }
+
+  /// Sube la foto del plato a `dish-images/<business_id>/` y devuelve la URL.
+  @override
+  Future<String?> uploadDishPhoto({
+    required String businessId,
+    required Uint8List bytes,
+  }) async {
+    try {
+      final path =
+          '$businessId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await _client.storage
+          .from('dish-images')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: const sb.FileOptions(contentType: 'image/jpeg'),
+          );
+      return _client.storage.from('dish-images').getPublicUrl(path);
+    } on Object {
+      return null;
+    }
+  }
+
   // ------------------------------------------------------------ Mapeo
 
+  /// Convierte una fila de `businesses` al modelo.
   static Business _business(Map<String, dynamic> row) => Business(
     id: row['id'] as String,
     brand: (row['brand'] as String?) ?? '',
@@ -199,6 +352,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     isDemo: (row['is_demo'] as bool?) ?? false,
   );
 
+  /// Convierte una fila de `branches` al modelo.
   static Restaurant _restaurant(Map<String, dynamic> row) => Restaurant(
     id: row['id'] as String,
     businessId: row['business_id'] as String,
@@ -228,6 +382,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     branchName: (row['branch_name'] as String?) ?? 'Sede principal',
   );
 
+  /// Convierte una fila de `dishes` con sus opciones al modelo.
   static Dish _dish(
     Map<String, dynamic> row,
     Map<String, Map<String, List<DishOption>>> optionsByDish,
@@ -271,6 +426,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     );
   }
 
+  /// Convierte un arreglo JSON en lista de textos.
   static List<String> _strings(Object? value) =>
       (value as List?)?.map((e) => e.toString()).toList() ?? const [];
 }

@@ -258,7 +258,7 @@ class SupabaseOrderRepository implements OrderRepository {
   Map<String, dynamic> _placePayload(PlaceOrderRequest r) => {
     'client_key': r.clientKey,
     'branch_id': r.restaurant.id,
-    'address_id': r.address.id,
+    'address_id': r.address.serverId,
     'payment': r.payment.name,
     'lines': [
       for (final l in r.lines)

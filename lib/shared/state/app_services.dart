@@ -13,6 +13,7 @@ import '../../data/repositories/in_memory_order_repository.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/supabase_catalog_repository.dart';
 import '../../data/repositories/supabase_order_repository.dart';
+import '../../data/repositories/supabase_profile_repository.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../../domain/usecases/orders/order_usecases.dart';
 import '../../features/orders/bloc/orders_bloc.dart';
@@ -28,6 +29,7 @@ import 'session_controller.dart';
 /// repositorios en memoria (demo) o Supabase (real). Los casos de uso y el
 /// `OrdersBloc` solo conocen las interfaces del dominio.
 class AppServices {
+  /// Constructor privado: las instancias se crean con las factorías.
   AppServices._({
     required this.clock,
     required this.notifications,
@@ -37,6 +39,7 @@ class AppServices {
     required this.orders,
   });
 
+  /// Contenedor completo con datos de demostración en memoria.
   factory AppServices.demo({Clock? clock, int? randomSeed, bool seed = true}) {
     final c = clock ?? Clock();
     final catalogRepo = InMemoryCatalogRepository();
@@ -85,8 +88,18 @@ class AppServices {
     final remoteAuth = auth ?? SupabaseAuthRepository();
     final repo = catalogRepo ?? await SupabaseCatalogRepository.load();
     final orderStore = orderRepo ?? await SupabaseOrderRepository.load();
-    final notifications = NotificationCenter(c);
-    final session = SessionController(remoteAuth, notifications, c);
+    final profileRepo = SupabaseProfileRepository();
+    final notifications = NotificationCenter(
+      c,
+      persist: profileRepo.saveNotification,
+      onRead: profileRepo.markNotificationRead,
+    );
+    final session = SessionController(
+      remoteAuth,
+      notifications,
+      c,
+      profile: profileRepo,
+    );
     final catalog = CatalogController(repo, session, c);
     final cart = CartController(repo);
     final orders = _buildOrders(
@@ -136,6 +149,7 @@ class AppServices {
   final CartController cart;
   final OrdersBloc orders;
 
+  /// Proveedores que publican los controladores en el árbol.
   List<SingleChildWidget> get providers => [
     Provider<Clock>.value(value: clock),
     ChangeNotifierProvider<NotificationCenter>.value(value: notifications),

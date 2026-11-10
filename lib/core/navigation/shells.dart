@@ -7,6 +7,7 @@ import '../../shared/state/cart_controller.dart';
 import '../utils/format.dart';
 import '../widgets/ui.dart';
 
+/// Ítem de la barra de navegación inferior.
 class NavItem {
   const NavItem(this.icon, this.selectedIcon, this.label);
   final IconData icon;
@@ -14,6 +15,7 @@ class NavItem {
   final String label;
 }
 
+/// Pestañas del rol comprador.
 const kBuyerNav = [
   NavItem(Icons.home_outlined, Icons.home, 'Inicio'),
   NavItem(Icons.search, Icons.manage_search, 'Explorar'),
@@ -21,12 +23,14 @@ const kBuyerNav = [
   NavItem(Icons.person_outline, Icons.person, 'Perfil'),
 ];
 
+/// Pestañas del rol repartidor.
 const kCourierNav = [
   NavItem(Icons.delivery_dining_outlined, Icons.delivery_dining, 'Inicio'),
   NavItem(Icons.payments_outlined, Icons.payments, 'Ganancias'),
   NavItem(Icons.person_outline, Icons.person, 'Perfil'),
 ];
 
+/// Pestañas del rol restaurante.
 const kRestaurantNav = [
   NavItem(Icons.storefront_outlined, Icons.storefront, 'Inicio'),
   NavItem(Icons.receipt_long_outlined, Icons.receipt_long, 'Pedidos'),
@@ -49,6 +53,7 @@ class RoleShell extends StatelessWidget {
   final List<NavItem> items;
   final bool showCartBar;
 
+  /// Dibuja el contenido, la barra del carrito y la navegación.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -88,6 +93,7 @@ class RoleShell extends StatelessWidget {
 class CartBar extends StatelessWidget {
   const CartBar({super.key});
 
+  /// Dibuja la barra solo cuando el carrito tiene productos.
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartController>();

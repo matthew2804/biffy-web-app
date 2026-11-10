@@ -36,6 +36,7 @@ import '../features/courier/pickup/pickup_screen.dart';
 import '../features/courier/profile/courier_profile_screen.dart';
 import '../features/courier/registration/courier_registration_screen.dart';
 import '../features/onboarding/splash_screen.dart';
+import '../features/restaurant_owner/boxes/merchant_boxes_screen.dart';
 import '../features/restaurant_owner/home/merchant_home_screen.dart';
 import '../features/restaurant_owner/menu/merchant_menu_screen.dart';
 import '../features/restaurant_owner/orders/merchant_orders_screen.dart';
@@ -86,11 +87,14 @@ class RoleScope extends StatefulWidget {
   final UserRole role;
   final Widget child;
 
+  /// Crea el estado que marca el rol activo.
   @override
   State<RoleScope> createState() => _RoleScopeState();
 }
 
+/// Estado que fija el rol activo y bloquea pantallas no permitidas.
 class _RoleScopeState extends State<RoleScope> {
+  /// Sincroniza el rol activo de la sesión con la sección visible.
   @override
   void initState() {
     super.initState();
@@ -101,6 +105,7 @@ class _RoleScopeState extends State<RoleScope> {
     });
   }
 
+  /// Devuelve el contenido solo si la sesión permite el rol.
   @override
   Widget build(BuildContext context) {
     // Si la sesión dejó de cumplir los requisitos del rol (p. ej. al cambiar
@@ -115,9 +120,11 @@ class _RoleScopeState extends State<RoleScope> {
   }
 }
 
+/// Crea una ruta simple con su constructor de pantalla.
 GoRoute _r(String path, Widget Function(GoRouterState s) build) =>
     GoRoute(path: path, builder: (_, s) => build(s));
 
+/// Construye el router con todas las rutas y las reglas de acceso.
 GoRouter buildRouter(
   SessionController session, {
   String initialLocation = '/splash',
@@ -278,6 +285,8 @@ GoRouter buildRouter(
           ),
         ],
       ),
+      // Cajas de Gotas que el negocio puede llenar con sus platos.
+      _r('/negocio/cajas', (_) => const MerchantBoxesScreen()),
     ],
   );
 }

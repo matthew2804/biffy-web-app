@@ -20,6 +20,7 @@ const kDemoAvatars = {
   'u-seed-camilar': 'assets/images/avatars/camila-r.jpg',
 };
 
+/// Cuentas de demostración; una por negocio para el rol restaurante.
 List<AppUser> seedUsers(List<Business> businesses) => [
   AppUser(
     id: 'u-diego',

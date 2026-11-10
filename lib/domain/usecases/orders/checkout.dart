@@ -108,7 +108,7 @@ class ValidateCheckout {
       // personales: mientras tanto solo valen los que ya existen en el
       // servidor (identificados con uuid).
       final address = d.address;
-      if (address != null && !isUuid(address.id)) {
+      if (address != null && !isUuid(address.serverId)) {
         errors.add(
           'Esa dirección aún no está guardada en tu cuenta. '
           'Elige una de tus direcciones guardadas.',

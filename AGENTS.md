@@ -18,6 +18,7 @@
 - Orders are shared by buyer, restaurant and courier through `OrdersBloc` → use cases (`lib/domain/usecases/orders/`) → `OrderRepository`. Screens dispatch events (`bloc.add(...)` or `await bloc.request(...)` when they need the result) and read via `context.watch<OrdersBloc>()`; they never touch repositories or mutate `Order`. Allowed transitions live in `kAllowedTransitions`; with Supabase the server (RPC) decides and every `result` code is translated by `lib/domain/order_errors.dart`.
 - Merchant products are saved into the shared catalog repository via `CatalogController.saveDish`, so buyer screens and the radius rule see them without a second source.
 - Mobile-first touch UI: shared pieces in `lib/core/widgets/`; yellow `#FCBD1A` primary, Sora/Manrope fonts bundled in `assets/fonts/`; every visible control must have a real action.
+- Comment every class, function and widget with one short line saying what it is or does (Spanish, `///` for public members). New code without that comment is not done.
 - Demo accounts (password `biffy123`) and the "Horario de demostración" setting keep the full three-role flow testable offline at any hour; `test/integration/full_flow.dart` drives that flow through the UI.
 
 ## Estado y pendientes

@@ -7,6 +7,7 @@ const _sandwich = 'assets/images/demo-qbano-sandwich.jpg';
 const _bowl = 'assets/images/demo-bowl.jpg';
 const _burger = 'assets/images/demo-burger.jpg';
 
+/// Negocios ficticios de la demostración.
 List<Business> seedBusinesses() => [
   _biz('qbano', 'Qbano · Icesi (demo)', 'sandwich', 'Laura Gómez'),
   _biz('horno', 'Horno Campus Pizza', 'pizza', 'Julián Ríos'),
@@ -24,6 +25,7 @@ List<Business> seedBusinesses() => [
   _biz('norte', 'Pizzería Norte', 'pizza', 'Óscar Lara'),
 ];
 
+/// Construye un negocio ficticio con datos derivados del id.
 Business _biz(String id, String brand, String cuisine, String owner) {
   return Business(
     id: id,
@@ -42,6 +44,7 @@ Business _biz(String id, String brand, String cuisine, String owner) {
   );
 }
 
+/// Sedes (restaurantes) ficticias de Cali y Bogotá.
 List<Restaurant> seedRestaurants() => [
   // --- Cali · alrededores de la Universidad Icesi ---
   Restaurant(
@@ -350,6 +353,7 @@ List<Restaurant> seedRestaurants() => [
   ),
 ];
 
+/// Platos ficticios del catálogo de demostración.
 List<Dish> seedDishes() => [
   // Qbano · Icesi (precios ilustrativos, no oficiales)
   Dish(

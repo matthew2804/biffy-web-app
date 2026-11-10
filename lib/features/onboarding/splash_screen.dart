@@ -20,6 +20,7 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
+/// Estado del splash: anima el logo y navega al inicio al terminar la pausa.
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   late final AnimationController _enter = AnimationController(
@@ -32,6 +33,7 @@ class _SplashScreenState extends State<SplashScreen>
   )..repeat(reverse: true);
   Timer? _timer;
 
+  /// Programa la navegación a la pantalla inicial al cumplirse la duración.
   @override
   void initState() {
     super.initState();
@@ -40,6 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
+  /// Cancela el temporizador y libera las animaciones.
   @override
   void dispose() {
     _timer?.cancel();
@@ -48,6 +51,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+  /// Dibuja el logo animado y el nombre de la marca sobre el degradado.
   @override
   Widget build(BuildContext context) {
     return Scaffold(

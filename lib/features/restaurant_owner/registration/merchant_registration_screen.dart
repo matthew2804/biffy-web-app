@@ -32,6 +32,7 @@ class MerchantRegistrationScreen extends StatefulWidget {
       _MerchantRegistrationScreenState();
 }
 
+/// Estado del registro por pasos con todos los datos del negocio.
 class _MerchantRegistrationScreenState
     extends State<MerchantRegistrationScreen> {
   static int _seq = 0;
@@ -62,6 +63,7 @@ class _MerchantRegistrationScreenState
   String _bank = 'Bancolombia';
   String _accountType = 'Ahorros';
 
+  /// Precarga el correo, teléfono y nombre del usuario logueado.
   @override
   void initState() {
     super.initState();
@@ -73,6 +75,7 @@ class _MerchantRegistrationScreenState
     }
   }
 
+  /// Libera todos los controladores del registro.
   @override
   void dispose() {
     for (final c in [
@@ -94,6 +97,7 @@ class _MerchantRegistrationScreenState
     super.dispose();
   }
 
+  /// Rellena el formulario con datos ficticios para probar la demo.
   void _autofill() {
     setState(() {
       _owner.text = _owner.text.isEmpty ? 'Laura Gómez (demo)' : _owner.text;
@@ -116,9 +120,11 @@ class _MerchantRegistrationScreenState
     });
   }
 
+  /// Valida que el campo obligatorio no esté vacío.
   String? _req(String? v) =>
       (v == null || v.trim().isEmpty) ? 'Campo obligatorio' : null;
 
+  /// Valida el paso actual y avanza o confirma el registro.
   void _next() {
     if (_step < 5 && !(_forms[_step].currentState?.validate() ?? true)) return;
     if (_step == 3 && _attached.length < _docs.length) {
@@ -136,20 +142,20 @@ class _MerchantRegistrationScreenState
     }
   }
 
+  /// Crea el negocio y su sede, los registra y abre el menú.
+  /// Arranca el alta (síncrona en demo, asíncrona con Supabase).
   void _finish() {
-    if (_session.auth.isRemote && !_session.isLoggedIn) {
-      showSnack(
-        context,
-        'El alta de negocios con Supabase llega en la siguiente fase.',
-        error: true,
-      );
-      return;
-    }
+    _runFinish();
+  }
+
+  /// Crea la cuenta si hace falta, guarda el negocio y navega al menú.
+  Future<void> _runFinish() async {
     final catalog = context.read<CatalogController>();
     final notifications = context.read<NotificationCenter>();
+
     try {
       if (!_session.isLoggedIn) {
-        _session.register(
+        await _session.registerAsync(
           name: _owner.text,
           email: _email.text,
           password: _password.text,
@@ -158,10 +164,12 @@ class _MerchantRegistrationScreenState
         );
       }
     } on AuthException catch (e) {
+      if (!mounted) return;
       setState(() => _step = 0);
       showSnack(context, e.message, error: true);
       return;
     }
+
     final n = ++_seq;
     final bizId = 'biz-new-$n';
     final p = pointById(_pointId);
@@ -204,18 +212,76 @@ class _MerchantRegistrationScreenState
       studentDiscount: p.campusId == null ? 0 : _discount,
       branchName: _branchName.text.trim(),
     );
-    catalog.registerBusiness(biz, [branch]);
-    _session.linkBusiness(bizId);
+
+    if (_session.auth.isRemote) {
+      // Alta real: el negocio y sus sedes se crean en la base.
+      try {
+        final businessId = await _session.auth.registerBusiness({
+          'brand': biz.brand,
+          'legal_name': biz.legalName,
+          'nit': biz.nit,
+          'cuisine': biz.cuisine,
+          'description': biz.description,
+          'owner_name': biz.ownerName,
+          'owner_doc': biz.ownerDoc,
+          'owner_phone': biz.ownerPhone,
+          'owner_email': biz.ownerEmail,
+          'bank_name': biz.bankName,
+          'account_type': biz.accountType,
+          'account_number': biz.accountNumber,
+          'legal_docs': biz.legalDocs,
+          'nutrition_info': biz.nutritionInfo,
+          'branches': [
+            {
+              'name': branch.name,
+              'branch_name': branch.branchName,
+              'address': branch.address,
+              'city': branch.campusId == 'icesi' ? 'Cali' : 'Bogotá',
+              'lat': branch.lat,
+              'lng': branch.lng,
+              'radius_km': branch.radiusKm,
+              'open_hour': branch.openHour,
+              'close_hour': branch.closeHour,
+              'campus_id': branch.campusId,
+              'student_discount': branch.studentDiscount,
+              'emoji': branch.emoji,
+              'tagline': branch.tagline,
+            },
+          ],
+        });
+        if (!mounted) return;
+        if (businessId == null) {
+          showSnack(
+            context,
+            'No pudimos crear el negocio. Revisa los datos o tu conexión.',
+            error: true,
+          );
+          return;
+        }
+        _session.linkBusiness(businessId);
+        await catalog.refresh();
+      } on AuthException catch (e) {
+        if (!mounted) return;
+        showSnack(context, e.message, error: true);
+        return;
+      }
+    } else {
+      catalog.registerBusiness(biz, [branch]);
+      _session.linkBusiness(biz.id);
+    }
+
+    if (!mounted) return;
     notifications.push(
-      title: 'Negocio registrado (demo) ✅',
+      title: 'Negocio registrado ✅',
       body: 'Crea tu primer producto para aparecer en el catálogo.',
-      audience: 'business:$bizId',
+      audience: 'business:${_session.businessId ?? bizId}',
       route: '/negocio/menu',
     );
     showSnack(context, '${biz.brand} registrado · agrega tu menú');
     context.go('/negocio/menu');
   }
 
+  /// Dibuja el paso actual del registro y los botones de navegación.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

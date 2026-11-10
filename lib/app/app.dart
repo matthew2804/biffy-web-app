@@ -12,6 +12,7 @@ import 'router.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
+/// Raíz de la app: providers de estado, tema y router.
 class BiffyApp extends StatefulWidget {
   const BiffyApp({
     super.key,
@@ -22,10 +23,12 @@ class BiffyApp extends StatefulWidget {
   final AppServices services;
   final String initialLocation;
 
+  /// Crea el estado raíz de la app.
   @override
   State<BiffyApp> createState() => _BiffyAppState();
 }
 
+/// Estado que crea el router una sola vez y escucha el modo oscuro.
 class _BiffyAppState extends State<BiffyApp> {
   late final GoRouter _router = buildRouter(
     widget.services.session,
@@ -70,6 +73,7 @@ class _BiffyAppState extends State<BiffyApp> {
       );
   }
 
+  /// Libera el router al cerrar la app.
   @override
   void dispose() {
     _orderErrors?.cancel();
@@ -77,6 +81,7 @@ class _BiffyAppState extends State<BiffyApp> {
     super.dispose();
   }
 
+  /// Envuelve la app con los servicios, el tema y el router configurado.
   @override
   Widget build(BuildContext context) {
     return MultiProvider(

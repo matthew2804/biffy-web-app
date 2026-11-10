@@ -17,10 +17,12 @@ import '../../../shared/state/session_controller.dart';
 import '../cart/cart_screen.dart';
 import '../orders/reorder_flow.dart';
 
+/// Seguimiento del pedido con línea de tiempo, código y resumen.
 class TrackingScreen extends StatelessWidget {
   const TrackingScreen({super.key, required this.id});
   final String id;
 
+  /// Construye el estado del pedido y las acciones disponibles.
   @override
   Widget build(BuildContext context) {
     final orders = context.watch<OrdersBloc>();
@@ -273,6 +275,7 @@ class TrackingScreen extends StatelessWidget {
     );
   }
 
+  /// Abre la hoja de contacto simulado con el repartidor.
   void _contact(BuildContext context, Order o) {
     showModalBottomSheet<void>(
       context: context,
@@ -323,6 +326,7 @@ class _DemoControls extends StatelessWidget {
   const _DemoControls({required this.order});
   final Order order;
 
+  /// Dibuja los atajos según la etapa del pedido.
   @override
   Widget build(BuildContext context) {
     final session = context.read<SessionController>();
@@ -393,6 +397,7 @@ class _DemoControls extends StatelessWidget {
   }
 }
 
+/// Tipo de un paso de la línea de tiempo del pedido.
 typedef _Step = ({String label, String hint, IconData icon});
 
 const List<_Step> _steps = [
@@ -429,6 +434,7 @@ class _TimelineStep extends StatelessWidget {
   final bool current;
   final bool last;
 
+  /// Dibuja el círculo del paso, la línea y su texto.
   @override
   Widget build(BuildContext context) {
     final p = context.palette;

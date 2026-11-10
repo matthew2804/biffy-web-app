@@ -2,17 +2,16 @@
 -- Biffy · Bootstrap de base de datos (generado)
 -- ============================================================================
 -- Uso: Supabase Dashboard -> SQL Editor -> New query -> pegar todo -> Run.
---
 -- Se genera concatenando supabase/migrations/*.sql. No editar a mano.
 -- Proyecto: jwdzpwsfwtkdeeuceaco
--- Generado: 2026-11-09 15:16
+-- Generado: 2026-11-09 21:20
 --
 -- AVISO: la migración 0000 reemplaza las tablas de public. Las tablas con
 -- filas NO se borran: se conservan como legacy_<nombre> con RLS activo.
 -- ============================================================================
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0000_legacy_cleanup.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0000 · Limpieza inicial del esquema public
 -- ============================================================================
@@ -123,9 +122,9 @@ begin
 end
 $cleanup$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0001_init.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0001 · Extensiones, tipos y utilidades
 -- ============================================================================
@@ -175,9 +174,9 @@ begin
 end;
 $$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0002_schema.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0002 · Esquema base
 -- ============================================================================
@@ -651,9 +650,9 @@ begin
   end loop;
 end $$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0003_functions.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0003 · Funciones de negocio (RPC)
 -- ============================================================================
@@ -1553,9 +1552,9 @@ grant execute on function public.courier_pickup(uuid) to authenticated;
 grant execute on function public.courier_deliver(uuid, text, text) to authenticated;
 grant execute on function public.redeem_reward(jsonb) to authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0004_rls.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0004 · Row Level Security
 -- ============================================================================
@@ -1813,9 +1812,9 @@ grant select, insert, update, delete on all tables in schema public
 grant select on public.notifications to authenticated;
 grant select on public.coupons to authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0005_storage.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0005 · Storage (buckets y políticas)
 -- ============================================================================
@@ -1923,9 +1922,9 @@ create policy merchant_docs_delete on storage.objects
     and (storage.foldername(name))[1] = public.my_business_id()::text
   );
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0006_seed_reference.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0006 · Datos de referencia
 -- ============================================================================
@@ -2006,9 +2005,9 @@ begin
 end
 $geo$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0008_reward_boxes.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0008 · Cajas con premios aleatorios
 -- ============================================================================
@@ -2202,9 +2201,9 @@ on conflict (reward_id, code) do update set
   weight = excluded.weight,
   is_active = true;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0009_welcome_gotas.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0009 · Gotas de bienvenida
 -- ============================================================================
@@ -2232,9 +2231,9 @@ create trigger on_profile_created_welcome
   after insert on public.profiles
   for each row execute function public.credit_welcome_gotas();
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0010_realtime.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0010 · Realtime
 -- ============================================================================
@@ -2262,9 +2261,9 @@ begin
   end loop;
 end $$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0011_branch_couriers.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0011 · Sedes visibles desde el primer día
 -- ============================================================================
@@ -2281,11 +2280,1437 @@ update public.branches
    set couriers_nearby = 1
  where couriers_nearby = 0;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
--- 0012_order_cycle.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0012_box_items.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
--- 0012 · Ciclo completo del pedido (HU-3)
+-- 0012 · Cajas configurables por restaurante y límites por recompensa
+-- ============================================================================
+-- Cambios:
+--   1. Cada recompensa define su enfriamiento y su límite diario en la base,
+--      para poder ajustarlos sin tocar código.
+--   2. Los restaurantes pueden meter y sacar SUS platos de una caja.
+--   3. El sorteo usa primero los platos de los restaurantes y, si no hay,
+--      cae a los premios de plataforma.
+--
+-- Reglas pedidas (configurables en `gotas_rewards`):
+--   · Caja de 5 Gotas      -> ilimitada (cooldown_hours = 0)
+--   · Resto de recompensas -> cada 12 horas (cooldown_hours = 12)
+--   · La caja más grande   -> cada 24 horas (cooldown_hours = 24)
+-- ============================================================================
+
+-- ------------------------------------------------------- Configuración
+alter table public.gotas_rewards
+  add column if not exists cooldown_hours int not null default 0
+    check (cooldown_hours >= 0);
+alter table public.gotas_rewards
+  add column if not exists daily_limit int
+    check (daily_limit is null or daily_limit > 0);
+alter table public.gotas_rewards
+  add column if not exists merchant_managed boolean not null default false;
+alter table public.gotas_rewards
+  add column if not exists sort int not null default 0;
+
+comment on column public.gotas_rewards.cooldown_hours is
+  'Horas mínimas entre dos canjes del mismo usuario. 0 = sin límite.';
+comment on column public.gotas_rewards.daily_limit is
+  'Canjes máximos por usuario en 24 h. NULL = sin límite.';
+comment on column public.gotas_rewards.merchant_managed is
+  'Si es true, los restaurantes pueden meter sus platos en la caja.';
+
+-- ------------------------------------------------- Productos dentro de caja
+create table if not exists public.box_items (
+  id uuid primary key default gen_random_uuid(),
+  reward_id uuid not null references public.gotas_rewards (id) on delete cascade,
+  branch_id uuid not null references public.branches (id) on delete cascade,
+  dish_id uuid not null references public.dishes (id) on delete cascade,
+  quantity int not null default 1 check (quantity > 0),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (reward_id, branch_id, dish_id)
+);
+
+create index if not exists box_items_reward_idx
+  on public.box_items (reward_id) where is_active;
+create index if not exists box_items_branch_idx
+  on public.box_items (branch_id);
+
+drop trigger if exists set_updated_at on public.box_items;
+create trigger set_updated_at
+  before update on public.box_items
+  for each row execute function public.touch_updated_at();
+
+-- Premio entregado cuando sale un plato de restaurante.
+alter table public.reward_redemptions
+  add column if not exists prize_dish_id uuid
+    references public.dishes (id) on delete set null;
+alter table public.reward_redemptions
+  add column if not exists prize_branch_id uuid
+    references public.branches (id) on delete set null;
+
+-- ------------------------------------------------------------------- RLS
+alter table public.box_items enable row level security;
+
+drop policy if exists box_items_read on public.box_items;
+create policy box_items_read on public.box_items
+  for select to anon, authenticated using (is_active);
+
+drop policy if exists box_items_write on public.box_items;
+create policy box_items_write on public.box_items
+  for all to authenticated
+  using (public.is_my_branch(branch_id))
+  with check (public.is_my_branch(branch_id));
+
+grant select on public.box_items to anon, authenticated;
+
+-- ------------------------------------------------------- Canje con límites
+create or replace function public.redeem_reward(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_reward public.gotas_rewards;
+  v_balance int;
+  v_redemption uuid;
+  v_prize public.gotas_reward_prizes;
+  v_prize_id uuid;
+  v_dish_id uuid;
+  v_branch_id uuid;
+  v_item_label text;
+  v_total int;
+  v_roll numeric;
+  v_used int;
+begin
+  if v_uid is null then
+    return jsonb_build_object('result', 'not_authenticated');
+  end if;
+
+  select * into v_reward
+    from public.gotas_rewards
+   where code = p_payload ->> 'code'
+     and is_active;
+  if not found then
+    return jsonb_build_object('result', 'reward_not_found');
+  end if;
+
+  -- Enfriamiento configurable (0 = ilimitado).
+  if v_reward.cooldown_hours > 0 and exists (
+    select 1 from public.reward_redemptions r
+     where r.user_id = v_uid
+       and r.reward_id = v_reward.id
+       and r.created_at > now() - make_interval(hours => v_reward.cooldown_hours)
+  ) then
+    return jsonb_build_object(
+      'result', 'cooldown',
+      'cooldown_hours', v_reward.cooldown_hours
+    );
+  end if;
+
+  -- Límite diario opcional.
+  if v_reward.daily_limit is not null then
+    select count(*) into v_used
+      from public.reward_redemptions r
+     where r.user_id = v_uid
+       and r.reward_id = v_reward.id
+       and r.created_at > now() - interval '24 hours';
+    if v_used >= v_reward.daily_limit then
+      return jsonb_build_object('result', 'daily_limit');
+    end if;
+  end if;
+
+  -- Bloquea el perfil: dos canjes simultáneos no pueden gastar de más.
+  select gotas into v_balance
+    from public.profiles
+   where id = v_uid
+     for update;
+
+  if v_balance is null then
+    return jsonb_build_object('result', 'no_profile');
+  end if;
+  if v_balance < v_reward.gotas_cost then
+    return jsonb_build_object(
+      'result', 'insufficient_gotas',
+      'balance', v_balance,
+      'cost', v_reward.gotas_cost
+    );
+  end if;
+
+  -- 1) Platos que los restaurantes metieron en la caja.
+  if v_reward.merchant_managed then
+    select bi.dish_id, bi.branch_id, d.name
+      into v_dish_id, v_branch_id, v_item_label
+      from public.box_items bi
+      join public.dishes d on d.id = bi.dish_id
+      join public.branches b on b.id = bi.branch_id
+     where bi.reward_id = v_reward.id
+       and bi.is_active
+       and d.active
+       and d.deleted_at is null
+       and b.deleted_at is null
+     order by random()
+     limit 1;
+  end if;
+
+  -- 2) Si no hay platos, premios de plataforma (descuentos, envío, boleto).
+  if v_dish_id is null and v_reward.reward_type in ('mystery_box', 'monthly_raffle') then
+    select coalesce(sum(weight), 0) into v_total
+      from public.gotas_reward_prizes
+     where reward_id = v_reward.id and is_active;
+
+    if v_total > 0 then
+      v_roll := random() * v_total;
+      select p.id into v_prize_id
+        from (
+          select id, sum(weight) over (order by id) as cum
+            from public.gotas_reward_prizes
+           where reward_id = v_reward.id and is_active
+        ) p
+       where p.cum >= v_roll
+       order by p.cum
+       limit 1;
+
+      if v_prize_id is not null then
+        select * into v_prize
+          from public.gotas_reward_prizes
+         where id = v_prize_id;
+      end if;
+    end if;
+  end if;
+
+  insert into public.reward_redemptions (
+    user_id, reward_id, gotas_spent,
+    prize_id, prize_label, prize_type, prize_amount,
+    prize_dish_id, prize_branch_id
+  ) values (
+    v_uid, v_reward.id, v_reward.gotas_cost,
+    case when v_dish_id is null then v_prize.id else null end,
+    coalesce(v_item_label, v_prize.label),
+    case
+      when v_dish_id is not null then 'product'
+      else v_prize.prize_type
+    end,
+    case when v_dish_id is null then coalesce(v_prize.amount, 0) else 0 end,
+    v_dish_id,
+    v_branch_id
+  )
+  returning id into v_redemption;
+
+  perform public.credit_gotas(
+    v_uid, -v_reward.gotas_cost, 'Canje: ' || v_reward.name, null
+  );
+
+  return jsonb_build_object(
+    'result', 'ok',
+    'redemption_id', v_redemption,
+    'reward', v_reward.code,
+    'balance', v_balance - v_reward.gotas_cost,
+    'prize', case
+      when v_dish_id is not null then jsonb_build_object(
+        'label', v_item_label,
+        'type', 'product',
+        'amount', 0,
+        'dish_id', v_dish_id,
+        'branch_id', v_branch_id
+      )
+      when v_prize.id is null then null
+      else jsonb_build_object(
+        'label', v_prize.label,
+        'type', v_prize.prize_type,
+        'amount', v_prize.amount
+      )
+    end
+  );
+end;
+$$;
+
+revoke all on function public.redeem_reward(jsonb) from public, anon;
+grant execute on function public.redeem_reward(jsonb) to authenticated;
+
+-- --------------------------------------------------------------- Catálogo
+-- La caja de 5 es ilimitada; el resto se recarga cada 12 h; la grande cada 24 h.
+insert into public.gotas_rewards
+  (code, name, reward_type, gotas_cost, tier, draw_frequency, is_active,
+   cooldown_hours, daily_limit, merchant_managed, sort)
+values
+  ('box_5', 'Caja básica', 'mystery_box', 5, null, null, true, 0, null, true, 1),
+  ('free_shipping', 'Envío gratis', 'free_shipping', 10, null, null, true, 12, null, false, 2),
+  ('box_25', 'Caja sorpresa', 'mystery_box', 25, 1, null, true, 12, null, true, 3),
+  ('box_50', 'Caja premium', 'mystery_box', 50, 2, null, true, 12, null, true, 4),
+  ('box_100', 'Caja sorteo', 'monthly_raffle', 100, 3, 'monthly', true, 24, null, true, 5)
+on conflict (code) do update set
+  name = excluded.name,
+  reward_type = excluded.reward_type,
+  gotas_cost = excluded.gotas_cost,
+  tier = excluded.tier,
+  draw_frequency = excluded.draw_frequency,
+  is_active = excluded.is_active,
+  cooldown_hours = excluded.cooldown_hours,
+  daily_limit = excluded.daily_limit,
+  merchant_managed = excluded.merchant_managed,
+  sort = excluded.sort;
+
+-- Premios de plataforma para la caja de 5 (se usan si ningún restaurante
+-- ha metido platos todavía).
+insert into public.gotas_reward_prizes
+  (reward_id, code, label, prize_type, amount, weight)
+select r.id, v.code, v.label, v.prize_type, v.amount, v.weight
+from (values
+  ('box_5', 'discount_1000', '$1.000 de descuento', 'discount', 1000, 50),
+  ('box_5', 'free_shipping', 'Envío gratis', 'free_shipping', 0, 30),
+  ('box_5', 'product_snack', 'Snack sorpresa', 'product', 0, 20)
+) as v(reward_code, code, label, prize_type, amount, weight)
+join public.gotas_rewards r on r.code = v.reward_code
+on conflict (reward_id, code) do update set
+  label = excluded.label,
+  prize_type = excluded.prize_type,
+  amount = excluded.amount,
+  weight = excluded.weight,
+  is_active = true;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0013_prize_claim.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0013 · Canje del premio en el restaurante
+-- ============================================================================
+-- Cuando una caja entrega un PLATO, el comprador recibe un código de 6
+-- caracteres y 30 días para reclamarlo. El restaurante valida ese código y el
+-- premio pasa a `used`. Así se cierra el ciclo:
+--   restaurante mete el plato -> comprador abre la caja -> reclama en la sede.
+-- ============================================================================
+
+alter table public.reward_redemptions
+  add column if not exists claim_code text;
+alter table public.reward_redemptions
+  add column if not exists expires_at timestamptz;
+
+create unique index if not exists reward_redemptions_claim_idx
+  on public.reward_redemptions (claim_code);
+
+comment on column public.reward_redemptions.claim_code is
+  'Código que el comprador muestra en la sede para reclamar un plato.';
+comment on column public.reward_redemptions.expires_at is
+  'Fecha límite para reclamar el premio. NULL en premios que no son platos.';
+
+-- Los canjes anteriores a esta migración reciben un código si eran platos.
+update public.reward_redemptions
+   set claim_code = upper(substr(md5(id::text), 1, 6))
+ where claim_code is null
+   and prize_dish_id is not null;
+
+-- ------------------------------------------------- Validación por el negocio
+
+create or replace function public.use_reward_redemption(p_code text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_red public.reward_redemptions;
+  v_dish text;
+begin
+  if v_uid is null then
+    return jsonb_build_object('result', 'not_authenticated');
+  end if;
+
+  select * into v_red
+    from public.reward_redemptions
+   where upper(claim_code) = upper(trim(coalesce(p_code, '')))
+     for update;
+
+  if not found then
+    return jsonb_build_object('result', 'not_found');
+  end if;
+
+  if v_red.status <> 'granted' then
+    return jsonb_build_object('result', 'already_used');
+  end if;
+
+  if v_red.expires_at is not null and v_red.expires_at < now() then
+    update public.reward_redemptions set status = 'expired' where id = v_red.id;
+    return jsonb_build_object('result', 'expired');
+  end if;
+
+  -- Solo el negocio dueño de la sede puede validar el premio.
+  if v_red.prize_branch_id is null
+     or not public.is_my_branch(v_red.prize_branch_id) then
+    return jsonb_build_object('result', 'forbidden');
+  end if;
+
+  update public.reward_redemptions
+     set status = 'used', used_at = now()
+   where id = v_red.id;
+
+  select d.name into v_dish
+    from public.dishes d
+   where d.id = v_red.prize_dish_id;
+
+  return jsonb_build_object(
+    'result', 'ok',
+    'prize', coalesce(v_dish, v_red.prize_label),
+    'code', v_red.claim_code
+  );
+end;
+$$;
+
+revoke all on function public.use_reward_redemption(text) from public, anon;
+grant execute on function public.use_reward_redemption(text) to authenticated;
+
+-- ------------------------------------------- Canje con código de reclamación
+
+create or replace function public.redeem_reward(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_reward public.gotas_rewards;
+  v_balance int;
+  v_redemption uuid;
+  v_prize public.gotas_reward_prizes;
+  v_prize_id uuid;
+  v_dish_id uuid;
+  v_branch_id uuid;
+  v_item_label text;
+  v_claim text;
+  v_total int;
+  v_roll numeric;
+  v_used int;
+begin
+  if v_uid is null then
+    return jsonb_build_object('result', 'not_authenticated');
+  end if;
+
+  select * into v_reward
+    from public.gotas_rewards
+   where code = p_payload ->> 'code'
+     and is_active;
+  if not found then
+    return jsonb_build_object('result', 'reward_not_found');
+  end if;
+
+  -- Enfriamiento configurable (0 = ilimitado).
+  if v_reward.cooldown_hours > 0 and exists (
+    select 1 from public.reward_redemptions r
+     where r.user_id = v_uid
+       and r.reward_id = v_reward.id
+       and r.created_at > now() - make_interval(hours => v_reward.cooldown_hours)
+  ) then
+    return jsonb_build_object(
+      'result', 'cooldown',
+      'cooldown_hours', v_reward.cooldown_hours
+    );
+  end if;
+
+  -- Límite diario opcional.
+  if v_reward.daily_limit is not null then
+    select count(*) into v_used
+      from public.reward_redemptions r
+     where r.user_id = v_uid
+       and r.reward_id = v_reward.id
+       and r.created_at > now() - interval '24 hours';
+    if v_used >= v_reward.daily_limit then
+      return jsonb_build_object('result', 'daily_limit');
+    end if;
+  end if;
+
+  select gotas into v_balance
+    from public.profiles
+   where id = v_uid
+     for update;
+
+  if v_balance is null then
+    return jsonb_build_object('result', 'no_profile');
+  end if;
+  if v_balance < v_reward.gotas_cost then
+    return jsonb_build_object(
+      'result', 'insufficient_gotas',
+      'balance', v_balance,
+      'cost', v_reward.gotas_cost
+    );
+  end if;
+
+  -- 1) Platos que los restaurantes metieron en la caja.
+  if v_reward.merchant_managed then
+    select bi.dish_id, bi.branch_id, d.name
+      into v_dish_id, v_branch_id, v_item_label
+      from public.box_items bi
+      join public.dishes d on d.id = bi.dish_id
+      join public.branches b on b.id = bi.branch_id
+     where bi.reward_id = v_reward.id
+       and bi.is_active
+       and d.active
+       and d.deleted_at is null
+       and b.deleted_at is null
+     order by random()
+     limit 1;
+  end if;
+
+  -- 2) Si no hay platos, premios de plataforma.
+  if v_dish_id is null and v_reward.reward_type in ('mystery_box', 'monthly_raffle') then
+    select coalesce(sum(weight), 0) into v_total
+      from public.gotas_reward_prizes
+     where reward_id = v_reward.id and is_active;
+
+    if v_total > 0 then
+      v_roll := random() * v_total;
+      select p.id into v_prize_id
+        from (
+          select id, sum(weight) over (order by id) as cum
+            from public.gotas_reward_prizes
+           where reward_id = v_reward.id and is_active
+        ) p
+       where p.cum >= v_roll
+       order by p.cum
+       limit 1;
+
+      if v_prize_id is not null then
+        select * into v_prize
+          from public.gotas_reward_prizes
+         where id = v_prize_id;
+      end if;
+    end if;
+  end if;
+
+  -- Código de reclamación solo para platos.
+  if v_dish_id is not null then
+    v_claim := upper(substr(md5(gen_random_uuid()::text), 1, 6));
+  end if;
+
+  insert into public.reward_redemptions (
+    user_id, reward_id, gotas_spent,
+    prize_id, prize_label, prize_type, prize_amount,
+    prize_dish_id, prize_branch_id,
+    claim_code, expires_at
+  ) values (
+    v_uid, v_reward.id, v_reward.gotas_cost,
+    case when v_dish_id is null then v_prize.id else null end,
+    coalesce(v_item_label, v_prize.label),
+    case when v_dish_id is not null then 'product' else v_prize.prize_type end,
+    case when v_dish_id is null then coalesce(v_prize.amount, 0) else 0 end,
+    v_dish_id,
+    v_branch_id,
+    v_claim,
+    case when v_dish_id is not null then now() + interval '30 days' end
+  )
+  returning id into v_redemption;
+
+  perform public.credit_gotas(
+    v_uid, -v_reward.gotas_cost, 'Canje: ' || v_reward.name, null
+  );
+
+  return jsonb_build_object(
+    'result', 'ok',
+    'redemption_id', v_redemption,
+    'reward', v_reward.code,
+    'balance', v_balance - v_reward.gotas_cost,
+    'prize', case
+      when v_dish_id is not null then jsonb_build_object(
+        'label', v_item_label,
+        'type', 'product',
+        'amount', 0,
+        'dish_id', v_dish_id,
+        'branch_id', v_branch_id,
+        'claim_code', v_claim
+      )
+      when v_prize.id is null then null
+      else jsonb_build_object(
+        'label', v_prize.label,
+        'type', v_prize.prize_type,
+        'amount', v_prize.amount
+      )
+    end
+  );
+end;
+$$;
+
+revoke all on function public.redeem_reward(jsonb) from public, anon;
+grant execute on function public.redeem_reward(jsonb) to authenticated;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0014_geo_guards.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0014 · Geografía: puntos de sede, polígonos de campus y validación en pedidos
+-- ============================================================================
+-- 1) Sincroniza `branches.location` desde lat/lng (trigger + backfill).
+-- 2) Siembra polígonos de campus APROXIMADOS para las 4 universidades.
+--    Son rectángulos de demostración: reemplázalos por el contorno real con
+--    `update universities set boundary_polygon = st_geomfromgeojson('...')`.
+-- 3) `place_order` valida con PostGIS:
+--      · la dirección debe caer dentro de `radius_km` (ST_DWithin), y
+--      · si la sede es `campus_delivery_only`, dentro del polígono del campus.
+--    La regla de visibilidad del cliente no cambia: esto es defensa en el
+--    servidor para que un pedido no se cree fuera de cobertura.
+-- ============================================================================
+
+-- ------------------------------------------------ Punto de la sede desde lat/lng
+create or replace function public.sync_branch_location()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.lat is not null and new.lng is not null then
+    new.location := st_setsrid(
+      st_makepoint(new.lng::float8, new.lat::float8),
+      4326
+    );
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists sync_location on public.branches;
+create trigger sync_location
+  before insert or update on public.branches
+  for each row execute function public.sync_branch_location();
+
+update public.branches
+   set location = st_setsrid(st_makepoint(lng::float8, lat::float8), 4326)
+ where location is null
+   and lat is not null
+   and lng is not null;
+
+-- ------------------------------------------------- Polígonos de campus (demo)
+-- Rectángulo alrededor de los puntos de entrega del campus. Para las
+-- universidades sin puntos se usa un centro aproximado.
+do $$
+declare
+  u record;
+  v_min_lng numeric;
+  v_max_lng numeric;
+  v_min_lat numeric;
+  v_max_lat numeric;
+begin
+  for u in select id from public.universities loop
+    select min(lng), max(lng), min(lat), max(lat)
+      into v_min_lng, v_max_lng, v_min_lat, v_max_lat
+      from public.delivery_points
+     where campus_id = u.id;
+
+    -- Centros aproximados cuando el campus no tiene puntos de entrega.
+    if v_min_lng is null then
+      case u.id
+        when 'andes' then
+          v_min_lng := -74.0695; v_max_lng := -74.0615;
+          v_min_lat := 4.5975;  v_max_lat := 4.6055;
+        when 'javeriana' then
+          v_min_lng := -74.0682; v_max_lng := -74.0602;
+          v_min_lat := 4.6236;  v_max_lat := 4.6316;
+        else
+          continue;
+      end case;
+    else
+      -- Margen de ~450 m alrededor de los puntos del campus.
+      v_min_lng := v_min_lng - 0.004;
+      v_max_lng := v_max_lng + 0.004;
+      v_min_lat := v_min_lat - 0.004;
+      v_max_lat := v_max_lat + 0.004;
+    end if;
+
+    update public.universities
+       set boundary_polygon = st_setsrid(
+         st_makeenvelope(
+           v_min_lng::float8, v_min_lat::float8,
+           v_max_lng::float8, v_max_lat::float8,
+           4326
+         ),
+         4326
+       )
+     where id = u.id
+       and boundary_polygon is null;
+  end loop;
+end $$;
+
+-- --------------------------------------- Validación geográfica en place_order
+create or replace function public.place_order(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_profile public.profiles;
+  v_branch public.branches;
+  v_addr public.addresses;
+  v_point_loc geometry;
+  v_poly geometry;
+  v_dish public.dishes;
+  v_order public.orders;
+  v_line jsonb;
+  v_qty int;
+  v_unit int;
+  v_lines_total int := 0;
+  v_subtotal int := coalesce((p_payload ->> 'subtotal')::int, -1);
+  v_campus int := coalesce((p_payload ->> 'campus_discount')::int, 0);
+  v_coupon_disc int := coalesce((p_payload ->> 'coupon_discount')::int, 0);
+  v_fee int := coalesce((p_payload ->> 'delivery_fee')::int, 0);
+  v_gotas int := coalesce((p_payload ->> 'gotas_used')::int, 0);
+  v_tip int := coalesce((p_payload ->> 'tip')::int, 0);
+  v_total int := coalesce((p_payload ->> 'total')::int, -1);
+  v_expected int;
+  v_code text;
+  v_coupon uuid := nullif(p_payload ->> 'coupon_id', '')::uuid;
+begin
+  if v_uid is null then
+    return jsonb_build_object('result', 'not_authenticated');
+  end if;
+
+  select * into v_profile from public.profiles where id = v_uid;
+  if not found then
+    return jsonb_build_object('result', 'no_profile');
+  end if;
+
+  select * into v_branch
+    from public.branches
+   where id = (p_payload ->> 'branch_id')::uuid and deleted_at is null;
+  if not found then
+    return jsonb_build_object('result', 'branch_not_found');
+  end if;
+
+  select * into v_addr
+    from public.addresses
+   where id = (p_payload ->> 'address_id')::uuid
+     and user_id = v_uid
+     and deleted_at is null;
+  if not found then
+    return jsonb_build_object('result', 'address_not_found');
+  end if;
+
+  -- Punto de entrega de la dirección.
+  select p.location into v_point_loc
+    from public.delivery_points p
+   where p.id = v_addr.point_id;
+
+  -- 1) Distancia real (metros) con PostGIS.
+  if v_branch.location is not null and v_point_loc is not null then
+    if not st_dwithin(
+      v_branch.location::geography,
+      v_point_loc::geography,
+      (v_branch.radius_km * 1000)::float8
+    ) then
+      return jsonb_build_object(
+        'result', 'out_of_range',
+        'radius_km', v_branch.radius_km
+      );
+    end if;
+  end if;
+
+  -- 2) Geocerca del campus cuando la sede es solo campus.
+  if v_branch.campus_delivery_only then
+    select u.boundary_polygon into v_poly
+      from public.universities u
+     where u.id = v_branch.campus_id;
+
+    if v_poly is not null and v_point_loc is not null then
+      if not st_covers(v_poly, v_point_loc) then
+        return jsonb_build_object('result', 'outside_campus');
+      end if;
+    elsif v_branch.campus_id is not null then
+      if not exists (
+        select 1 from public.delivery_points p
+         where p.id = v_addr.point_id
+           and p.campus_id = v_branch.campus_id
+      ) then
+        return jsonb_build_object('result', 'outside_campus');
+      end if;
+    end if;
+  end if;
+
+  if p_payload -> 'lines' is null
+     or jsonb_typeof(p_payload -> 'lines') <> 'array' then
+    return jsonb_build_object('result', 'empty_cart');
+  end if;
+
+  if jsonb_array_length(p_payload -> 'lines') = 0 then
+    return jsonb_build_object('result', 'empty_cart');
+  end if;
+
+  for v_line in select * from jsonb_array_elements(p_payload -> 'lines') loop
+    v_qty := coalesce((v_line ->> 'qty')::int, 0);
+    if v_qty <= 0 then
+      return jsonb_build_object('result', 'invalid_qty');
+    end if;
+
+    select * into v_dish
+      from public.dishes
+     where id = (v_line ->> 'dish_id')::uuid
+       and branch_id = v_branch.id
+       and deleted_at is null;
+    if not found then
+      return jsonb_build_object('result', 'dish_not_found');
+    end if;
+    if not v_dish.active or v_dish.sold_out then
+      return jsonb_build_object('result', 'dish_unavailable', 'dish', v_dish.name);
+    end if;
+    if v_dish.portion_limit is not null
+       and v_dish.sold_today + v_qty > v_dish.portion_limit then
+      return jsonb_build_object('result', 'no_portions', 'dish', v_dish.name);
+    end if;
+
+    v_unit := coalesce((v_line ->> 'unit_price')::int, v_dish.price);
+    v_lines_total := v_lines_total + v_unit * v_qty;
+  end loop;
+
+  if v_subtotal <> v_lines_total then
+    return jsonb_build_object(
+      'result', 'subtotal_mismatch',
+      'expected', v_lines_total
+    );
+  end if;
+
+  v_expected := v_subtotal - v_campus - v_coupon_disc + v_fee + v_tip - v_gotas * 10;
+  if v_total <> v_expected or v_total < 0 then
+    return jsonb_build_object('result', 'total_mismatch', 'expected', v_expected);
+  end if;
+
+  if v_gotas < 0 or v_gotas > v_profile.gotas then
+    return jsonb_build_object('result', 'insufficient_gotas');
+  end if;
+
+  if v_coupon is not null then
+    if not exists (
+      select 1 from public.user_coupons uc
+      join public.coupons c on c.id = uc.coupon_id
+      where uc.user_id = v_uid
+        and uc.coupon_id = v_coupon
+        and uc.used_at is null
+        and c.active
+    ) then
+      return jsonb_build_object('result', 'coupon_unavailable');
+    end if;
+  end if;
+
+  v_code := lpad((nextval('public.delivery_code_seq') % 10000)::text, 4, '0');
+
+  insert into public.orders (
+    buyer_id, buyer_name, branch_id, restaurant_name, address_snapshot,
+    point_id, payment_method, subtotal, campus_discount, coupon_discount,
+    delivery_fee, gotas_used, tip, total, eta_min, courier_pay, distance_km,
+    delivery_code, restaurant_note, scheduled_for, coupon_id
+  ) values (
+    v_uid,
+    v_profile.full_name,
+    v_branch.id,
+    v_branch.name,
+    jsonb_build_object(
+      'id', v_addr.id,
+      'label', v_addr.label,
+      'line', v_addr.line,
+      'details', v_addr.details,
+      'neighborhood', v_addr.neighborhood,
+      'reference', v_addr.reference,
+      'point_id', v_addr.point_id
+    ),
+    v_addr.point_id,
+    p_payload ->> 'payment',
+    v_subtotal, v_campus, v_coupon_disc, v_fee, v_gotas, v_tip, v_total,
+    coalesce((p_payload ->> 'eta_min')::int, v_branch.prep_min + 10),
+    coalesce((p_payload ->> 'courier_pay')::int, 0),
+    coalesce((p_payload ->> 'distance_km')::numeric, 0),
+    v_code,
+    coalesce(p_payload ->> 'restaurant_note', ''),
+    nullif(p_payload ->> 'scheduled_for', '')::timestamptz,
+    v_coupon
+  )
+  returning * into v_order;
+
+  insert into public.order_items (
+    order_id, dish_id, name, emoji, qty, unit_price, selection, detail, note
+  )
+  select
+    v_order.id,
+    (l ->> 'dish_id')::uuid,
+    d.name,
+    d.emoji,
+    (l ->> 'qty')::int,
+    coalesce((l ->> 'unit_price')::int, d.price),
+    coalesce(l -> 'selection', '{}'::jsonb),
+    coalesce(l ->> 'detail', ''),
+    coalesce(l ->> 'note', '')
+  from jsonb_array_elements(p_payload -> 'lines') l
+  join public.dishes d on d.id = (l ->> 'dish_id')::uuid;
+
+  perform public.order_event(v_order.id, 'pending', 'Comprador');
+
+  if v_gotas > 0 then
+    perform public.credit_gotas(
+      v_uid, -v_gotas, 'Usadas en ' || v_order.code, v_order.id
+    );
+  end if;
+
+  if v_coupon is not null then
+    update public.user_coupons
+       set used_at = now()
+     where user_id = v_uid and coupon_id = v_coupon;
+    update public.coupons
+       set used_count = used_count + 1
+     where id = v_coupon;
+  end if;
+
+  return jsonb_build_object('result', 'ok', 'order', to_jsonb(v_order));
+end;
+$$;
+
+revoke all on function public.place_order(jsonb) from public, anon;
+grant execute on function public.place_order(jsonb) to authenticated;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0015_campus_polygons.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0015 · Polígono real del campus Icesi (OpenStreetMap)
+-- ============================================================================
+-- Fuente: OpenStreetMap, relation/6784907 (© colaboradores de OSM, ODbL).
+--
+-- FILTRO: este trabajo es solo para campus de Cali. La migración aplica el
+-- polígono únicamente si la universidad tiene `city = 'Cali'` y valida que la
+-- geometría caiga dentro del área metropolitana de Cali. Las universidades de
+-- otras ciudades quedan sin polígono y usan el respaldo por `campus_id`.
+--
+-- El export que compartió el equipo es de Cali: de nuestras cuatro
+-- universidades solo Icesi tiene polígono ahí. La Javeriana del archivo es la
+-- sede de Cali, distinta de la fila `javeriana` (Bogotá) del catálogo, así que
+-- no se aplica.
+-- ============================================================================
+
+do $$
+declare
+  v_geom geometry;
+  v_fixed geometry;
+  v_area numeric;
+begin
+  -- Anillo exterior del campus (cerrado, coordenadas [lng, lat]).
+  v_geom := st_setsrid(
+    st_geomfromgeojson('{
+      "type": "Polygon",
+      "coordinates": [[
+        [-76.5282002, 3.3386242],
+        [-76.5282327, 3.3397619],
+        [-76.5282701, 3.3406067],
+        [-76.5273123, 3.3406012],
+        [-76.5272969, 3.3411561],
+        [-76.5272786, 3.3417826],
+        [-76.5282533, 3.3418052],
+        [-76.5282393, 3.3424088],
+        [-76.5272563, 3.3423941],
+        [-76.5272443, 3.3426985],
+        [-76.5275395, 3.3426964],
+        [-76.5275458, 3.3433883],
+        [-76.5290493, 3.3432815],
+        [-76.5291687, 3.343273],
+        [-76.529648, 3.3432389],
+        [-76.5300269, 3.343212],
+        [-76.5302486, 3.3431969],
+        [-76.5304627, 3.3431811],
+        [-76.5306312, 3.3431186],
+        [-76.5307462, 3.3430382],
+        [-76.5308097, 3.3429639],
+        [-76.5308269, 3.3429371],
+        [-76.530887, 3.3424907],
+        [-76.530935, 3.3424008],
+        [-76.5309636, 3.3420806],
+        [-76.531001, 3.3413804],
+        [-76.5310091, 3.3412676],
+        [-76.5310177, 3.3411545],
+        [-76.5311915, 3.339794],
+        [-76.5304425, 3.339819],
+        [-76.529524, 3.3398743],
+        [-76.5292166, 3.339917],
+        [-76.5291506, 3.3387198],
+        [-76.5291401, 3.3385876],
+        [-76.5288588, 3.3385985],
+        [-76.5287545, 3.3386027],
+        [-76.5286721, 3.3386058],
+        [-76.5282002, 3.3386242]
+      ]]
+    }'),
+    4326
+  );
+
+  -- Si OSM devuelve un anillo con problemas, se repara; el tipo debe ser Polygon.
+  v_fixed := st_makevalid(v_geom);
+  if geometrytype(v_fixed) <> 'POLYGON' then
+    v_fixed := st_geometryn(v_fixed, 1);
+  end if;
+
+  -- Filtro geográfico: el polígono debe caer dentro del área de Cali.
+  if not st_within(
+    v_fixed,
+    st_makeenvelope(-76.75, 3.25, -76.35, 3.60, 4326)
+  ) then
+    raise exception 'El polígono de Icesi no está dentro del área de Cali.';
+  end if;
+
+  -- Filtro por ciudad: solo se aplica a universidades marcadas como Cali.
+  update public.universities
+     set boundary_polygon = v_fixed
+   where id = 'icesi'
+     and city = 'Cali';
+
+  if not exists (
+    select 1 from public.universities
+     where id = 'icesi'
+       and city = 'Cali'
+       and boundary_polygon is not null
+  ) then
+    raise warning 'No se aplicó el polígono: Icesi no está marcada como Cali.';
+  end if;
+
+  -- Campus de otras ciudades: se prefiere el respaldo por `campus_id`.
+  update public.universities
+     set boundary_polygon = null
+   where id in ('unal', 'andes', 'javeriana');
+
+  v_area := round(
+    (select st_area(boundary_polygon::geography)
+       from public.universities
+      where id = 'icesi')
+  );
+
+  raise notice 'Icesi: % m² · válido = %',
+    v_area,
+    (select st_isvalid(boundary_polygon) from public.universities where id = 'icesi');
+
+  if exists (
+    select 1
+      from public.delivery_points p
+      join public.universities u on u.id = 'icesi'
+     where p.campus_id = 'icesi'
+       and not st_covers(u.boundary_polygon, p.location)
+  ) then
+    raise warning 'Hay puntos de entrega de Icesi fuera del polígono.';
+  else
+    raise notice 'Todos los puntos de entrega de Icesi caen dentro del campus.';
+  end if;
+end $$;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0016_survey_reward.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0016 · Recompensa de la encuesta de preferencias
+-- ============================================================================
+-- Acredita 300 Gotas una sola vez cuando el comprador completa la encuesta.
+-- La app marcaba `surveyRewarded` solo en memoria; con este RPC el saldo y la
+-- bandera quedan en la base y no se puede reclamar dos veces.
+-- ============================================================================
+
+create or replace function public.complete_survey()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_rewarded boolean;
+  v_balance int;
+begin
+  if v_uid is null then
+    return jsonb_build_object('result', 'not_authenticated');
+  end if;
+
+  -- Bloquea la fila: dos peticiones simultáneas no pueden acreditar dos veces.
+  select rewarded into v_rewarded
+    from public.preferences
+   where user_id = v_uid
+     for update;
+
+  if not found then
+    return jsonb_build_object('result', 'no_preferences');
+  end if;
+
+  if v_rewarded then
+    return jsonb_build_object('result', 'already_rewarded');
+  end if;
+
+  update public.preferences
+     set rewarded = true,
+         completed = true
+   where user_id = v_uid;
+
+  perform public.credit_gotas(
+    v_uid, 300, 'Completaste tus preferencias', null
+  );
+
+  select gotas into v_balance from public.profiles where id = v_uid;
+
+  return jsonb_build_object(
+    'result', 'ok',
+    'awarded', 300,
+    'balance', v_balance
+  );
+end;
+$$;
+
+revoke all on function public.complete_survey() from public, anon;
+grant execute on function public.complete_survey() to authenticated;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0017_coupons_notifications.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0017 · Cupones desde premios de caja y notificaciones propias
+-- ============================================================================
+-- 1) Cada premio de descuento o envío gratis genera un cupón de un solo uso
+--    ligado al comprador, para que el premio se pueda aplicar en el checkout.
+-- 2) El usuario autenticado puede guardar y leer sus propias notificaciones.
+-- ============================================================================
+
+-- ------------------------------------------------ Premio -> cupón utilizable
+create or replace function public.create_coupon_for_redemption()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_coupon uuid;
+  v_code text;
+begin
+  if new.prize_type is null
+     or new.prize_type not in ('discount', 'free_shipping') then
+    return new;
+  end if;
+
+  v_code := 'PZ-' || upper(left(new.id::text, 8));
+
+  -- Idempotente por si el trigger se volviera a ejecutar.
+  if exists (select 1 from public.coupons where code = v_code) then
+    return new;
+  end if;
+
+  insert into public.coupons (
+    code, title, kind, amount, max_uses, used_count, active, valid_until
+  ) values (
+    v_code,
+    coalesce(new.prize_label, 'Premio de caja'),
+    case
+      when new.prize_type = 'free_shipping'
+        then 'free_delivery'::public.coupon_kind
+      else 'fixed'::public.coupon_kind
+    end,
+    case
+      when new.prize_type = 'free_shipping' then 0
+      else coalesce(new.prize_amount, 0)
+    end,
+    1,
+    0,
+    true,
+    now() + interval '30 days'
+  )
+  returning id into v_coupon;
+
+  insert into public.user_coupons (user_id, coupon_id)
+  values (new.user_id, v_coupon);
+
+  return new;
+end;
+$$;
+
+drop trigger if exists reward_redemption_coupon on public.reward_redemptions;
+create trigger reward_redemption_coupon
+  after insert on public.reward_redemptions
+  for each row execute function public.create_coupon_for_redemption();
+
+-- ------------------------------------------------------- Notificaciones
+drop policy if exists notifications_insert on public.notifications;
+create policy notifications_insert on public.notifications
+  for insert to authenticated
+  with check (
+    user_id = auth.uid()
+    and audience = 'user:' || auth.uid()::text
+  );
+
+drop policy if exists notifications_update on public.notifications;
+create policy notifications_update on public.notifications
+  for update to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0018_order_idempotency.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0018 · Idempotencia de place_order
+-- ============================================================================
+-- Un reintento por mala red no puede crear el pedido dos veces. El cliente
+-- manda una `client_key` estable por intento (hoy: el id local del pedido).
+-- Si esa clave ya existe para el comprador, se devuelve el pedido original.
+-- ============================================================================
+
+alter table public.orders
+  add column if not exists client_key text;
+
+create unique index if not exists orders_client_key_idx
+  on public.orders (client_key)
+  where client_key is not null;
+
+create or replace function public.place_order(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_profile public.profiles;
+  v_branch public.branches;
+  v_addr public.addresses;
+  v_point_loc geometry;
+  v_poly geometry;
+  v_dish public.dishes;
+  v_order public.orders;
+  v_line jsonb;
+  v_qty int;
+  v_unit int;
+  v_lines_total int := 0;
+  v_subtotal int := coalesce((p_payload ->> 'subtotal')::int, -1);
+  v_campus int := coalesce((p_payload ->> 'campus_discount')::int, 0);
+  v_coupon_disc int := coalesce((p_payload ->> 'coupon_discount')::int, 0);
+  v_fee int := coalesce((p_payload ->> 'delivery_fee')::int, 0);
+  v_gotas int := coalesce((p_payload ->> 'gotas_used')::int, 0);
+  v_tip int := coalesce((p_payload ->> 'tip')::int, 0);
+  v_total int := coalesce((p_payload ->> 'total')::int, -1);
+  v_expected int;
+  v_code text;
+  v_client_key text;
+  v_coupon uuid := nullif(p_payload ->> 'coupon_id', '')::uuid;
+begin
+  if v_uid is null then
+    return jsonb_build_object('result', 'not_authenticated');
+  end if;
+
+  select * into v_profile from public.profiles where id = v_uid;
+  if not found then
+    return jsonb_build_object('result', 'no_profile');
+  end if;
+
+  -- Reintento del mismo intento de compra: devolver el pedido ya creado.
+  v_client_key := nullif(p_payload ->> 'client_key', '');
+  if v_client_key is not null then
+    select * into v_order
+      from public.orders
+     where client_key = v_client_key
+       and buyer_id = v_uid;
+
+    if found then
+      return jsonb_build_object(
+        'result', 'ok',
+        'order', to_jsonb(v_order),
+        'replayed', true
+      );
+    end if;
+  end if;
+
+  select * into v_branch
+    from public.branches
+   where id = (p_payload ->> 'branch_id')::uuid and deleted_at is null;
+  if not found then
+    return jsonb_build_object('result', 'branch_not_found');
+  end if;
+
+  select * into v_addr
+    from public.addresses
+   where id = (p_payload ->> 'address_id')::uuid
+     and user_id = v_uid
+     and deleted_at is null;
+  if not found then
+    return jsonb_build_object('result', 'address_not_found');
+  end if;
+
+  select p.location into v_point_loc
+    from public.delivery_points p
+   where p.id = v_addr.point_id;
+
+  -- 1) Distancia real (metros) con PostGIS.
+  if v_branch.location is not null and v_point_loc is not null then
+    if not st_dwithin(
+      v_branch.location::geography,
+      v_point_loc::geography,
+      (v_branch.radius_km * 1000)::float8
+    ) then
+      return jsonb_build_object(
+        'result', 'out_of_range',
+        'radius_km', v_branch.radius_km
+      );
+    end if;
+  end if;
+
+  -- 2) Geocerca del campus cuando la sede es solo campus.
+  if v_branch.campus_delivery_only then
+    select u.boundary_polygon into v_poly
+      from public.universities u
+     where u.id = v_branch.campus_id;
+
+    if v_poly is not null and v_point_loc is not null then
+      if not st_covers(v_poly, v_point_loc) then
+        return jsonb_build_object('result', 'outside_campus');
+      end if;
+    elsif v_branch.campus_id is not null then
+      if not exists (
+        select 1 from public.delivery_points p
+         where p.id = v_addr.point_id
+           and p.campus_id = v_branch.campus_id
+      ) then
+        return jsonb_build_object('result', 'outside_campus');
+      end if;
+    end if;
+  end if;
+
+  if p_payload -> 'lines' is null
+     or jsonb_typeof(p_payload -> 'lines') <> 'array' then
+    return jsonb_build_object('result', 'empty_cart');
+  end if;
+
+  if jsonb_array_length(p_payload -> 'lines') = 0 then
+    return jsonb_build_object('result', 'empty_cart');
+  end if;
+
+  for v_line in select * from jsonb_array_elements(p_payload -> 'lines') loop
+    v_qty := coalesce((v_line ->> 'qty')::int, 0);
+    if v_qty <= 0 then
+      return jsonb_build_object('result', 'invalid_qty');
+    end if;
+
+    select * into v_dish
+      from public.dishes
+     where id = (v_line ->> 'dish_id')::uuid
+       and branch_id = v_branch.id
+       and deleted_at is null;
+    if not found then
+      return jsonb_build_object('result', 'dish_not_found');
+    end if;
+    if not v_dish.active or v_dish.sold_out then
+      return jsonb_build_object('result', 'dish_unavailable', 'dish', v_dish.name);
+    end if;
+    if v_dish.portion_limit is not null
+       and v_dish.sold_today + v_qty > v_dish.portion_limit then
+      return jsonb_build_object('result', 'no_portions', 'dish', v_dish.name);
+    end if;
+
+    v_unit := coalesce((v_line ->> 'unit_price')::int, v_dish.price);
+    v_lines_total := v_lines_total + v_unit * v_qty;
+  end loop;
+
+  if v_subtotal <> v_lines_total then
+    return jsonb_build_object(
+      'result', 'subtotal_mismatch',
+      'expected', v_lines_total
+    );
+  end if;
+
+  v_expected := v_subtotal - v_campus - v_coupon_disc + v_fee + v_tip - v_gotas * 10;
+  if v_total <> v_expected or v_total < 0 then
+    return jsonb_build_object('result', 'total_mismatch', 'expected', v_expected);
+  end if;
+
+  if v_gotas < 0 or v_gotas > v_profile.gotas then
+    return jsonb_build_object('result', 'insufficient_gotas');
+  end if;
+
+  if v_coupon is not null then
+    if not exists (
+      select 1 from public.user_coupons uc
+      join public.coupons c on c.id = uc.coupon_id
+      where uc.user_id = v_uid
+        and uc.coupon_id = v_coupon
+        and uc.used_at is null
+        and c.active
+    ) then
+      return jsonb_build_object('result', 'coupon_unavailable');
+    end if;
+  end if;
+
+  v_code := lpad((nextval('public.delivery_code_seq') % 10000)::text, 4, '0');
+
+  insert into public.orders (
+    buyer_id, buyer_name, branch_id, restaurant_name, address_snapshot,
+    point_id, payment_method, subtotal, campus_discount, coupon_discount,
+    delivery_fee, gotas_used, tip, total, eta_min, courier_pay, distance_km,
+    delivery_code, restaurant_note, scheduled_for, coupon_id, client_key
+  ) values (
+    v_uid,
+    v_profile.full_name,
+    v_branch.id,
+    v_branch.name,
+    jsonb_build_object(
+      'id', v_addr.id,
+      'label', v_addr.label,
+      'line', v_addr.line,
+      'details', v_addr.details,
+      'neighborhood', v_addr.neighborhood,
+      'reference', v_addr.reference,
+      'point_id', v_addr.point_id
+    ),
+    v_addr.point_id,
+    p_payload ->> 'payment',
+    v_subtotal, v_campus, v_coupon_disc, v_fee, v_gotas, v_tip, v_total,
+    coalesce((p_payload ->> 'eta_min')::int, v_branch.prep_min + 10),
+    coalesce((p_payload ->> 'courier_pay')::int, 0),
+    coalesce((p_payload ->> 'distance_km')::numeric, 0),
+    v_code,
+    coalesce(p_payload ->> 'restaurant_note', ''),
+    nullif(p_payload ->> 'scheduled_for', '')::timestamptz,
+    v_coupon,
+    v_client_key
+  )
+  returning * into v_order;
+
+  insert into public.order_items (
+    order_id, dish_id, name, emoji, qty, unit_price, selection, detail, note
+  )
+  select
+    v_order.id,
+    (l ->> 'dish_id')::uuid,
+    d.name,
+    d.emoji,
+    (l ->> 'qty')::int,
+    coalesce((l ->> 'unit_price')::int, d.price),
+    coalesce(l -> 'selection', '{}'::jsonb),
+    coalesce(l ->> 'detail', ''),
+    coalesce(l ->> 'note', '')
+  from jsonb_array_elements(p_payload -> 'lines') l
+  join public.dishes d on d.id = (l ->> 'dish_id')::uuid;
+
+  perform public.order_event(v_order.id, 'pending', 'Comprador');
+
+  if v_gotas > 0 then
+    perform public.credit_gotas(
+      v_uid, -v_gotas, 'Usadas en ' || v_order.code, v_order.id
+    );
+  end if;
+
+  if v_coupon is not null then
+    update public.user_coupons
+       set used_at = now()
+     where user_id = v_uid and coupon_id = v_coupon;
+    update public.coupons
+       set used_count = used_count + 1
+     where id = v_coupon;
+  end if;
+
+  return jsonb_build_object('result', 'ok', 'order', to_jsonb(v_order));
+end;
+$$;
+
+revoke all on function public.place_order(jsonb) from public, anon;
+grant execute on function public.place_order(jsonb) to authenticated;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0019_order_cycle.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0019 · Ciclo completo del pedido (HU-3)
 -- ============================================================================
 -- Cierra las brechas del ciclo comprador -> restaurante -> repartidor:
 --
@@ -2301,6 +3726,9 @@ update public.branches
 --   6. courier_deliver exige que la foto exista de verdad en Storage.
 --   7. Escrituras directas a las tablas de pedidos revocadas (defensa en
 --      profundidad además de RLS sin políticas de escritura).
+--
+-- Va DESPUÉS de 0014 (geografía) y 0018 (idempotencia): reemplaza place_order
+-- conservando sus validaciones PostGIS (radio y polígono del campus).
 --
 -- Es idempotente: se puede volver a ejecutar.
 -- ============================================================================
@@ -2368,6 +3796,9 @@ update public.orders set delivery_code = '' where delivery_code <> '';
 -- ------------------------------------------------------- 3. Idempotencia
 
 alter table public.orders add column if not exists client_key text;
+
+-- 0018 creó un índice único global; el correcto es por comprador.
+drop index if exists public.orders_client_key_idx;
 
 create unique index if not exists orders_buyer_client_key_uidx
   on public.orders (buyer_id, client_key)
@@ -2452,6 +3883,7 @@ declare
   v_branch public.branches;
   v_addr public.addresses;
   v_point public.delivery_points;
+  v_poly geometry;
   v_dish public.dishes;
   v_order public.orders;
   v_existing public.orders;
@@ -2539,9 +3971,19 @@ begin
   v_km := round(public.distance_km(
     v_branch.lat, v_branch.lng, v_point.lat, v_point.lng
   ), 2);
-  if v_branch.campus_delivery_only
-     and v_point.campus_id is distinct from v_branch.campus_id then
-    return jsonb_build_object('result', 'out_of_zone');
+  -- Sede solo campus: polígono real del campus (0014/0015) y, si no hay,
+  -- el campus del punto de entrega.
+  if v_branch.campus_delivery_only then
+    select u.boundary_polygon into v_poly
+      from public.universities u
+     where u.id = v_branch.campus_id;
+    if v_poly is not null and v_point.location is not null then
+      if not st_covers(v_poly, v_point.location) then
+        return jsonb_build_object('result', 'outside_campus');
+      end if;
+    elsif v_point.campus_id is distinct from v_branch.campus_id then
+      return jsonb_build_object('result', 'outside_campus');
+    end if;
   end if;
   if v_branch.couriers_nearby <= 0 or v_km > v_branch.radius_km then
     return jsonb_build_object('result', 'out_of_zone');
@@ -3204,9 +4646,9 @@ revoke execute on function public.order_json(public.orders) from public, anon, a
 revoke execute on function public.credit_gotas(uuid, int, text, uuid) from public, anon, authenticated;
 revoke execute on function public.order_event(uuid, public.order_status, text, public.order_status) from public, anon, authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0099_verify.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0007 · Verificación final
 -- ============================================================================
@@ -3229,13 +4671,16 @@ declare
     'app_settings', 'addresses', 'gotas_ledger', 'coupons', 'user_coupons',
     'favorite_dishes', 'favorite_branches', 'notifications', 'courier_profiles',
     'orders', 'order_items', 'order_events', 'order_declines', 'reviews',
-    'gotas_rewards', 'reward_redemptions', 'gotas_reward_prizes',
+    'gotas_rewards', 'reward_redemptions', 'gotas_reward_prizes', 'box_items',
     'order_secrets'
   ];
   expected_columns text[][] := array[
     ['dishes', 'active'], ['dishes', 'sold_out'], ['dishes', 'branch_id'],
     ['branches', 'paused'], ['orders', 'delivery_code'], ['orders', 'gotas_used'],
     ['profiles', 'gotas'], ['profiles', 'business_id'],
+    ['gotas_rewards', 'cooldown_hours'], ['box_items', 'reward_id'],
+    ['reward_redemptions', 'claim_code'],
+    ['branches', 'location'], ['universities', 'boundary_polygon'],
     ['order_events', 'from_status'], ['orders', 'client_key']
   ];
   expected_functions text[] := array[

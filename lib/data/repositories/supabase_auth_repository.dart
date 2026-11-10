@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
-import '../../core/utils/ids.dart';
 import '../models/address.dart';
 import '../models/user.dart';
 import 'auth_repository.dart';
@@ -10,20 +9,24 @@ import 'auth_repository.dart';
 /// El perfil (rol, nombre, teléfono, negocio y Gotas) vive en la tabla
 /// `profiles` y lo crea el trigger `handle_new_user` en el registro.
 class SupabaseAuthRepository implements AuthRepository {
+  /// Usa el cliente de Supabase indicado o el global.
   SupabaseAuthRepository({sb.SupabaseClient? client})
     : _client = client ?? sb.Supabase.instance.client;
 
   final sb.SupabaseClient _client;
   final Map<String, AppUser> _cache = {};
 
+  /// La autenticación vive en el backend.
   @override
   bool get isRemote => true;
 
+  /// El modo remoto no expone cuentas de demostración.
   @override
   List<AppUser> get demoAccounts => const [];
 
   // ------------------------------------------------------------- Escrituras
 
+  /// Inicia sesión con Supabase Auth y carga el perfil.
   @override
   Future<AppUser> signIn(String email, String password) async {
     try {
@@ -43,6 +46,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Crea la cuenta con Supabase Auth y carga el perfil.
   @override
   Future<AppUser> signUp({
     required String name,
@@ -79,12 +83,14 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Limpia la caché y cierra la sesión remota.
   @override
   Future<void> signOut() async {
     _cache.clear();
     await _client.auth.signOut();
   }
 
+  /// Recupera la sesión persistida del cliente.
   @override
   Future<AppUser?> restoreSession() async {
     final user = _client.auth.currentUser;
@@ -96,6 +102,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Lee el saldo de Gotas de `profiles`.
   @override
   Future<int?> gotasBalance(String userId) async {
     try {
@@ -110,6 +117,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Lee las direcciones activas del usuario.
   @override
   Future<List<Address>> addresses(String userId) async {
     try {
@@ -129,7 +137,7 @@ class SupabaseAuthRepository implements AuthRepository {
               neighborhood: (row['neighborhood'] as String?) ?? '',
               reference: (row['reference'] as String?) ?? '',
               pointId: (row['point_id'] as String?) ?? 'icesi-biblioteca',
-            ),
+            )..dbId = row['id'] as String,
           )
           .toList();
     } on Object {
@@ -137,112 +145,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
-  @override
-  Future<String?> verifiedUniversity(String userId) async {
-    try {
-      final row = await _client
-          .from('profiles')
-          .select('verified, university_id')
-          .eq('id', userId)
-          .maybeSingle();
-      if (row == null || row['verified'] != true) return null;
-      return row['university_id'] as String?;
-    } on Object {
-      return null;
-    }
-  }
-
-  @override
-  Future<String> verifyUniversity(String universityId, String email) async {
-    try {
-      final res = await _client.rpc(
-        'verify_university',
-        params: {
-          'p_payload': {'university_id': universityId, 'email': email},
-        },
-      );
-      return res is Map ? (res['result'] as String? ?? 'network') : 'network';
-    } on Object {
-      return 'network';
-    }
-  }
-
-  @override
-  Future<Address?> saveAddress(
-    String userId,
-    Address address, {
-    required bool makeDefault,
-  }) async {
-    final fields = <String, dynamic>{
-      'label': address.label,
-      'line': address.line,
-      'details': address.details,
-      'neighborhood': address.neighborhood,
-      'reference': address.reference,
-      'point_id': address.pointId,
-    };
-    // Solo puede haber una principal por usuario (índice único parcial).
-    if (makeDefault) await _clearDefault(userId);
-    if (makeDefault) fields['is_default'] = true;
-
-    final Map<String, dynamic> row;
-    if (isUuid(address.id)) {
-      row = await _client
-          .from('addresses')
-          .update(fields)
-          .eq('id', address.id)
-          .eq('user_id', userId)
-          .select()
-          .single();
-    } else {
-      row = await _client
-          .from('addresses')
-          .insert({...fields, 'user_id': userId})
-          .select()
-          .single();
-    }
-    return Address(
-      id: row['id'] as String,
-      label: (row['label'] as String?) ?? '',
-      line: (row['line'] as String?) ?? '',
-      details: (row['details'] as String?) ?? '',
-      neighborhood: (row['neighborhood'] as String?) ?? '',
-      reference: (row['reference'] as String?) ?? '',
-      pointId: (row['point_id'] as String?) ?? address.pointId,
-    );
-  }
-
-  @override
-  Future<void> deleteAddress(String userId, String addressId) async {
-    if (!isUuid(addressId)) return; // nunca llegó al servidor
-    await _client
-        .from('addresses')
-        .update({
-          'deleted_at': DateTime.now().toUtc().toIso8601String(),
-          'is_default': false,
-        })
-        .eq('id', addressId)
-        .eq('user_id', userId);
-  }
-
-  @override
-  Future<void> setDefaultAddress(String userId, String addressId) async {
-    if (!isUuid(addressId)) return;
-    await _clearDefault(userId);
-    await _client
-        .from('addresses')
-        .update({'is_default': true})
-        .eq('id', addressId)
-        .eq('user_id', userId);
-  }
-
-  Future<void> _clearDefault(String userId) => _client
-      .from('addresses')
-      .update({'is_default': false})
-      .eq('user_id', userId)
-      .eq('is_default', true)
-      .filter('deleted_at', 'is', null);
-
+  /// Lee el perfil de repartidor del usuario.
   @override
   Future<CourierProfile?> courierProfile(String userId) async {
     try {
@@ -269,6 +172,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Traduce el vehículo guardado a su enum.
   static Vehicle _vehicle(String? value) => switch (value) {
     'bicycle' => Vehicle.bicycle,
     'scooter' => Vehicle.scooter,
@@ -276,11 +180,114 @@ class SupabaseAuthRepository implements AuthRepository {
     _ => Vehicle.moto,
   };
 
+  /// Traduce el vehículo del perfil al valor de la base.
+  static String _vehicleValue(Vehicle value) => switch (value) {
+    Vehicle.bicycle => 'bicycle',
+    Vehicle.scooter => 'scooter',
+    Vehicle.walking => 'walking',
+    Vehicle.moto => 'moto',
+  };
+
+  /// Mensaje en español para los códigos de `register_business`.
+  static String _businessMessage(Object? result) => switch (result) {
+    'not_authenticated' => 'Inicia sesión para registrar tu negocio.',
+    'no_branches' => 'Agrega al menos una sede para tu negocio.',
+    _ => 'No pudimos crear el negocio. Revisa los datos o tu conexión.',
+  };
+
+  @override
+  Future<String?> registerBusiness(Map<String, dynamic> payload) async {
+    try {
+      final res = await _client.rpc(
+        'register_business',
+        params: {'p_payload': payload},
+      );
+      final map = res is Map ? res : const {};
+      final result = map['result'];
+      if (result != 'ok') {
+        throw AuthException(_businessMessage(result));
+      }
+      return map['business_id'] as String?;
+    } on AuthException {
+      rethrow;
+    } on Object {
+      throw AuthException(
+        'No pudimos crear el negocio. Revisa los datos o tu conexión.',
+      );
+    }
+  }
+
+  /// Persiste nombre y teléfono en `profiles` y actualiza la caché local.
+  @override
+  Future<void> saveProfile(String userId, {String? name, String? phone}) async {
+    final values = <String, dynamic>{};
+    if (name != null && name.trim().isNotEmpty) {
+      values['full_name'] = name.trim();
+    }
+    if (phone != null) values['phone'] = phone.trim();
+    if (values.isEmpty) return;
+
+    try {
+      await _client.from('profiles').update(values).eq('id', userId);
+      final cached = _cache[userId];
+      if (cached != null) {
+        if (values['full_name'] != null) {
+          cached.name = values['full_name'] as String;
+        }
+        if (values['phone'] != null) cached.phone = values['phone'] as String;
+      }
+    } on Object {
+      throw AuthException('No pudimos guardar tus datos. Intenta de nuevo.');
+    }
+  }
+
+  /// Crea o actualiza la fila de `courier_profiles` del usuario.
+  @override
+  Future<void> saveCourierProfile(String userId, CourierProfile profile) async {
+    try {
+      await _client.from('courier_profiles').upsert({
+        'user_id': userId,
+        'full_name': profile.fullName,
+        'doc_type': profile.docType,
+        'doc_number': profile.docNumber,
+        'phone': profile.phone,
+        'vehicle': _vehicleValue(profile.vehicle),
+        'plate': profile.plate,
+        'university_id': profile.universityId,
+      });
+    } on Object {
+      throw AuthException(
+        'No pudimos guardar tu perfil de repartidor. Intenta de nuevo.',
+      );
+    }
+  }
+
+  /// Llama al RPC `verify_university` y devuelve su código de resultado.
+  @override
+  Future<String?> verifyUniversity(String universityId, String email) async {
+    try {
+      final res = await _client.rpc(
+        'verify_university',
+        params: {
+          'p_payload': {'university_id': universityId, 'email': email},
+        },
+      );
+      final map = res is Map ? res : const {};
+      return map['result'] as String?;
+    } on Object {
+      throw AuthException(
+        'No pudimos verificar tu correo. Revisa tu conexión e intenta de nuevo.',
+      );
+    }
+  }
+
   // --------------------------------------------------------- Lectura local
 
+  /// Usuario cacheado por id.
   @override
   AppUser? byId(String id) => _cache[id];
 
+  /// Cuenta cacheada dueña del negocio.
   @override
   AppUser? byBusiness(String businessId) {
     for (final u in _cache.values) {
@@ -295,6 +302,7 @@ class SupabaseAuthRepository implements AuthRepository {
   AppUser login(String email, String password) =>
       throw AuthException('Usa loginAsync cuando Supabase está configurado.');
 
+  /// El registro remoto es asíncrono.
   @override
   AppUser register({
     required String name,
@@ -308,6 +316,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
   // -------------------------------------------------------------- Interno
 
+  /// Lee el perfil de `profiles` y lo guarda en caché.
   Future<AppUser> _loadProfile(
     String id, {
     required String fallbackEmail,
@@ -333,18 +342,21 @@ class SupabaseAuthRepository implements AuthRepository {
     return user;
   }
 
+  /// Convierte el rol al valor de la base.
   static String _roleValue(UserRole role) => switch (role) {
     UserRole.buyer => 'buyer',
     UserRole.courier => 'courier',
     UserRole.restaurant => 'restaurant',
   };
 
+  /// Convierte el rol de la base al enum local.
   static UserRole _roleFrom(String? value) => switch (value) {
     'courier' => UserRole.courier,
     'restaurant' => UserRole.restaurant,
     _ => UserRole.buyer,
   };
 
+  /// Traduce los mensajes de Supabase a español.
   static String _message(String raw) {
     final m = raw.toLowerCase();
     if (m.contains('invalid login credentials')) {

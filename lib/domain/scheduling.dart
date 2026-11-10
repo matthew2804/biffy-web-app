@@ -27,6 +27,7 @@ List<DateTime> availableDays(Restaurant r, DateTime now, {int days = 7}) {
   ].where((d) => slotsFor(r, d, now).isNotEmpty).toList();
 }
 
+/// Indica si la fecha corresponde a un horario disponible del restaurante.
 bool isValidSchedule(Restaurant r, DateTime when, DateTime now) =>
     slotsFor(r, when, now).any((s) => s == when);
 

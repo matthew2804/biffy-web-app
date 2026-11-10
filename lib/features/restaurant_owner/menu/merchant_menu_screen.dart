@@ -9,6 +9,7 @@ import '../../../core/widgets/ui.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 
+/// Menú del negocio con búsqueda, filtros y acciones por producto.
 class MerchantMenuScreen extends StatefulWidget {
   const MerchantMenuScreen({super.key});
 
@@ -16,10 +17,12 @@ class MerchantMenuScreen extends StatefulWidget {
   State<MerchantMenuScreen> createState() => _MerchantMenuScreenState();
 }
 
+/// Estado que filtra el menú por texto y categoría.
 class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
   String _q = '';
   String? _cat;
 
+  /// Lista los productos filtrados con interruptores de disponibilidad.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -53,6 +56,16 @@ class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
           children: [
             Text('Mi menú', style: t.headlineSmall),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                key: const Key('merchant-boxes'),
+                onPressed: () => context.push('/negocio/cajas'),
+                icon: const Text('📦'),
+                label: const Text('Cajas con Gotas'),
+              ),
+            ),
             const SizedBox(height: 8),
             TextField(
               key: const Key('menu-search'),
@@ -171,9 +184,18 @@ class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
                                 const Text('Disponible'),
                                 Switch(
                                   value: d.active,
-                                  onChanged: (v) {
+                                  onChanged: (v) async {
                                     d.active = v;
-                                    catalog.saveDish(d);
+                                    try {
+                                      await catalog.saveDish(d);
+                                    } on Object {
+                                      if (!context.mounted) return;
+                                      showSnack(
+                                        context,
+                                        'No pudimos guardar el cambio.',
+                                        error: true,
+                                      );
+                                    }
                                   },
                                 ),
                               ],
@@ -185,7 +207,18 @@ class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
                                 Switch(
                                   key: Key('soldout-${d.id}'),
                                   value: d.soldOut,
-                                  onChanged: (v) => catalog.setSoldOut(d, v),
+                                  onChanged: (v) async {
+                                    try {
+                                      await catalog.setSoldOut(d, v);
+                                    } on Object {
+                                      if (!context.mounted) return;
+                                      showSnack(
+                                        context,
+                                        'No pudimos guardar el cambio.',
+                                        error: true,
+                                      );
+                                    }
+                                  },
                                 ),
                               ],
                             ),
@@ -212,9 +245,19 @@ class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
                                   destructive: true,
                                 );
                                 if (ok) {
-                                  catalog.deleteDish(d.id);
-                                  if (context.mounted) {
-                                    showSnack(context, 'Producto eliminado');
+                                  try {
+                                    await catalog.deleteDish(d.id);
+                                    if (context.mounted) {
+                                      showSnack(context, 'Producto eliminado');
+                                    }
+                                  } on Object {
+                                    if (context.mounted) {
+                                      showSnack(
+                                        context,
+                                        'No pudimos eliminar el producto.',
+                                        error: true,
+                                      );
+                                    }
                                   }
                                 }
                               },

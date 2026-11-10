@@ -16,6 +16,7 @@ const Map<OrderStatus, Set<OrderStatus>> kAllowedTransitions = {
   OrderStatus.cancelled: {},
 };
 
+/// Indica si el pedido puede pasar de un estado a otro.
 bool canTransition(OrderStatus from, OrderStatus to) =>
     kAllowedTransitions[from]!.contains(to);
 
@@ -28,11 +29,14 @@ int courierPayFor(double km) {
   return math.max(4500, (raw / 100).round() * 100);
 }
 
+/// Genera el código de entrega de cuatro dígitos.
 String fourDigitCode(math.Random rnd) => (1000 + rnd.nextInt(9000)).toString();
 
+/// Valida el código de entrega que ingresa el comprador.
 bool validateDeliveryCode(Order order, String input) =>
     input.trim() == order.deliveryCode;
 
+/// Indica si hay una foto o evidencia de entrega válida.
 bool validateEvidence(String? evidence) =>
     evidence != null && evidence.trim().isNotEmpty;
 
@@ -40,6 +44,7 @@ bool validateEvidence(String? evidence) =>
 bool courierCanTake(Order order, Vehicle vehicle) =>
     order.distanceKm <= vehicle.maxKm;
 
+/// Resumen de ganancias del repartidor en un periodo.
 class CourierEarnings {
   const CourierEarnings({
     required this.deliveries,
@@ -51,10 +56,13 @@ class CourierEarnings {
   final int gross;
   final int tips;
 
+  /// Comisión que retiene Biffy sobre la ganancia bruta.
   int get biffyFee => (gross * kBiffyFeeRate).round();
+  /// Ganancia neta del repartidor con propinas y comisión descontada.
   int get net => gross - biffyFee + tips;
 }
 
+/// Calcula las ganancias de los pedidos entregados.
 CourierEarnings computeEarnings(Iterable<Order> delivered) {
   var gross = 0, tips = 0, n = 0;
   for (final o in delivered) {
@@ -73,6 +81,7 @@ const kCourierGoals = <(int deliveries, int bonus)>[
   (10, 25000),
 ];
 
+/// Producto más vendido con su cantidad e ingresos.
 class TopProduct {
   const TopProduct(this.name, this.qty, this.revenue);
   final String name;
@@ -80,6 +89,7 @@ class TopProduct {
   final int revenue;
 }
 
+/// Métricas del negocio calculadas a partir de sus pedidos.
 class RestaurantMetrics {
   const RestaurantMetrics({
     required this.salesToday,
@@ -107,7 +117,9 @@ class RestaurantMetrics {
   final Map<String, int> salesByBranch;
   final List<TopProduct> topProducts;
 
+  /// Pedidos aceptados: total menos nuevos y rechazados.
   int get acceptedCount => ordersTotal - newCount - rejectedCount;
+  /// Ticket promedio por pedido aceptado.
   int get averageTicket => acceptedCount == 0 ? 0 : salesTotal ~/ acceptedCount;
 }
 
