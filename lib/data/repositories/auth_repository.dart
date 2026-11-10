@@ -52,6 +52,30 @@ abstract class AuthRepository {
 
   /// Perfil de repartidor (solo rol `courier`). `null` en la demo.
   Future<CourierProfile?> courierProfile(String userId);
+
+  /// Universidad verificada según el servidor (`profiles.verified`), o `null`.
+  /// El servidor la usa para el descuento de campus, así que es la fuente de
+  /// verdad. En la demo siempre `null`.
+  Future<String?> verifiedUniversity(String userId);
+
+  /// Verifica el correo universitario con el RPC `verify_university`.
+  /// Devuelve el `result` del servidor: `ok`, `domain_mismatch`,
+  /// `unknown_university`, `not_authenticated` o `network`.
+  Future<String> verifyUniversity(String universityId, String email);
+
+  /// Guarda (crea o actualiza) una dirección en la cuenta y devuelve la fila
+  /// con su uuid real. `null` en la demo (no hay servidor). Lanza si falla.
+  Future<Address?> saveAddress(
+    String userId,
+    Address address, {
+    required bool makeDefault,
+  });
+
+  /// Borra (lógicamente) una dirección de la cuenta. Lanza si falla.
+  Future<void> deleteAddress(String userId, String addressId);
+
+  /// Marca una dirección como principal. Lanza si falla.
+  Future<void> setDefaultAddress(String userId, String addressId);
 }
 
 class InMemoryAuthRepository implements AuthRepository {
@@ -160,4 +184,24 @@ class InMemoryAuthRepository implements AuthRepository {
 
   @override
   Future<CourierProfile?> courierProfile(String userId) async => null;
+
+  @override
+  Future<String?> verifiedUniversity(String userId) async => null;
+
+  @override
+  Future<String> verifyUniversity(String universityId, String email) async =>
+      'ok';
+
+  @override
+  Future<Address?> saveAddress(
+    String userId,
+    Address address, {
+    required bool makeDefault,
+  }) async => null;
+
+  @override
+  Future<void> deleteAddress(String userId, String addressId) async {}
+
+  @override
+  Future<void> setDefaultAddress(String userId, String addressId) async {}
 }

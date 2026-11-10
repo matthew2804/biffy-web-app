@@ -117,11 +117,12 @@ class _CampusScreenState extends State<CampusScreen> {
                       PrimaryButton(
                         key: const Key('uni-verify'),
                         label: 'Verificar (simulado)',
-                        onPressed: () {
-                          final r = session.verifyUniversity(
+                        onPressed: () async {
+                          final r = await session.verifyUniversityAsync(
                             uniId,
                             _email.text,
                           );
+                          if (!context.mounted) return;
                           setState(() {
                             _error = switch (r) {
                               VerifyResult.ok => null,
@@ -131,6 +132,8 @@ class _CampusScreenState extends State<CampusScreen> {
                                 'El correo debe terminar en @${uni.domain}',
                               VerifyResult.notLoggedIn =>
                                 'Inicia sesión primero',
+                              VerifyResult.unavailable =>
+                                'Sin conexión. Intenta de nuevo.',
                             };
                           });
                           if (r == VerifyResult.ok) {

@@ -85,8 +85,18 @@ class AddressesScreen extends StatelessWidget {
                                 if (a.id != def)
                                   Flexible(
                                     child: TextButton(
-                                      onPressed: () {
-                                        session.setDefaultAddress(a.id);
+                                      onPressed: () async {
+                                        final ok = await session
+                                            .setDefaultAddressAsync(a.id);
+                                        if (!context.mounted) return;
+                                        if (!ok) {
+                                          showSnack(
+                                            context,
+                                            'No pudimos cambiar tu dirección principal. Revisa tu conexión.',
+                                            error: true,
+                                          );
+                                          return;
+                                        }
                                         session.setPoint(a.pointId);
                                         showSnack(
                                           context,
@@ -118,7 +128,17 @@ class AddressesScreen extends StatelessWidget {
                                       confirm: 'Eliminar',
                                       destructive: true,
                                     );
-                                    if (ok) session.deleteAddress(a.id);
+                                    if (!ok || !context.mounted) return;
+                                    final done = await session
+                                        .deleteAddressAsync(a.id);
+                                    if (!context.mounted) return;
+                                    if (!done) {
+                                      showSnack(
+                                        context,
+                                        'No pudimos eliminar la dirección. Revisa tu conexión.',
+                                        error: true,
+                                      );
+                                    }
                                   },
                                 ),
                               ],
@@ -254,7 +274,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
               PrimaryButton(
                 key: const Key('addr-save'),
                 label: 'Guardar dirección',
-                onPressed: () {
+                onPressed: () async {
                   if (!_form.currentState!.validate()) return;
                   final a = Address(
                     id: _orig?.id ?? '',
@@ -265,7 +285,19 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                     reference: _ref.text.trim(),
                     pointId: _pointId,
                   );
-                  _session.saveAddress(a, makeDefault: _default);
+                  final saved = await _session.saveAddressAsync(
+                    a,
+                    makeDefault: _default,
+                  );
+                  if (!context.mounted) return;
+                  if (saved == null) {
+                    showSnack(
+                      context,
+                      'No pudimos guardar la dirección. Revisa tu conexión e intenta de nuevo.',
+                      error: true,
+                    );
+                    return;
+                  }
                   if (_default) _session.setPoint(_pointId);
                   showSnack(context, 'Dirección guardada');
                   context.pop();

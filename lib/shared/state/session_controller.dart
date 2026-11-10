@@ -52,7 +52,15 @@ const kBenefits = [
   ),
 ];
 
-enum VerifyResult { ok, invalidEmail, domainMismatch, notLoggedIn }
+enum VerifyResult {
+  ok,
+  invalidEmail,
+  domainMismatch,
+  notLoggedIn,
+
+  /// El servidor no respondió (sin conexión).
+  unavailable,
+}
 
 /// Sesión simulada: usuario, rol activo, datos personales y preferencias.
 class SessionController extends ChangeNotifier {
@@ -240,6 +248,14 @@ class SessionController extends ChangeNotifier {
       d.welcomeGranted = true;
     }
 
+    // El servidor aplica el descuento de campus según `profiles.verified`: la
+    // app debe calcular con el mismo dato o `place_order` rechazará el total.
+    if (_auth.isRemote) {
+      d.verifiedUniversityId = await _auth.verifiedUniversity(u.id);
+      final uni = d.verifiedUniversityId;
+      if (uni != null) d.prefs = d.prefs.copyWith(universityId: uni);
+    }
+
     // Las direcciones del backend fijan el punto de entrega (regla de radio).
     if (saved.isNotEmpty) {
       d.addresses
@@ -337,12 +353,35 @@ class SessionController extends ChangeNotifier {
     return VerifyResult.ok;
   }
 
+  /// Igual que [verifyUniversity], pero con servidor la verificación la hace
+  /// el RPC `verify_university` (valida el dominio del correo en la base).
+  Future<VerifyResult> verifyUniversityAsync(
+    String universityId,
+    String email,
+  ) async {
+    if (!_auth.isRemote) return verifyUniversity(universityId, email);
+    if (!isLoggedIn) return VerifyResult.notLoggedIn;
+    final e = email.trim().toLowerCase();
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(e)) {
+      return VerifyResult.invalidEmail;
+    }
+    final code = await _auth.verifyUniversity(universityId, e);
+    if (code == 'domain_mismatch' || code == 'unknown_university') {
+      return VerifyResult.domainMismatch;
+    }
+    if (code != 'ok') return VerifyResult.unavailable;
+    return verifyUniversity(universityId, e); // refleja el resultado en local
+  }
+
   void setUniversity(String? universityId) {
     final d = data;
     d.prefs = universityId == null
         ? d.prefs.copyWith(clearUniversity: true)
         : d.prefs.copyWith(universityId: universityId);
-    if (d.verifiedUniversityId != null &&
+    // Con servidor la verificación la decide la base de datos; elegir otra
+    // universidad en preferencias no la revoca.
+    if (!_auth.isRemote &&
+        d.verifiedUniversityId != null &&
         d.verifiedUniversityId != universityId) {
       d.verifiedUniversityId = null;
     }
@@ -371,8 +410,6 @@ class SessionController extends ChangeNotifier {
   // ------------------------------------------------------ Direcciones
 
   Address saveAddress(Address a, {bool makeDefault = false}) {
-    final list = data.addresses;
-    final i = list.indexWhere((x) => x.id == a.id);
     final saved = a.id.isEmpty
         ? Address(
             id: _id('addr'),
@@ -384,6 +421,40 @@ class SessionController extends ChangeNotifier {
             pointId: a.pointId,
           )
         : a;
+    return _storeAddress(saved, makeDefault: makeDefault);
+  }
+
+  /// Guarda la dirección en la cuenta (con servidor) antes de mostrarla: así
+  /// su id es el uuid real y `place_order` la reconoce. Devuelve `null` si el
+  /// servidor no pudo guardarla.
+  Future<Address?> saveAddressAsync(
+    Address a, {
+    bool makeDefault = false,
+  }) async {
+    final u = _user;
+    if (u == null || !_auth.isRemote) {
+      return saveAddress(a, makeDefault: makeDefault);
+    }
+    try {
+      final remote = await _auth.saveAddress(
+        u.id,
+        a,
+        makeDefault: makeDefault || data.defaultAddressId == null,
+      );
+      if (remote == null) return null;
+      // Una dirección local antigua (sin uuid) se reemplaza por la del servidor.
+      if (a.id.isNotEmpty && a.id != remote.id) {
+        data.addresses.removeWhere((x) => x.id == a.id);
+      }
+      return _storeAddress(remote, makeDefault: makeDefault);
+    } on Object {
+      return null;
+    }
+  }
+
+  Address _storeAddress(Address saved, {required bool makeDefault}) {
+    final list = data.addresses;
+    final i = list.indexWhere((x) => x.id == saved.id);
     if (i >= 0) {
       list[i] = saved;
     } else {
@@ -406,9 +477,37 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Borra la dirección en la cuenta y luego en local. `false` si falló.
+  Future<bool> deleteAddressAsync(String id) async {
+    final u = _user;
+    if (u != null && _auth.isRemote) {
+      try {
+        await _auth.deleteAddress(u.id, id);
+      } on Object {
+        return false;
+      }
+    }
+    deleteAddress(id);
+    return true;
+  }
+
   void setDefaultAddress(String id) {
     data.defaultAddressId = id;
     notifyListeners();
+  }
+
+  /// Marca la principal en la cuenta y luego en local. `false` si falló.
+  Future<bool> setDefaultAddressAsync(String id) async {
+    final u = _user;
+    if (u != null && _auth.isRemote) {
+      try {
+        await _auth.setDefaultAddress(u.id, id);
+      } on Object {
+        return false;
+      }
+    }
+    setDefaultAddress(id);
+    return true;
   }
 
   Address? addressById(String? id) {

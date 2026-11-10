@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+export '../../../core/utils/ids.dart' show isUuid;
+
 import '../../entities/address.dart';
 import '../../entities/cart.dart';
 import '../../entities/catalog.dart';
@@ -42,9 +44,3 @@ String newClientKey() {
   ).join();
 }
 
-final _uuidPattern = RegExp(
-  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-);
-
-/// `true` si [value] es un uuid (así se identifican las filas del servidor).
-bool isUuid(String value) => _uuidPattern.hasMatch(value);

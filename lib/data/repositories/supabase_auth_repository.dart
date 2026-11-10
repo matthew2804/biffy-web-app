@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../core/utils/ids.dart';
 import '../models/address.dart';
 import '../models/user.dart';
 import 'auth_repository.dart';
@@ -135,6 +136,112 @@ class SupabaseAuthRepository implements AuthRepository {
       return const [];
     }
   }
+
+  @override
+  Future<String?> verifiedUniversity(String userId) async {
+    try {
+      final row = await _client
+          .from('profiles')
+          .select('verified, university_id')
+          .eq('id', userId)
+          .maybeSingle();
+      if (row == null || row['verified'] != true) return null;
+      return row['university_id'] as String?;
+    } on Object {
+      return null;
+    }
+  }
+
+  @override
+  Future<String> verifyUniversity(String universityId, String email) async {
+    try {
+      final res = await _client.rpc(
+        'verify_university',
+        params: {
+          'p_payload': {'university_id': universityId, 'email': email},
+        },
+      );
+      return res is Map ? (res['result'] as String? ?? 'network') : 'network';
+    } on Object {
+      return 'network';
+    }
+  }
+
+  @override
+  Future<Address?> saveAddress(
+    String userId,
+    Address address, {
+    required bool makeDefault,
+  }) async {
+    final fields = <String, dynamic>{
+      'label': address.label,
+      'line': address.line,
+      'details': address.details,
+      'neighborhood': address.neighborhood,
+      'reference': address.reference,
+      'point_id': address.pointId,
+    };
+    // Solo puede haber una principal por usuario (índice único parcial).
+    if (makeDefault) await _clearDefault(userId);
+    if (makeDefault) fields['is_default'] = true;
+
+    final Map<String, dynamic> row;
+    if (isUuid(address.id)) {
+      row = await _client
+          .from('addresses')
+          .update(fields)
+          .eq('id', address.id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+    } else {
+      row = await _client
+          .from('addresses')
+          .insert({...fields, 'user_id': userId})
+          .select()
+          .single();
+    }
+    return Address(
+      id: row['id'] as String,
+      label: (row['label'] as String?) ?? '',
+      line: (row['line'] as String?) ?? '',
+      details: (row['details'] as String?) ?? '',
+      neighborhood: (row['neighborhood'] as String?) ?? '',
+      reference: (row['reference'] as String?) ?? '',
+      pointId: (row['point_id'] as String?) ?? address.pointId,
+    );
+  }
+
+  @override
+  Future<void> deleteAddress(String userId, String addressId) async {
+    if (!isUuid(addressId)) return; // nunca llegó al servidor
+    await _client
+        .from('addresses')
+        .update({
+          'deleted_at': DateTime.now().toUtc().toIso8601String(),
+          'is_default': false,
+        })
+        .eq('id', addressId)
+        .eq('user_id', userId);
+  }
+
+  @override
+  Future<void> setDefaultAddress(String userId, String addressId) async {
+    if (!isUuid(addressId)) return;
+    await _clearDefault(userId);
+    await _client
+        .from('addresses')
+        .update({'is_default': true})
+        .eq('id', addressId)
+        .eq('user_id', userId);
+  }
+
+  Future<void> _clearDefault(String userId) => _client
+      .from('addresses')
+      .update({'is_default': false})
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .filter('deleted_at', 'is', null);
 
   @override
   Future<CourierProfile?> courierProfile(String userId) async {
