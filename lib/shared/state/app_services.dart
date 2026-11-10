@@ -12,6 +12,7 @@ import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/review_repository_impl.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/supabase_catalog_repository.dart';
+import '../../data/repositories/supabase_notification_repository.dart';
 import '../../data/repositories/supabase_order_repository.dart';
 import '../../data/repositories/supabase_profile_repository.dart';
 import '../../data/repositories/supabase_rewards_repository.dart';
@@ -100,16 +101,18 @@ class AppServices {
     final orderStore = orderRepo ?? await SupabaseOrderRepository.load();
     final profileRepo = SupabaseProfileRepository();
     final rewardsRepo = SupabaseRewardsRepository();
+    final notificationsRepo = SupabaseNotificationRepository();
     final notifications = NotificationCenter(
       c,
-      persist: profileRepo.saveNotification,
-      onRead: profileRepo.markNotificationRead,
+      persist: notificationsRepo.save,
+      onRead: notificationsRepo.markRead,
     );
     final session = SessionController(
       remoteAuth,
       notifications,
       c,
       profile: profileRepo,
+      notificationsRepo: notificationsRepo,
     );
     final catalog = CatalogController(repo, session, c);
     final cart = CartController(repo);

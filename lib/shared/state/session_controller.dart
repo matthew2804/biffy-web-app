@@ -3,10 +3,12 @@ import 'package:flutter/foundation.dart';
 import '../../core/constants/catalog_constants.dart';
 import '../../core/utils/clock.dart';
 import '../../data/models/address.dart';
+import '../../data/models/app_notification.dart';
 import '../../data/models/catalog.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/supabase_profile_repository.dart';
+import '../../domain/repositories/notification_repository.dart';
 import 'notification_center.dart';
 
 /// Beneficio canjeable con Gotas (valores de demostración).
@@ -73,7 +75,9 @@ class SessionController extends ChangeNotifier {
     this._notifications,
     this._clock, {
     SupabaseProfileRepository? profile,
-  }) : _profile = profile; // ignore: prefer_initializing_formals
+    NotificationRepository? notificationsRepo,
+  }) : _profile = profile, // ignore: prefer_initializing_formals
+       _notificationsRepo = notificationsRepo; // ignore: prefer_initializing_formals
 
   final AuthRepository _auth;
   final NotificationCenter _notifications;
@@ -81,6 +85,9 @@ class SessionController extends ChangeNotifier {
 
   /// Repositorio de datos personales; null en modo demo.
   final SupabaseProfileRepository? _profile;
+
+  /// Avisos guardados en la base; `null` en modo demo.
+  final NotificationRepository? _notificationsRepo;
 
   /// Cancela la escucha de avisos en Realtime del usuario actual.
   void Function()? _stopNotifications;
@@ -345,7 +352,9 @@ class SessionController extends ChangeNotifier {
       final favsF = profile.favorites(u.id);
       final settingsF = profile.settings(u.id);
       final couponsF = profile.coupons(u.id);
-      final notifsF = profile.notifications(u.id);
+      final notifsF =
+          _notificationsRepo?.forUser(u.id) ??
+          Future.value(const <AppNotification>[]);
       final verificationF = profile.verification(u.id);
 
       final p = await prefsF;
@@ -387,7 +396,7 @@ class SessionController extends ChangeNotifier {
       if (_watchingUserId != u.id) {
         _stopNotifications?.call();
         _watchingUserId = u.id;
-        _stopNotifications = profile.watchNotifications(
+        _stopNotifications = _notificationsRepo?.watch(
           u.id,
           _notifications.upsert,
         );
