@@ -1,54 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../domain/order_rules.dart';
+import '../../../domain/usecases/get_courier_earnings.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
+import 'earnings_cubit.dart';
 
 /// Pantalla de ganancias del repartidor con historial, semana y metas.
 class EarningsScreen extends StatelessWidget {
   const EarningsScreen({super.key});
 
-  /// Calcula totales del día, la semana y las medallas por meta.
+  /// Crea el [EarningsCubit] del repartidor y pinta su resumen.
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionController>();
-    final orders = context.watch<OrderService>();
-    final now = context.read<CatalogController>().now;
-    final t = Theme.of(context).textTheme;
-    // Con Supabase todo sale de las entregas guardadas en la base.
-    final real = session.auth.isRemote;
-    final all = orders.deliveredBy(session.user!.id)
-      ..sort(
-        (a, b) => (b.deliveredAt ?? b.createdAt).compareTo(
-          a.deliveredAt ?? a.createdAt,
+    final session = context.read<SessionController>();
+    final catalog = context.read<CatalogController>();
+    return BlocProvider(
+      create: (_) => EarningsCubit(
+        orders: context.read<OrderService>(),
+        courierId: session.user!.id,
+        now: () => catalog.now,
+      ),
+      child: BlocBuilder<EarningsCubit, EarningsSummary>(
+        builder: (context, e) => _EarningsView(
+          summary: e,
+          now: catalog.now,
+          // Con Supabase todo sale de las entregas guardadas en la base.
+          real: session.auth.isRemote,
         ),
-      );
-    final today = computeEarnings(
-      all.where((o) => o.deliveredAt != null && sameDay(o.deliveredAt!, now)),
+      ),
     );
-    final total = computeEarnings(all);
-    final daysToMonday = (8 - now.weekday) % 7 == 0 ? 7 : (8 - now.weekday) % 7;
-    final settlement = now.add(Duration(days: daysToMonday));
-    // Neto de cada uno de los últimos 7 días (el último es hoy), con las entregas reales.
-    final week = [
-      for (var i = 6; i >= 0; i--)
-        (
-          day: now.subtract(Duration(days: i)),
-          net: computeEarnings(
-            all.where(
-              (o) =>
-                  o.deliveredAt != null &&
-                  sameDay(o.deliveredAt!, now.subtract(Duration(days: i))),
-            ),
-          ).net,
-        ),
-    ];
+  }
+}
+
+/// Cuerpo de la pantalla: solo dibuja el [EarningsSummary].
+class _EarningsView extends StatelessWidget {
+  const _EarningsView({
+    required this.summary,
+    required this.now,
+    required this.real,
+  });
+
+  final EarningsSummary summary;
+  final DateTime now;
+  final bool real;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final today = summary.today;
+    final total = summary.total;
+    final settlement = summary.settlement;
+    final week = summary.week;
+    final all = summary.history;
 
     return Scaffold(
       body: SafeArea(
