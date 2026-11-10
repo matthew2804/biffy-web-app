@@ -4,7 +4,7 @@ import 'package:biffy/data/mock/seed_users.dart';
 import 'package:biffy/data/models/cart.dart';
 import 'package:biffy/data/models/catalog.dart';
 import 'package:biffy/data/models/order.dart';
-import 'package:biffy/shared/state/order_service.dart';
+import 'package:biffy/domain/usecases/orders/checkout_draft.dart';
 import 'package:biffy/core/utils/clock.dart';
 import 'package:biffy/shared/state/app_services.dart';
 import 'package:flutter/material.dart';
@@ -70,9 +70,13 @@ Future<void> tapVisible(WidgetTester tester, Finder finder) async {
 }
 
 /// Diego (demo) pide un Qbano Especial con extra queso, pago en efectivo.
-Order placeQbano(AppServices s, {int qty = 1, bool useGotas = false}) {
+Future<Order> placeQbano(
+  AppServices s, {
+  int qty = 1,
+  bool useGotas = false,
+}) async {
   s.session.login(kDemoBuyerEmail, kDemoPassword);
-  return s.orders.placeOrder(
+  final result = await s.orders.useCases.placeOrder(
     CheckoutDraft(
       buyer: s.session.user,
       restaurant: s.catalog.restaurantById('qbano-icesi'),
@@ -93,6 +97,8 @@ Order placeQbano(AppServices s, {int qty = 1, bool useGotas = false}) {
       tip: TipOption.ten,
     ),
   );
+  if (!result.ok) throw StateError('No se pudo crear el pedido: ${result.message}');
+  return result.order!;
 }
 
 /// Espera a que se oculten los SnackBar flotantes (duran 2 s).

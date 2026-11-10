@@ -1,7 +1,6 @@
 import 'package:biffy/data/models/order.dart';
 import 'package:biffy/domain/order_rules.dart';
 import 'package:biffy/shared/state/app_services.dart';
-import 'package:biffy/shared/state/order_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -128,8 +127,11 @@ Future<void> runFullOrderFlow(WidgetTester tester, AppServices s) async {
     isNot(contains(order.id)),
   );
   expect(
-    s.orders.courierAccept(order.id, s.session.auth.byId('u-valentina')!),
-    CourierAcceptResult.alreadyAssigned,
+    (await s.orders.useCases.acceptOffer(
+      order.id,
+      s.session.auth.byId('u-valentina')!,
+    )).code,
+    'already_assigned',
   );
 
   // 17-19. Recogida con los tres checks → en camino.

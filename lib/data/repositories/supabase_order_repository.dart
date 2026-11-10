@@ -3,22 +3,34 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
-import '../models/address.dart';
-import '../models/cart.dart';
-import '../models/catalog.dart';
-import '../models/order.dart';
-import 'order_repository.dart';
+import '../../domain/entities/address.dart';
+import '../../domain/entities/cart.dart';
+import '../../domain/entities/catalog.dart';
+import '../../domain/entities/order.dart';
+import '../../domain/entities/user.dart';
+import '../../domain/repositories/order_repository.dart';
+import 'rpc_result.dart';
 
 /// Pedidos reales contra Supabase.
 ///
-/// Cache en memoria para que las pantallas sigan leyendo de forma síncrona;
-/// Realtime y cambios de sesión recargan y avisan a `OrderService`.
+/// Cache en memoria para que las pantallas sigan leyendo de forma síncrona.
+/// El servidor es la única fuente de verdad: cada RPC termina recargando la
+/// caché, Realtime y un sondeo de respaldo la mantienen al día, y al cerrar
+/// sesión se vacía.
 ///
-/// Las escrituras pasan por los RPC de `0003_functions.sql`: el estado local
-/// es optimista y se reconcilia con la base.
+/// Las escrituras pasan por los RPC de `0003`/`0012`; ninguna tabla de pedidos
+/// se escribe directo (RLS + privilegios revocados).
 class SupabaseOrderRepository implements OrderRepository {
-  /// Usa el cliente de Supabase indicado.
   SupabaseOrderRepository(this._client);
+
+  /// Tiempo máximo de un RPC antes de tratarlo como error de red. Si el
+  /// servidor sí lo procesó, la recarga siguiente lo refleja.
+  static const rpcTimeout = Duration(seconds: 20);
+
+  /// Respaldo cuando Realtime no entrega un evento (por ejemplo, una oferta
+  /// que otro repartidor tomó deja de ser visible para el resto y RLS no
+  /// emite un evento de salida).
+  static const pollInterval = Duration(seconds: 30);
 
   final sb.SupabaseClient _client;
   final List<Order> _orders = [];
@@ -26,11 +38,13 @@ class SupabaseOrderRepository implements OrderRepository {
 
   sb.RealtimeChannel? _channel;
   StreamSubscription<sb.AuthState>? _authSub;
+  Timer? _poll;
+  Future<void>? _refreshing;
+  bool _refreshAgain = false;
 
-  /// Emite cuando Realtime trae cambios.
+  @override
   Stream<void> get changes => _changes.stream;
 
-  /// Carga los pedidos, se suscribe a Realtime y devuelve el repositorio.
   static Future<SupabaseOrderRepository> load({
     sb.SupabaseClient? client,
   }) async {
@@ -42,11 +56,9 @@ class SupabaseOrderRepository implements OrderRepository {
 
   // ------------------------------------------------------------- Lectura
 
-  /// Pedidos en caché (solo lectura).
   @override
   List<Order> get all => List.unmodifiable(_orders);
 
-  /// Pedido por código o uuid.
   @override
   Order? byId(String id) {
     for (final o in _orders) {
@@ -55,23 +67,64 @@ class SupabaseOrderRepository implements OrderRepository {
     return null;
   }
 
-  /// `true` si el pedido ya está en la caché.
   @override
-  bool exists(String id) => byId(id) != null;
+  bool get isRemote => true;
 
-  /// Inserta un pedido local si no está repetido.
+  /// El servidor es el único origen de pedidos: no hay semillas.
   @override
-  void insert(Order order) {
+  void insertSeed(Order order) {}
+
+  void _insert(Order order) {
     if (order.dbId != null && byId(order.dbId!) != null) return;
     _orders.insert(0, order);
+    _emit();
   }
 
   /// Relee los pedidos visibles para el usuario (RLS decide cuáles).
-  Future<void> refresh() async {
+  ///
+  /// Nunca lanza. Las llamadas que llegan mientras hay una recarga en curso se
+  /// agrupan en una sola recarga posterior, para no pisar datos más nuevos
+  /// con una respuesta vieja.
+  @override
+  Future<void> refresh() {
+    final running = _refreshing;
+    if (running != null) {
+      _refreshAgain = true;
+      return running;
+    }
+    final run = _refreshLoop();
+    _refreshing = run;
+    return run.whenComplete(() => _refreshing = null);
+  }
+
+  Future<void> _refreshLoop() async {
+    do {
+      _refreshAgain = false;
+      await _refreshOnce();
+    } while (_refreshAgain);
+  }
+
+  Future<void> _refreshOnce() async {
+    if (_client.auth.currentSession == null) {
+      _clear();
+      return;
+    }
     try {
       final rows = await _client.from('orders').select();
       final items = await _client.from('order_items').select();
-      final events = await _client.from('order_events').select();
+      final events = await _client
+          .from('order_events')
+          .select()
+          .order('created_at', ascending: true);
+      final declines = await _client.from('order_declines').select();
+      // Sin la migración 0012 esta tabla no existe: los pedidos deben cargar
+      // igual (solo faltaría el código de entrega del comprador).
+      List<Map<String, dynamic>> secrets;
+      try {
+        secrets = await _client.from('order_secrets').select();
+      } on sb.PostgrestException {
+        secrets = const [];
+      }
 
       final itemsByOrder = <String, List<OrderLine>>{};
       for (final row in items) {
@@ -95,15 +148,33 @@ class SupabaseOrderRepository implements OrderRepository {
             );
       }
 
-      final incoming = rows
-          .map(
-            (row) => _order(
-              row,
-              itemsByOrder[row['id'] as String] ?? const [],
-              eventsByOrder[row['id'] as String] ?? const [],
-            ),
-          )
-          .toList();
+      // Solo el comprador recibe filas aquí (RLS): el repartidor nunca ve el
+      // código de entrega, así que no puede validarlo por su cuenta.
+      final codeByOrder = <String, String>{
+        for (final row in secrets)
+          if (row['order_id'] is String && row['delivery_code'] is String)
+            row['order_id'] as String: row['delivery_code'] as String,
+      };
+
+      final declinedByOrder = <String, Set<String>>{};
+      for (final row in declines) {
+        final orderId = row['order_id'] as String?;
+        final courierId = row['courier_id'] as String?;
+        if (orderId == null || courierId == null) continue;
+        declinedByOrder.putIfAbsent(orderId, () => {}).add(courierId);
+      }
+
+      final incoming = rows.map((row) {
+        final id = row['id'] as String;
+        final order = _order(
+          row,
+          itemsByOrder[id] ?? const [],
+          eventsByOrder[id] ?? const [],
+          deliveryCode: codeByOrder[id],
+        );
+        order.declinedBy.addAll(declinedByOrder[id] ?? const {});
+        return order;
+      }).toList();
 
       _merge(incoming);
     } on Object {
@@ -111,7 +182,12 @@ class SupabaseOrderRepository implements OrderRepository {
     }
   }
 
-  /// Fusiona lo remoto con lo local conservando objetos vivos.
+  void _clear() {
+    if (_orders.isEmpty) return;
+    _orders.clear();
+    _emit();
+  }
+
   void _merge(List<Order> incoming) {
     final byDbId = <String, Order>{
       for (final o in _orders)
@@ -133,13 +209,15 @@ class SupabaseOrderRepository implements OrderRepository {
       existing.evidence = fresh.evidence;
       existing.deliveredAt = fresh.deliveredAt;
       existing.gotasCredited = fresh.gotasCredited;
+      existing.declinedBy.addAll(fresh.declinedBy);
       existing.history
         ..clear()
         ..addAll(fresh.history);
       result.add(existing);
     }
 
-    // Pedidos locales que aún no se sincronizaron.
+    // Lo que ya no llega (p. ej. una oferta que tomó otro repartidor) se
+    // descarta: el servidor manda. Solo se conservan pedidos sin `dbId`.
     for (final o in _orders) {
       if (o.dbId == null) result.add(o);
     }
@@ -148,59 +226,159 @@ class SupabaseOrderRepository implements OrderRepository {
     _orders
       ..clear()
       ..addAll(result);
+    _emit();
+  }
+
+  void _emit() {
     if (!_changes.isClosed) _changes.add(null);
   }
 
   // ------------------------------------------------------------ Escritura
 
-  /// Crea el pedido en la base. Devuelve el uuid o el motivo del rechazo.
-  ///
-  /// Reintenta hasta 3 veces si falla la red: la `client_key` hace que el
-  /// servidor devuelva el mismo pedido en vez de duplicarlo.
-  Future<({String? id, String? error})> place(
-    Map<String, dynamic> payload,
-  ) async {
-    for (var attempt = 1; attempt <= 3; attempt++) {
-      try {
-        final res = await _client.rpc(
-          'place_order',
-          params: {'p_payload': payload},
-        );
-        final map = res is Map ? res : const {};
-        if (map['result'] != 'ok') {
-          return (id: null, error: map['result'] as String?);
-        }
-        final order = map['order'];
-        return (
-          id: order is Map ? order['id'] as String? : null,
-          error: null,
-        );
-      } on Object {
-        if (attempt == 3) return (id: null, error: 'network');
-        await Future<void>.delayed(Duration(milliseconds: 400 * attempt));
-      }
+  /// Crea el pedido en la base. El servidor recalcula precios, descuentos y
+  /// tarifa; si el comprador vio un total distinto, lo rechaza.
+  @override
+  Future<OrderResult> place(PlaceOrderRequest request) async {
+    final res = await _rpc('place_order', {
+      'p_payload': _placePayload(request),
+    }, reload: false);
+    final row = res.order;
+    if (!res.ok || row == null) {
+      if (!res.ok && _isTransport(res.code)) unawaited(refresh());
+      return OrderResult(res.code, data: res.data);
     }
-    return (id: null, error: 'network');
+    final order = _order(row, request.lines, const []);
+    _insert(order);
+    unawaited(refresh());
+    return OrderResult.ok(order);
   }
 
-  /// Ejecuta una transición; el estado se reconcilia con Realtime.
-  Future<void> call(String fn, Map<String, dynamic> params) async {
-    try {
-      await _client.rpc(fn, params: params);
-    } on Object {
-      // Si falla, la próxima recarga corrige el estado local.
+  /// Lo que el comprador pide y lo que cree que va a pagar. El servidor
+  /// recalcula todo y rechaza si no coincide.
+  Map<String, dynamic> _placePayload(PlaceOrderRequest r) => {
+    'client_key': r.clientKey,
+    'branch_id': r.restaurant.id,
+    'address_id': r.address.serverId,
+    'payment': r.payment.name,
+    'lines': [
+      for (final l in r.lines)
+        {
+          'dish_id': l.dishId,
+          'qty': l.qty,
+          'selection': {
+            'sizeId': l.selection.sizeId,
+            'sideId': l.selection.sideId,
+            'extraIds': l.selection.extraIds.toList(),
+            'removed': l.selection.removed.toList(),
+          },
+          'detail': l.detail,
+          'note': l.note,
+        },
+    ],
+    'subtotal': r.totals.subtotal,
+    'total': r.totals.total,
+    'gotas_used': r.totals.gotasUsed,
+    'tip': r.totals.tip,
+    'restaurant_note': r.restaurantNote,
+    if (r.scheduledFor != null)
+      // En UTC con zona explícita: sin ella Postgres la toma como UTC.
+      'scheduled_for': r.scheduledFor!.toUtc().toIso8601String(),
+    if (r.couponId != null) 'coupon_id': r.couponId,
+  };
+
+  static bool _isTransport(String code) =>
+      code == 'network' || code == 'server_error' || code == 'upload_failed';
+
+  /// Transición por RPC. Al volver, la caché ya fue reconciliada.
+  Future<OrderResult> _command(
+    String fn,
+    String orderId, [
+    Map<String, dynamic> extra = const {},
+  ]) async {
+    final o = byId(orderId);
+    if (o == null) return const OrderResult('not_found');
+    final dbId = o.dbId;
+    if (dbId == null) return const OrderResult('not_synced');
+    final res = await _rpc(fn, {'p_order': dbId, ...extra});
+    return OrderResult(res.code, order: byId(orderId), data: res.data);
+  }
+
+  @override
+  Future<OrderResult> accept(String orderId) =>
+      _command('restaurant_accept', orderId);
+
+  @override
+  Future<OrderResult> reject(String orderId, String reason) =>
+      _command('restaurant_reject', orderId, {'p_reason': reason});
+
+  @override
+  Future<OrderResult> markReady(String orderId) =>
+      _command('restaurant_ready', orderId);
+
+  @override
+  Future<OrderResult> cancelByBuyer(String orderId) =>
+      _command('buyer_cancel', orderId);
+
+  @override
+  Future<OrderResult> acceptOffer(
+    String orderId,
+    AppUser courier, {
+    Vehicle? vehicle,
+  }) => _command('courier_accept', orderId);
+
+  @override
+  Future<OrderResult> declineOffer(String orderId, String courierId) async {
+    final o = byId(orderId);
+    if (o == null) return const OrderResult('not_found');
+    // La oferta se oculta al instante; si el servidor no la registra, vuelve.
+    o.declinedBy.add(courierId);
+    _emit();
+    final res = await _command('courier_decline', orderId);
+    if (!res.ok) {
+      o.declinedBy.remove(courierId);
+      _emit();
     }
+    return res;
+  }
+
+  @override
+  Future<OrderResult> confirmPickup(String orderId, String courierId) =>
+      _command('courier_pickup', orderId);
+
+  Future<RpcResult> _rpc(
+    String fn,
+    Map<String, dynamic> params, {
+    bool reload = true,
+  }) async {
+    RpcResult result;
+    try {
+      final res = await _client.rpc(fn, params: params).timeout(rpcTimeout);
+      result = RpcResult.fromJson(res);
+    } on sb.PostgrestException {
+      // Función inexistente, permisos o error interno: no es un resultado de
+      // negocio, así que no se expone el mensaje crudo.
+      result = const RpcResult('server_error');
+    } on TimeoutException {
+      result = const RpcResult('network');
+    } on Object {
+      result = const RpcResult('network');
+    }
+    // Pase lo que pase, el servidor tiene la última palabra sobre el estado.
+    if (reload || !result.ok) await refresh();
+    return result;
   }
 
   /// Sube la evidencia al bucket privado y confirma la entrega.
-  Future<void> deliver(
-    Order order,
+  @override
+  Future<OrderResult> deliver(
+    String orderId,
+    String courierId,
     String code,
     String? evidence,
     Uint8List? bytes,
   ) async {
-    final dbId = order.dbId;
-    if (dbId == null) return;
+    final dbId = byId(orderId)?.dbId;
+    if (dbId == null) return const OrderResult('not_synced');
 
     var reference = evidence ?? '';
     if (bytes != null && bytes.isNotEmpty) {
@@ -215,12 +393,12 @@ class SupabaseOrderRepository implements OrderRepository {
             );
         reference = path;
       } on Object {
-        // Si la subida falla, se conserva la referencia local.
+        // Sin foto en el servidor no hay entrega: se avisa en vez de seguir.
+        return const OrderResult('upload_failed');
       }
     }
 
-    await call('courier_deliver', {
-      'p_order': dbId,
+    return _command('courier_deliver', orderId, {
       'p_code': code,
       'p_evidence': reference,
     });
@@ -228,7 +406,6 @@ class SupabaseOrderRepository implements OrderRepository {
 
   // ------------------------------------------------------------ Realtime
 
-  /// Abre el canal de Realtime y escucha los cambios de sesión.
   void _subscribe() {
     try {
       _channel = _client
@@ -237,28 +414,24 @@ class SupabaseOrderRepository implements OrderRepository {
             event: sb.PostgresChangeEvent.all,
             schema: 'public',
             table: 'orders',
-            callback: (_) => _reload(),
+            callback: (_) => refresh(),
           )
           .onPostgresChanges(
             event: sb.PostgresChangeEvent.all,
             schema: 'public',
             table: 'order_events',
-            callback: (_) => _reload(),
+            callback: (_) => refresh(),
           )
           .subscribe();
     } on Object {
-      // Realtime es opcional.
+      // Realtime es opcional: el sondeo mantiene la caché al día.
     }
-    _authSub = _client.auth.onAuthStateChange.listen((_) => _reload());
+    _authSub = _client.auth.onAuthStateChange.listen((_) => refresh());
+    _poll = Timer.periodic(pollInterval, (_) => refresh());
   }
 
-  /// Recarga los pedidos desde la base.
-  Future<void> _reload() async {
-    await refresh();
-  }
-
-  /// Libera el canal de Realtime y el stream de cambios.
   Future<void> dispose() async {
+    _poll?.cancel();
     await _authSub?.cancel();
     final channel = _channel;
     if (channel != null) {
@@ -270,12 +443,12 @@ class SupabaseOrderRepository implements OrderRepository {
 
   // --------------------------------------------------------------- Mapeo
 
-  /// Convierte una fila de `orders` al modelo.
   static Order _order(
     Map<String, dynamic> row,
     List<OrderLine> lines,
-    List<StatusEvent> events,
-  ) {
+    List<StatusEvent> events, {
+    String? deliveryCode,
+  }) {
     final snapshot = row['address_snapshot'];
     final address = Address(
       id: (snapshot is Map ? snapshot['id'] as String? : null) ?? '',
@@ -288,6 +461,10 @@ class SupabaseOrderRepository implements OrderRepository {
           (snapshot is Map ? snapshot['reference'] as String? : null) ?? '',
       pointId: (snapshot is Map ? snapshot['point_id'] as String? : null) ?? '',
     );
+
+    // El código de entrega vive en `order_secrets`; `place_order` lo devuelve
+    // dentro de `order` solo a quien creó el pedido.
+    final code = deliveryCode ?? (row['delivery_code'] as String?) ?? '';
 
     final order = Order(
       id: (row['code'] as String?) ?? (row['id'] as String),
@@ -309,7 +486,7 @@ class SupabaseOrderRepository implements OrderRepository {
       gotasUsed: _int(row['gotas_used']),
       tip: _int(row['tip']),
       total: _int(row['total']),
-      deliveryCode: (row['delivery_code'] as String?) ?? '0000',
+      deliveryCode: code,
       pickupCode: (row['pickup_code'] as String?) ?? '',
       etaMin: _int(row['eta_min']),
       courierPay: _int(row['courier_pay']),
@@ -325,14 +502,15 @@ class SupabaseOrderRepository implements OrderRepository {
     order.evidence = row['evidence_url'] as String?;
     order.gotasCredited = (row['gotas_credited'] as bool?) ?? false;
     order.deliveredAt = _date(row['delivered_at']);
-    order.history
-      ..clear()
-      ..addAll(events);
+    if (events.isNotEmpty) {
+      order.history
+        ..clear()
+        ..addAll(events);
+    }
 
     return order;
   }
 
-  /// Convierte una fila de `order_items` al modelo.
   static OrderLine _line(Map<String, dynamic> row) {
     final selection = row['selection'];
     final sizeId = selection is Map ? selection['sizeId'] as String? : null;
@@ -357,7 +535,6 @@ class SupabaseOrderRepository implements OrderRepository {
     );
   }
 
-  /// Lee un número de la base como entero.
   static int _int(Object? value) => (value as num?)?.toInt() ?? 0;
 
   /// `timestamptz` llega en UTC; las pantallas comparan días y muestran horas
@@ -365,7 +542,6 @@ class SupabaseOrderRepository implements OrderRepository {
   static DateTime? _date(Object? value) =>
       DateTime.tryParse((value as String?) ?? '')?.toLocal();
 
-  /// Traduce el estado guardado al enum local.
   static OrderStatus _status(String? value) => switch (value) {
     'preparing' => OrderStatus.preparing,
     'ready' => OrderStatus.ready,
@@ -375,7 +551,6 @@ class SupabaseOrderRepository implements OrderRepository {
     _ => OrderStatus.pending,
   };
 
-  /// Traduce el medio de pago guardado al enum local.
   static PaymentMethod _payment(String? value) => switch (value) {
     'nequi' => PaymentMethod.nequi,
     'daviplata' => PaymentMethod.daviplata,

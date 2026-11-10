@@ -7,7 +7,7 @@ import '../../../app/theme/app_typography.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/order.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import '../offers/offer_widgets.dart';
 
@@ -27,7 +27,7 @@ class _PickupScreenState extends State<PickupScreen> {
   /// Muestra el código, el checklist y deshabilita la confirmación sin checks.
   @override
   Widget build(BuildContext context) {
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final session = context.watch<SessionController>();
     final catalog = context.read<CatalogController>();
     final t = Theme.of(context).textTheme;
@@ -152,26 +152,25 @@ class _PickupScreenState extends State<PickupScreen> {
               key: const Key('confirm-pickup'),
               label: 'Confirmar recogida',
               onPressed: _checks.every((c) => c)
-                  ? () {
-                      final ok = orders.confirmPickup(
-                        o.id,
-                        session.user!.id,
-                        codeValidated: _checks[0],
-                        bagSealed: _checks[1],
-                        productsVerified: _checks[2],
+                  ? () async {
+                      final outcome = await orders.request(
+                        PickupConfirmed(
+                          o.id,
+                          session.user!.id,
+                          codeValidated: _checks[0],
+                          bagSealed: _checks[1],
+                          productsVerified: _checks[2],
+                        ),
                       );
-                      if (ok) {
+                      if (!context.mounted) return;
+                      if (outcome.ok) {
                         showSnack(
                           context,
                           'Recogida confirmada · rumbo al cliente',
                         );
                         context.go('/repartidor/entrega/${o.id}');
                       } else {
-                        showSnack(
-                          context,
-                          'No se pudo confirmar la recogida',
-                          error: true,
-                        );
+                        showSnack(context, outcome.result.message, error: true);
                       }
                     }
                   : null,

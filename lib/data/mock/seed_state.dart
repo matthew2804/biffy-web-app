@@ -2,7 +2,9 @@ import '../../core/constants/catalog_constants.dart';
 import '../../domain/catalog_rules.dart';
 import '../../domain/order_rules.dart';
 import '../../domain/pricing.dart';
-import '../../shared/state/order_service.dart';
+import '../../core/utils/clock.dart';
+import '../../domain/repositories/order_repository.dart';
+import '../../shared/state/catalog_controller.dart';
 import '../../shared/state/session_controller.dart';
 import '../models/address.dart';
 import '../models/cart.dart';
@@ -12,8 +14,13 @@ import '../models/user.dart';
 
 /// Datos personales y pedidos semilla para probar las pantallas antes de
 /// crear un pedido nuevo. Todo es ficticio.
-void applyDemoSeed(SessionController session, OrderService orders) {
-  final now = orders.clock.now();
+void applyDemoSeed(
+  SessionController session,
+  OrderRepository orders,
+  CatalogController catalog,
+  Clock clock,
+) {
+  final now = clock.now();
 
   // Comprador con historial, preferencias y verificación simulada.
   final diego = session.dataFor('u-diego')
@@ -109,12 +116,12 @@ void applyDemoSeed(SessionController session, OrderService orders) {
     PaymentMethod payment = PaymentMethod.nequi,
     String? reject,
   }) {
-    final r = orders.catalog.restaurantById(restaurantId)!;
+    final r = catalog.restaurantById(restaurantId)!;
     final point = pointById(campusAddress.pointId);
     final lines = [
       for (final (dishId, qty, sel, note) in items)
         () {
-          final d = orders.catalog.dishById(dishId)!;
+          final d = catalog.dishById(dishId)!;
           return OrderLine(
             dishId: d.id,
             name: d.name,

@@ -1,6 +1,6 @@
 import '../core/constants/catalog_constants.dart';
 import '../core/utils/format.dart';
-import '../data/models/catalog.dart';
+import 'entities/catalog.dart';
 import 'catalog_rules.dart';
 import 'recommendation.dart';
 

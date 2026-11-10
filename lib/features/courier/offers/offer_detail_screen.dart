@@ -6,7 +6,7 @@ import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/order.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import 'offer_widgets.dart';
 
@@ -18,7 +18,7 @@ class OfferDetailScreen extends StatelessWidget {
   /// Muestra la oferta o un aviso si ya no está disponible.
   @override
   Widget build(BuildContext context) {
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final session = context.watch<SessionController>();
     final catalog = context.read<CatalogController>();
     final o = orders.byId(id);

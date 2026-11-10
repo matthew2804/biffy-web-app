@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../data/models/order.dart';
 import '../../../domain/recommendation.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 
 /// Construye la entrada del motor de recomendaciones desde el estado actual.
@@ -14,7 +14,7 @@ RecommendationInput buildRecommendationInput(
 }) {
   final session = context.read<SessionController>();
   final catalog = context.read<CatalogController>();
-  final orders = context.read<OrderService>();
+  final orders = context.read<OrdersBloc>();
   final user = session.user;
   final history = <String>[
     if (user != null)

@@ -1,7 +1,6 @@
 import 'package:biffy/data/mock/seed_users.dart';
 import 'package:biffy/core/constants/catalog_constants.dart';
 import 'package:biffy/data/models/order.dart';
-import 'package:biffy/shared/state/order_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
@@ -26,9 +25,9 @@ void main() {
     tester,
   ) async {
     final s = makeServices();
-    final o = placeQbano(s);
-    s.orders.restaurantAccept(o.id);
-    s.orders.markReady(o.id);
+    final o = await placeQbano(s);
+    await s.orders.useCases.acceptOrder(o.id);
+    await s.orders.useCases.markOrderReady(o.id);
     s.session.logout();
 
     // Valentina ve la oferta en su pantalla de detalle.
@@ -42,16 +41,19 @@ void main() {
 
     // Andrés la acepta primero en el mismo estado compartido.
     expect(
-      s.orders.courierAccept(o.id, s.session.auth.byId('u-andres')!),
-      CourierAcceptResult.ok,
+      (await s.orders.useCases.acceptOffer(
+        o.id,
+        s.session.auth.byId('u-andres')!,
+      )).code,
+      'ok',
     );
     await tester.pumpAndSettle();
 
     // La pantalla de Valentina se actualiza y el servicio rechaza el duplicado.
     expect(find.text('Esta oferta ya no está disponible'), findsOneWidget);
     expect(
-      s.orders.courierAccept(o.id, s.session.user!),
-      CourierAcceptResult.alreadyAssigned,
+      (await s.orders.useCases.acceptOffer(o.id, s.session.user!)).code,
+      'already_assigned',
     );
     expect(o.courierId, 'u-andres');
     expect(o.status, OrderStatus.ready);

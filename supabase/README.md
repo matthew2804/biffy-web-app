@@ -60,7 +60,12 @@ supabase/
     0008_reward_boxes.sql         # premios por caja + sorteo ponderado
     0009_welcome_gotas.sql        # 450 Gotas al crear el perfil
     0010_realtime.sql             # publica branches/dishes/orders en Realtime
+    0011_branch_couriers.sql      # sedes nuevas nacen visibles
+    0019_order_cycle.sql          # ciclo del pedido (HU-3): precios en servidor,
+                                  # order_secrets, reembolso de cupón, idempotencia
     0099_verify.sql               # verifica tablas, columnas y RPC clave
+  tests/
+    hu3_order_cycle.sql           # prueba SQL del ciclo completo (con ROLLBACK)
 ```
 
 > `apply_all.sql` se regenera concatenando `migrations/*.sql`. No se edita a
@@ -109,9 +114,23 @@ Decisiones pensadas para no volver a tocar la base:
 - `profiles` tiene un trigger que impide que el cliente se cambie el rol, las
   Gotas o la verificación.
 - Un pedido lo ven solo: su comprador, su repartidor, el restaurante dueño de
-  la sede y (mientras no tenga repartidor) los repartidores disponibles.
-- Las escrituras de pedidos no tienen política: solo entran por RPC
+  la sede y (mientras no tenga repartidor) **los repartidores** disponibles. Un
+  comprador o restaurante ajeno no ve las ofertas.
+- Las escrituras de pedidos no tienen política **y además se revocaron los
+  privilegios** `insert/update/delete` sobre `orders`, `order_items`,
+  `order_events`, `order_declines` y `order_secrets`: solo entran por RPC
   `security definer`.
+- **El código de entrega vive en `order_secrets`**, legible solo por el
+  comprador. El repartidor nunca lo ve: `courier_deliver` lo compara en el
+  servidor (`wrong_code`).
+- `place_order` **no confía en el cliente**: precio de cada línea
+  (`dishes` + `dish_options`), descuento de campus, tarifa de entrega, cupón,
+  distancia, tiempo estimado y pago al repartidor se calculan en el servidor.
+  Si el comprador declara un subtotal o total distinto, se rechaza con
+  `subtotal_mismatch` / `total_mismatch` y no se crea nada.
+- `courier_deliver` exige que la foto exista en `delivery-evidence/<pedido>/`.
+- Las funciones internas (`credit_gotas`, `order_event`, `refund_order`,
+  `order_json`) **no son llamables por clientes**.
 - Storage: `dish-images` público; `delivery-evidence` y `merchant-docs`
   privados por carpeta (pedido / negocio).
 - La app solo lleva la **clave publicable**. La `service_role` y la contraseña
@@ -121,15 +140,26 @@ Decisiones pensadas para no volver a tocar la base:
 
 | Función | Quién | Qué hace |
 |---|---|---|
-| `place_order(payload)` | comprador | Crea pedido + líneas + evento, quema Gotas y cupón |
+| `place_order(payload)` | comprador | Calcula todo en el servidor; crea pedido + líneas + evento, descuenta Gotas y cupón. Idempotente con `client_key` |
 | `restaurant_accept(order)` | restaurante | `pending → preparing` |
-| `restaurant_reject(order, reason)` | restaurante | `pending → cancelled` + reembolso de Gotas |
+| `restaurant_reject(order, reason)` | restaurante | `pending → cancelled` + reembolso de Gotas **y cupón** |
 | `restaurant_ready(order)` | restaurante | `preparing → ready` |
-| `buyer_cancel(order)` | comprador | `pending → cancelled` + reembolso |
-| `courier_accept(order)` | repartidor | Asignación atómica (`already_assigned`, `busy`, `out_of_range`) |
+| `buyer_cancel(order)` | comprador | `pending → cancelled` + reembolso de Gotas y cupón |
+| `courier_accept(order)` | repartidor | Asignación atómica (`already_assigned`, `busy`, `out_of_range`, `out_of_zone`) |
 | `courier_decline(order)` | repartidor | Registra el rechazo de la oferta |
 | `courier_pickup(order)` | repartidor | `ready → on_the_way` |
-| `courier_deliver(order, code, evidence)` | repartidor | Valida código y evidencia, entrega y acredita Gotas |
+| `courier_deliver(order, code, evidence)` | repartidor | Valida código y que la foto exista en Storage, entrega y acredita Gotas |
+
+Resultados posibles de `place_order` además de `ok`: `not_authenticated`,
+`no_profile`, `invalid_payment`, `branch_not_found`, `branch_paused`,
+`address_not_found`, `point_not_found`, `out_of_zone`, `empty_cart`,
+`invalid_qty`, `dish_not_found`, `dish_unavailable`, `no_portions`,
+`invalid_option`, `coupon_unavailable`, `insufficient_gotas`, `invalid_gotas`,
+`invalid_tip`, `subtotal_mismatch`, `total_mismatch`, `invalid_payload`. Los
+traduce `lib/domain/order_errors.dart`.
+
+Cada transición escribe en `order_events` quién la hizo y de qué estado a cuál
+(`from_status` → `status`).
 | `redeem_reward(payload)` | comprador | Canjea con Gotas; en cajas sortea un premio ponderado |
 | `use_reward_redemption(code)` | restaurante | Valida el código del plato ganado y lo marca como reclamado |
 | `verify_university(payload)` | comprador | Verifica el correo contra el dominio de la universidad |
