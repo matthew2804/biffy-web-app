@@ -110,6 +110,23 @@ class OrderService extends ChangeNotifier {
     remote.call(fn, {'p_order': dbId, ...extra});
   }
 
+  /// Aviso de un cambio de pedido. Con Supabase no se crea aquí: la base lo
+  /// genera para cada destinatario (0022) y llega por Realtime.
+  void _notify({
+    required String title,
+    required String body,
+    required String audience,
+    String? route,
+  }) {
+    if (_remote != null) return;
+    notifications.push(
+      title: title,
+      body: body,
+      audience: audience,
+      route: route,
+    );
+  }
+
   /// Todos los pedidos visibles.
   List<Order> get all => repo.all;
   /// Pedido por código.
@@ -299,13 +316,13 @@ class OrderService extends ChangeNotifier {
     final when = d.scheduledFor == null
         ? ''
         : ' para ${dateTimeLabel(d.scheduledFor!)}';
-    notifications.push(
+    _notify(
       title: 'Pedido ${order.id} creado',
       body: 'Pedido de demostración$when · sin cobros reales.',
       audience: 'user:${buyer.id}',
       route: '/pedido/${order.id}',
     );
-    notifications.push(
+    _notify(
       title: 'Nuevo pedido ${order.id}',
       body: '${order.itemsSummary}$when',
       audience: 'business:${r.businessId}',
@@ -415,7 +432,7 @@ class OrderService extends ChangeNotifier {
     o.rejectReason = 'Cancelado por el comprador';
     _refund(o);
     _sync('buyer_cancel', o);
-    notifications.push(
+    _notify(
       title: 'Pedido ${o.id} cancelado por el cliente',
       body: o.itemsSummary,
       audience: 'business:${_businessOf(o)}',
@@ -442,13 +459,13 @@ class OrderService extends ChangeNotifier {
     final o = _require(id);
     _move(o, OrderStatus.preparing, 'Restaurante');
     _sync('restaurant_accept', o);
-    notifications.push(
+    _notify(
       title: 'Pedido aceptado por el restaurante',
       body: '${o.restaurantName} aceptó tu pedido ${o.id}.',
       audience: 'user:${o.buyerId}',
       route: '/pedido/${o.id}',
     );
-    notifications.push(
+    _notify(
       title: 'Pedido en preparación 👩‍🍳',
       body: 'Tu pedido ${o.id} se está preparando.',
       audience: 'user:${o.buyerId}',
@@ -467,7 +484,7 @@ class OrderService extends ChangeNotifier {
     o.rejectReason = reason.trim();
     _refund(o);
     _sync('restaurant_reject', o, {'p_reason': o.rejectReason!});
-    notifications.push(
+    _notify(
       title: 'Pedido ${o.id} rechazado',
       body: 'Motivo: ${o.rejectReason}. No se realizó ningún cobro.',
       audience: 'user:${o.buyerId}',
@@ -481,14 +498,14 @@ class OrderService extends ChangeNotifier {
     final o = _require(id);
     _move(o, OrderStatus.ready, 'Restaurante');
     _sync('restaurant_ready', o);
-    notifications.push(
+    _notify(
       title: 'Pedido listo 🛍️',
       body:
           '${o.restaurantName} terminó tu pedido ${o.id}. Buscando repartidor.',
       audience: 'user:${o.buyerId}',
       route: '/pedido/${o.id}',
     );
-    notifications.push(
+    _notify(
       title: 'Oferta disponible · ${cop(o.courierPay)}',
       body: '${o.restaurantName} → ${o.address.label} (${o.distanceKm} km).',
       audience: 'couriers',
@@ -517,19 +534,19 @@ class OrderService extends ChangeNotifier {
     o.courierId = courier.id;
     o.courierName = courier.name;
     o.history.add(StatusEvent(o.status, clock.now(), 'Repartidor asignado'));
-    notifications.push(
+    _notify(
       title: 'Repartidor asignado 🛵',
       body: '${courier.name} recogerá tu pedido ${o.id}.',
       audience: 'user:${o.buyerId}',
       route: '/pedido/${o.id}',
     );
-    notifications.push(
+    _notify(
       title: 'Pedido ${o.id} asignado',
       body: 'Ve a ${o.restaurantName} y muestra el código ${o.pickupCode}.',
       audience: 'courier:${courier.id}',
       route: '/repartidor/recogida/${o.id}',
     );
-    notifications.push(
+    _notify(
       title: 'Repartidor asignado a ${o.id}',
       body: '${courier.name} va en camino a recoger.',
       audience: 'business:${_businessOf(o)}',
@@ -567,7 +584,7 @@ class OrderService extends ChangeNotifier {
     if (!(codeValidated && bagSealed && productsVerified)) return false;
     _move(o, OrderStatus.onTheWay, 'Repartidor');
     _sync('courier_pickup', o);
-    notifications.push(
+    _notify(
       title: 'Pedido en camino 🛵',
       body:
           '${o.courierName} recogió tu pedido ${o.id}. Ten listo el código ${o.deliveryCode}.',
@@ -607,13 +624,13 @@ class OrderService extends ChangeNotifier {
       final earned = o.subtotal ~/ 1000;
       session.creditGotas(o.buyerId, earned, 'Pedido ${o.id} entregado');
     }
-    notifications.push(
+    _notify(
       title: 'Pedido entregado ✅',
       body: '¡Buen provecho! Ganaste ${o.subtotal ~/ 1000} Gotas con ${o.id}.',
       audience: 'user:${o.buyerId}',
       route: '/pedido/${o.id}',
     );
-    notifications.push(
+    _notify(
       title: 'Pedido ${o.id} entregado',
       body: 'Entregado por ${o.courierName}.',
       audience: 'business:${_businessOf(o)}',
@@ -660,7 +677,7 @@ class OrderService extends ChangeNotifier {
       if (avg != null) catalog.setRestaurantRating(order.restaurantId, avg);
     }
 
-    notifications.push(
+    _notify(
       title: 'Nueva calificación ⭐',
       body: '${order.buyerName} calificó ${order.id} con $stars de 5.',
       audience: 'business:${_businessOf(order)}',

@@ -287,22 +287,53 @@ class SupabaseProfileRepository {
         .order('created_at', ascending: false)
         .limit(50);
 
-    return rows
-        .map(
-          (row) => AppNotification(
-            id: row['id'] as String,
-            title: (row['title'] as String?) ?? '',
-            body: (row['body'] as String?) ?? '',
-            audience: (row['audience'] as String?) ?? 'all',
-            createdAt:
-                DateTime.tryParse((row['created_at'] as String?) ?? '') ??
-                DateTime.now(),
-            route: row['route'] as String?,
-            read: row['read_at'] != null,
-          ),
-        )
-        .toList();
+    return rows.map(_notification).toList();
   }
+
+  /// Escucha en Realtime los avisos nuevos o leídos del usuario.
+  /// Devuelve la función que cancela la suscripción.
+  void Function() watchNotifications(
+    String userId,
+    void Function(AppNotification n) onChange,
+  ) {
+    try {
+      final channel = _client
+          .channel('biffy-notifications-$userId')
+          .onPostgresChanges(
+            event: sb.PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'notifications',
+            filter: sb.PostgresChangeFilter(
+              type: sb.PostgresChangeFilterType.eq,
+              column: 'user_id',
+              value: userId,
+            ),
+            callback: (payload) {
+              final row = payload.newRecord;
+              if (row['id'] == null) return;
+              onChange(_notification(row));
+            },
+          )
+          .subscribe();
+      return () => _client.removeChannel(channel);
+    } on Object {
+      return () {};
+    }
+  }
+
+  /// Convierte una fila de `notifications` al modelo.
+  static AppNotification _notification(Map<String, dynamic> row) =>
+      AppNotification(
+        id: row['id'] as String,
+        title: (row['title'] as String?) ?? '',
+        body: (row['body'] as String?) ?? '',
+        audience: (row['audience'] as String?) ?? 'all',
+        createdAt:
+            DateTime.tryParse((row['created_at'] as String?) ?? '') ??
+            DateTime.now(),
+        route: row['route'] as String?,
+        read: row['read_at'] != null,
+      );
 
   /// Guarda una notificación dirigida al usuario actual.
   Future<void> saveNotification(AppNotification n) async {

@@ -82,6 +82,10 @@ class SessionController extends ChangeNotifier {
   /// Repositorio de datos personales; null en modo demo.
   final SupabaseProfileRepository? _profile;
 
+  /// Cancela la escucha de avisos en Realtime del usuario actual.
+  void Function()? _stopNotifications;
+  String? _watchingUserId;
+
   AppUser? _user;
   UserRole _activeRole = UserRole.buyer;
   final Map<String, UserData> _data = {};
@@ -215,6 +219,9 @@ class SessionController extends ChangeNotifier {
 
   /// Cierra la sesión local y vuelve al modo invitado.
   void logout() {
+    _stopNotifications?.call();
+    _stopNotifications = null;
+    _watchingUserId = null;
     _user = null;
     _activeRole = UserRole.buyer;
     notifyListeners();
@@ -375,6 +382,16 @@ class SessionController extends ChangeNotifier {
         ..clear()
         ..addAll(await couponsF);
       _notifications.seed(await notifsF);
+
+      // Avisos nuevos (cambios de pedido, ofertas) llegan en vivo.
+      if (_watchingUserId != u.id) {
+        _stopNotifications?.call();
+        _watchingUserId = u.id;
+        _stopNotifications = profile.watchNotifications(
+          u.id,
+          _notifications.upsert,
+        );
+      }
     }
 
     notifyListeners();

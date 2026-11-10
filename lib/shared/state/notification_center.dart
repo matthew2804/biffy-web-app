@@ -57,6 +57,19 @@ class NotificationCenter extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Agrega o actualiza un aviso que llega por Realtime (sin persistirlo).
+  void upsert(AppNotification n) {
+    for (final item in _items) {
+      if (item.id == n.id) {
+        if (item.read == n.read) return;
+        item.read = n.read;
+        notifyListeners();
+        return;
+      }
+    }
+    seed([n]);
+  }
+
   /// `true` si la notificación corresponde al usuario y rol.
   static bool isFor(AppNotification n, AppUser? user, UserRole role) {
     if (n.audience == 'all') return true;
@@ -90,7 +103,9 @@ class NotificationCenter extends ChangeNotifier {
   /// Marca como leídas todas las visibles para el usuario.
   void markAllRead(AppUser? user, UserRole role) {
     for (final n in visibleFor(user, role)) {
+      if (n.read) continue;
       n.read = true;
+      onRead?.call(n.id);
     }
     notifyListeners();
   }
