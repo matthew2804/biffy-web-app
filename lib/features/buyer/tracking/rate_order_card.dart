@@ -12,6 +12,7 @@ import 'rate_order_cubit.dart';
 
 /// Tarjeta para calificar un pedido entregado, o la calificación ya enviada.
 class RateOrderCard extends StatelessWidget {
+  /// Recibe el pedido entregado.
   const RateOrderCard({super.key, required this.order});
   final Order order;
 
@@ -64,6 +65,7 @@ class RateOrderCard extends StatelessWidget {
 
 /// Fila de cinco estrellas; con [onTap] cada estrella es un botón.
 class StarsRow extends StatelessWidget {
+  /// Recibe cuántas estrellas pintar y, si se puede tocar, qué hacer.
   const StarsRow({
     super.key,
     required this.value,
@@ -133,16 +135,20 @@ Future<void> showRateOrderSheet(
   );
 }
 
+/// Hoja inferior para elegir estrellas y escribir un comentario.
 class _RateSheet extends StatefulWidget {
   const _RateSheet();
 
+  /// Crea el estado de la hoja.
   @override
   State<_RateSheet> createState() => _RateSheetState();
 }
 
+/// Estado de la hoja: guarda el texto del comentario.
 class _RateSheetState extends State<_RateSheet> {
   final _comment = TextEditingController();
 
+  /// Libera el controlador del comentario.
   @override
   void dispose() {
     _comment.dispose();

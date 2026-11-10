@@ -34,6 +34,7 @@ class _NotificationsView extends StatelessWidget {
 
   final NotificationsState state;
 
+  /// Construye la lista de avisos y el botón de marcar leídas.
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<NotificationsCubit>();

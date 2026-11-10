@@ -10,6 +10,7 @@ enum RewardsStatus { loading, ready, error }
 
 /// Estado de la pantalla de Gotas (modo Supabase).
 class RewardsState {
+  /// Crea el estado; por defecto está cargando y sin datos.
   const RewardsState({
     this.status = RewardsStatus.loading,
     this.boxes = const [],
@@ -40,6 +41,7 @@ class RewardsState {
   List<RewardRedemption> get pendingPrizes =>
       history.where((r) => r.isPendingPrize).toList();
 
+  /// Copia el estado cambiando solo lo indicado.
   RewardsState copyWith({
     RewardsStatus? status,
     List<GotasBox>? boxes,
@@ -66,6 +68,7 @@ class RewardsState {
 /// Flujo: pantalla → [RewardsCubit] → [LoadRewards] / [RedeemReward] →
 /// [RewardsRepository] (Supabase, RPC `redeem_reward`).
 class RewardsCubit extends Cubit<RewardsState> {
+  /// Recibe el repositorio y cómo refrescar el saldo de la sesión.
   RewardsCubit(
     RewardsRepository repo, {
     required Future<void> Function() refreshBalance,

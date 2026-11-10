@@ -4,6 +4,7 @@ import '../order_rules.dart';
 
 /// Resumen de ganancias del repartidor para la pantalla de Ganancias.
 class EarningsSummary {
+  /// Agrupa los totales que muestra la pantalla.
   const EarningsSummary({
     required this.today,
     required this.total,
@@ -32,6 +33,7 @@ class EarningsSummary {
 /// Es una función pura (no sabe de Flutter ni de Supabase); la pantalla solo
 /// pinta el [EarningsSummary].
 class GetCourierEarnings {
+  /// Caso de uso sin dependencias: es un cálculo puro.
   const GetCourierEarnings();
 
   /// Resume [delivered] tomando [now] como el día de hoy.

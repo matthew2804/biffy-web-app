@@ -10,6 +10,7 @@ enum RateStatus { editing, sending, done, failed }
 
 /// Estado de la calificación: estrellas elegidas, etapa y el último error.
 class RateOrderState {
+  /// Crea el estado; por defecto sin estrellas y editando.
   const RateOrderState({
     this.stars = 0,
     this.status = RateStatus.editing,
@@ -23,6 +24,7 @@ class RateOrderState {
   /// Se puede enviar con al menos una estrella y si no está enviando.
   bool get canSubmit => stars > 0 && status != RateStatus.sending;
 
+  /// Copia el estado cambiando solo lo indicado.
   RateOrderState copyWith({
     int? stars,
     RateStatus? status,
@@ -33,6 +35,7 @@ class RateOrderState {
     error: error,
   );
 
+  /// Dos estados son iguales si coinciden estrellas, etapa y error.
   @override
   bool operator ==(Object other) =>
       other is RateOrderState &&
@@ -40,9 +43,11 @@ class RateOrderState {
       other.status == status &&
       other.error == error;
 
+  /// Código hash acorde con la igualdad.
   @override
   int get hashCode => Object.hash(stars, status, error);
 
+  /// Texto legible para depurar y para las pruebas.
   @override
   String toString() => 'RateOrderState($stars, $status, $error)';
 }
@@ -53,6 +58,7 @@ class RateOrderState {
 /// Flujo: pantalla → [RateOrderCubit] → [RateOrder] (regla) →
 /// `ReviewRepository` (Supabase o demo) → [OrderService.applyRating].
 class RateOrderCubit extends Cubit<RateOrderState> {
+  /// Recibe el caso de uso, los pedidos y a quién califica.
   RateOrderCubit({
     required RateOrder rateOrder,
     required OrderService orders,

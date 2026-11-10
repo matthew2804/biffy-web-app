@@ -18,6 +18,7 @@ import 'rewards_cubit.dart';
 class RewardsScreen extends StatelessWidget {
   const RewardsScreen({super.key});
 
+  /// En demo muestra los beneficios locales; con Supabase crea el cubit.
   @override
   Widget build(BuildContext context) {
     final repo = context.read<RewardsRepository?>();

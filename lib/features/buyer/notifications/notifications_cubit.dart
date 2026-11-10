@@ -6,6 +6,7 @@ import '../../../shared/state/session_controller.dart';
 
 /// Lo que muestra la pantalla de notificaciones del rol activo.
 class NotificationsState {
+  /// Crea el estado con los avisos y si están activados.
   const NotificationsState({required this.items, required this.enabled});
 
   /// Avisos visibles para el usuario y rol, del más nuevo al más viejo.
@@ -24,6 +25,7 @@ class NotificationsState {
 /// Flujo: [NotificationCenter] (avisos compartidos) + [SessionController]
 /// (quién soy) → [NotificationsCubit] → pantalla.
 class NotificationsCubit extends Cubit<NotificationsState> {
+  /// Escucha el centro de avisos y la sesión para mantenerse al día.
   NotificationsCubit({
     required NotificationCenter center,
     required SessionController session,
@@ -37,6 +39,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   final NotificationCenter _center;
   final SessionController _session;
 
+  /// Lee los avisos visibles para el usuario y rol actuales.
   static NotificationsState _read(
     NotificationCenter center,
     SessionController session,
@@ -45,6 +48,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     enabled: session.settings.notifications,
   );
 
+  /// Vuelve a leer los avisos cuando algo cambia.
   void _refresh() {
     if (!isClosed) emit(_read(_center, _session));
   }
@@ -57,6 +61,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   /// Marca como leídos todos los avisos visibles.
   void markAllRead() => _center.markAllRead(_session.user, _session.activeRole);
 
+  /// Deja de escuchar al cerrar la pantalla.
   @override
   Future<void> close() {
     _center.removeListener(_refresh);

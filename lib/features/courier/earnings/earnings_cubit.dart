@@ -9,6 +9,7 @@ import '../../../shared/state/order_service.dart';
 /// Flujo: [OrderService] (pedidos compartidos) → [GetCourierEarnings]
 /// (cálculo puro) → estado [EarningsSummary] → pantalla.
 class EarningsCubit extends Cubit<EarningsSummary> {
+  /// Calcula el primer resumen y empieza a escuchar los pedidos.
   EarningsCubit({
     required OrderService orders,
     required this.courierId,
@@ -26,6 +27,7 @@ class EarningsCubit extends Cubit<EarningsSummary> {
   final GetCourierEarnings _getEarnings;
   final String courierId;
 
+  /// Recalcula el resumen cuando cambian los pedidos.
   void _refresh() {
     if (isClosed) return;
     emit(_getEarnings(_orders.deliveredBy(courierId), _now()));

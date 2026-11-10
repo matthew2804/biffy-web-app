@@ -18,6 +18,7 @@ import 'merchant_boxes_cubit.dart';
 class MerchantBoxesScreen extends StatelessWidget {
   const MerchantBoxesScreen({super.key});
 
+  /// En demo avisa que requiere Supabase; con la base crea el cubit.
   @override
   Widget build(BuildContext context) {
     final repo = context.read<MerchantBoxesRepository?>();
@@ -40,17 +41,21 @@ class MerchantBoxesScreen extends StatelessWidget {
   }
 }
 
+/// Contenido de la pantalla cuando hay Supabase.
 class _MerchantBoxesView extends StatefulWidget {
   const _MerchantBoxesView();
 
+  /// Crea el estado de la pantalla.
   @override
   State<_MerchantBoxesView> createState() => _MerchantBoxesViewState();
 }
 
+/// Estado: guarda el campo del código de premio.
 class _MerchantBoxesViewState extends State<_MerchantBoxesView> {
   /// Código que el comprador dicta en la sede.
   final _codeController = TextEditingController();
 
+  /// Libera el controlador del código.
   @override
   void dispose() {
     _codeController.dispose();
@@ -111,6 +116,7 @@ class _MerchantBoxesViewState extends State<_MerchantBoxesView> {
     await cubit.addDish(box, picked);
   }
 
+  /// Pinta el estado del cubit y muestra sus avisos.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -224,6 +230,7 @@ class _BoxCard extends StatelessWidget {
   final VoidCallback onAdd;
   final void Function(BoxItemView item) onRemove;
 
+  /// Dibuja la caja con sus platos y botones.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

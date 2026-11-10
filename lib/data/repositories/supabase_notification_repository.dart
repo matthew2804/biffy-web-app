@@ -6,6 +6,7 @@ import '../models/app_notification.dart';
 
 /// Notificaciones en Supabase: las crea la base (0022) y llegan por Realtime.
 class SupabaseNotificationRepository implements NotificationRepository {
+  /// Usa el cliente de Supabase indicado o el global.
   SupabaseNotificationRepository([sb.SupabaseClient? client])
     : _client = client ?? sb.Supabase.instance.client;
 

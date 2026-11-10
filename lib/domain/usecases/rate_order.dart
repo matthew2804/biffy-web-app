@@ -7,6 +7,7 @@ import '../repositories/review_repository.dart';
 /// Aplica la regla [checkRating] (la misma que `rate_order` en la base) y solo
 /// si pasa le pide al [ReviewRepository] que guarde la reseña.
 class RateOrder {
+  /// Recibe el repositorio donde se guardan las reseñas.
   const RateOrder(this._reviews);
 
   final ReviewRepository _reviews;

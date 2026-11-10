@@ -3,6 +3,7 @@ import '../order_rules.dart';
 
 /// Resultado de guardar una reseña: el código y el promedio nuevo de la sede.
 class ReviewOutcome {
+  /// Crea el resultado con su código y, si se conoce, el promedio nuevo.
   const ReviewOutcome(this.result, {this.branchRating});
 
   final RateResult result;

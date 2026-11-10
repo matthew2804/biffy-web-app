@@ -10,6 +10,7 @@ enum BoxesStatus { loading, ready, error }
 
 /// Estado de la pantalla de cajas del restaurante.
 class MerchantBoxesState {
+  /// Crea el estado; por defecto cargando y sin cajas.
   const MerchantBoxesState({
     this.status = BoxesStatus.loading,
     this.data = const MerchantBoxes(boxes: [], items: []),
@@ -30,6 +31,7 @@ class MerchantBoxesState {
   final bool messageIsError;
   final int messageCount;
 
+  /// Copia el estado cambiando solo lo indicado (sin aviso nuevo).
   MerchantBoxesState copyWith({
     BoxesStatus? status,
     MerchantBoxes? data,
@@ -43,6 +45,7 @@ class MerchantBoxesState {
     messageCount: messageCount,
   );
 
+  /// Copia el estado con un aviso nuevo para mostrar.
   MerchantBoxesState withMessage(String text, {bool error = false}) =>
       MerchantBoxesState(
         status: status,
@@ -60,6 +63,7 @@ class MerchantBoxesState {
 /// Flujo: pantalla → [MerchantBoxesCubit] → casos de uso →
 /// [MerchantBoxesRepository] (Supabase).
 class MerchantBoxesCubit extends Cubit<MerchantBoxesState> {
+  /// Arma los casos de uso sobre el repositorio de cajas.
   MerchantBoxesCubit(MerchantBoxesRepository repo)
     : _repo = repo,
       _load = LoadMerchantBoxes(repo),
@@ -107,6 +111,7 @@ class MerchantBoxesCubit extends Cubit<MerchantBoxesState> {
     return res.ok;
   }
 
+  /// Guarda un cambio, recarga las cajas y avisa el resultado.
   Future<void> _change(Future<void> Function() action, String done) async {
     if (state.busy) return;
     emit(state.copyWith(busy: true));

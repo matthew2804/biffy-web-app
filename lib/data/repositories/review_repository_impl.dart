@@ -7,6 +7,7 @@ import 'order_repository.dart';
 
 /// Reseñas del modo demo: el promedio se calcula con los pedidos en memoria.
 class InMemoryReviewRepository implements ReviewRepository {
+  /// Usa los pedidos en memoria para calcular el promedio.
   InMemoryReviewRepository(this._orders);
 
   final OrderRepository _orders;
@@ -27,6 +28,7 @@ class InMemoryReviewRepository implements ReviewRepository {
 
 /// Reseñas en Supabase con el RPC `rate_order` (la base recalcula el promedio).
 class SupabaseReviewRepository implements ReviewRepository {
+  /// Usa el cliente de Supabase indicado o el global.
   SupabaseReviewRepository([sb.SupabaseClient? client])
     : _client = client ?? sb.Supabase.instance.client;
 

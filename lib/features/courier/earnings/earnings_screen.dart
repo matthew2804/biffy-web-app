@@ -51,6 +51,7 @@ class _EarningsView extends StatelessWidget {
   final DateTime now;
   final bool real;
 
+  /// Dibuja totales, semana, metas e historial.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
