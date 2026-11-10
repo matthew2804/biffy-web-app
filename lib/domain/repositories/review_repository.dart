@@ -1,4 +1,4 @@
-import '../../data/models/order.dart';
+import '../entities/order.dart';
 import '../order_rules.dart';
 
 /// Resultado de guardar una reseña: el código y el promedio nuevo de la sede.

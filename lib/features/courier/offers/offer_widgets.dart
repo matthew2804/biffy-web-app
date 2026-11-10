@@ -8,7 +8,7 @@ import '../../../core/widgets/ui.dart';
 import '../../../data/models/catalog.dart';
 import '../../../data/models/order.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 
 /// Describe el pago del pedido tal como lo ve el repartidor.
@@ -17,40 +17,36 @@ String paymentForCourier(Order o) => o.payment == PaymentMethod.cash
     : '${o.payment.label} · pago simulado';
 
 /// Aceptar una oferta: asignación atómica en el estado compartido.
-void acceptOffer(BuildContext context, Order o) {
+Future<void> acceptOffer(BuildContext context, Order o) async {
   final session = context.read<SessionController>();
-  final res = context.read<OrderService>().courierAccept(
-    o.id,
-    session.user!,
-    vehicle: session.data.courierProfile?.vehicle,
+  final outcome = await context.read<OrdersBloc>().request(
+    OfferAccepted(
+      o.id,
+      session.user!,
+      vehicle: session.data.courierProfile?.vehicle,
+    ),
   );
-  switch (res) {
-    case CourierAcceptResult.ok:
-      showSnack(context, 'Pedido ${o.id} aceptado');
-      context.go('/repartidor/recogida/${o.id}');
-    case CourierAcceptResult.alreadyAssigned:
-      showSnack(context, 'Otro repartidor ya tomó este pedido', error: true);
-    case CourierAcceptResult.notAvailable:
-      showSnack(context, 'La oferta ya no está disponible', error: true);
-    case CourierAcceptResult.busy:
-      showSnack(
-        context,
-        'Termina tu entrega actual antes de aceptar otra',
-        error: true,
-      );
-    case CourierAcceptResult.outOfRange:
-      showSnack(
-        context,
-        'La distancia supera el alcance de tu medio de transporte',
-        error: true,
-      );
+  if (!context.mounted) return;
+  final res = outcome.result;
+  if (res.ok) {
+    showSnack(context, 'Pedido ${o.id} aceptado');
+    context.go('/repartidor/recogida/${o.id}');
+    return;
   }
+  showSnack(
+    context,
+    switch (res.code) {
+      'out_of_zone' => 'Este pedido está fuera de tu zona de reparto',
+      _ => res.message,
+    },
+    error: true,
+  );
 }
 
 /// Rechaza la oferta para este repartidor y avisa al usuario.
 void declineOffer(BuildContext context, Order o) {
   final session = context.read<SessionController>();
-  context.read<OrderService>().courierDecline(o.id, session.user!.id);
+  context.read<OrdersBloc>().add(OfferDeclined(o.id, session.user!.id));
   showSnack(context, 'Oferta rechazada · no afecta tu nivel');
 }
 

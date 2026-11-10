@@ -11,7 +11,7 @@ import '../../../data/models/order.dart';
 import '../../../domain/recommendation.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/notification_center.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import '../ai/recommendation_input.dart';
 
@@ -24,7 +24,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final catalog = context.watch<CatalogController>();
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final notifications = context.watch<NotificationCenter>();
     final t = Theme.of(context).textTheme;
     final user = session.user;

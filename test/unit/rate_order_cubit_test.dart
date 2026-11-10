@@ -3,6 +3,7 @@ import 'package:biffy/domain/order_rules.dart';
 import 'package:biffy/domain/repositories/review_repository.dart';
 import 'package:biffy/domain/usecases/rate_order.dart';
 import 'package:biffy/features/buyer/tracking/rate_order_cubit.dart';
+import 'package:biffy/shared/adapters/review_adapters.dart';
 import 'package:biffy/shared/state/app_services.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,15 +24,18 @@ void main() {
   late AppServices s;
   late Order o;
 
-  setUp(() {
+  setUp(() async {
     s = makeServices();
-    o = deliverQbano(s);
+    o = await deliverQbano(s);
   });
 
   RateOrderCubit cubit(ReviewOutcome outcome, {int stars = 0}) =>
       RateOrderCubit(
-        rateOrder: RateOrder(_FakeReviews(outcome)),
-        orders: s.orders,
+        rateOrder: RateOrder(
+          _FakeReviews(outcome),
+          CatalogRatingAdapter(s.catalog),
+          LocalReviewNotifier(s.notifications, s.catalog),
+        ),
         order: o,
         userId: o.buyerId,
         initialStars: stars,

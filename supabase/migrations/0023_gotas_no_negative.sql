@@ -5,6 +5,9 @@
 -- de lo que había, el saldo quedaba en 0 pero el ledger guardaba el negativo
 -- completo, y profiles.gotas dejaba de ser la suma de gotas_ledger.
 -- Ahora falla (y revierte todo el RPC que la llamó) en vez de recortar.
+-- Además deja `biffy.internal` como estaba: antes lo apagaba siempre y le
+-- quitaba el permiso a quien lo había encendido (p. ej. un script que crea
+-- usuarios y luego ajusta perfiles).
 -- ============================================================================
 
 create or replace function public.credit_gotas(
@@ -19,6 +22,7 @@ set search_path = public
 as $$
 declare
   v_balance int;
+  v_internal text := current_setting('biffy.internal', true);
 begin
   if p_amount = 0 then
     return;
@@ -47,7 +51,7 @@ begin
      set gotas = v_balance + p_amount
    where id = p_user;
 
-  perform set_config('biffy.internal', '0', true);
+  perform set_config('biffy.internal', coalesce(v_internal, '0'), true);
 end;
 $$;
 

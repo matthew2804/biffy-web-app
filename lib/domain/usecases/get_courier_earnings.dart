@@ -1,5 +1,5 @@
 import '../../core/utils/format.dart';
-import '../../data/models/order.dart';
+import '../entities/order.dart';
 import '../order_rules.dart';
 
 /// Resumen de ganancias del repartidor para la pantalla de Ganancias.

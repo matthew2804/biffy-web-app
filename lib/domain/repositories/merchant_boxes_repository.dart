@@ -1,4 +1,4 @@
-import '../../data/models/rewards.dart';
+import '../entities/rewards.dart';
 
 /// Resultado de validar el código de un premio en la sede.
 typedef ClaimResult = ({bool ok, String? prize, String? error});

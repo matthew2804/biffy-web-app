@@ -5,7 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import '../home/merchant_home_screen.dart';
 
@@ -18,7 +18,7 @@ class MerchantStatsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     context.watch<SessionController>();
     context.watch<CatalogController>();
-    context.watch<OrderService>();
+    context.watch<OrdersBloc>();
     final t = Theme.of(context).textTheme;
     final m = businessMetrics(context);
     final maxBranch = m.salesByBranch.values.fold<int>(

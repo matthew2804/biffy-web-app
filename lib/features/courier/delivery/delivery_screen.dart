@@ -11,7 +11,7 @@ import '../../../core/widgets/ui.dart';
 import '../../../data/models/catalog.dart';
 import '../../../data/mock/seed_users.dart';
 import '../../../data/models/order.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 
 /// Entrega: requiere el código correcto y una foto de evidencia local.
@@ -29,6 +29,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   String? _evidence;
   Uint8List? _bytes;
   String? _error;
+  bool _busy = false;
 
   /// Libera el controlador del código.
   @override
@@ -65,9 +66,10 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   /// Muestra los datos del cliente, el código y la evidencia requerida.
   @override
   Widget build(BuildContext context) {
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final session = context.watch<SessionController>();
     final t = Theme.of(context).textTheme;
+    final remote = orders.isRemote;
     final o = orders.byId(widget.id);
     if (o == null || o.courierId != session.user?.id) {
       return Scaffold(
@@ -214,22 +216,28 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                         icon: const Icon(Icons.photo_library),
                         label: const Text('Galería'),
                       ),
-                      OutlinedButton.icon(
-                        key: const Key('demo-evidence'),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 44),
+                      // Con el servidor la foto debe existir de verdad en
+                      // Storage, así que la evidencia simulada no aplica.
+                      if (!remote)
+                        OutlinedButton.icon(
+                          key: const Key('demo-evidence'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 44),
+                          ),
+                          onPressed: () => setState(() {
+                            _bytes = null;
+                            _evidence = 'Evidencia de demostración (simulada)';
+                          }),
+                          icon: const Icon(Icons.science_outlined),
+                          label: const Text('Usar evidencia demo'),
                         ),
-                        onPressed: () => setState(() {
-                          _bytes = null;
-                          _evidence = 'Evidencia de demostración (simulada)';
-                        }),
-                        icon: const Icon(Icons.science_outlined),
-                        label: const Text('Usar evidencia demo'),
-                      ),
                     ],
                   ),
                   Text(
-                    'La foto queda solo en este teléfono; no se sube a ningún servidor.',
+                    remote
+                        ? 'La foto se sube de forma privada: solo la ven el cliente, '
+                              'el restaurante y tú.'
+                        : 'La foto queda solo en este teléfono; no se sube a ningún servidor.',
                     style: t.bodySmall,
                   ),
                 ],
@@ -238,8 +246,8 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
             const SizedBox(height: 16),
             PrimaryButton(
               key: const Key('mark-delivered'),
-              label: 'Marcar como entregado',
-              onPressed: () => _complete(context, o),
+              label: _busy ? 'Confirmando entrega…' : 'Marcar como entregado',
+              onPressed: _busy ? null : () => _complete(context, o),
             ),
             TextButton.icon(
               onPressed: () => context.push('/soporte'),
@@ -255,32 +263,48 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     );
   }
 
+
   /// Cierra la entrega validando código y evidencia, y celebra el resultado.
-  void _complete(BuildContext context, Order o) {
+  Future<void> _complete(BuildContext context, Order o) async {
+    if (_busy) return;
     final session = context.read<SessionController>();
-    final res = context.read<OrderService>().completeDelivery(
-      o.id,
-      session.user!.id,
-      _code.text,
-      _evidence,
-      evidenceBytes: _bytes,
+    final orders = context.read<OrdersBloc>();
+    setState(() => _busy = true);
+    final outcome = await orders.request(
+      DeliveryCompleted(
+        o.id,
+        session.user!.id,
+        _code.text,
+        _evidence,
+        evidenceBytes: _bytes,
+      ),
     );
-    switch (res) {
-      case DeliveryResult.wrongCode:
+    if (!context.mounted) return;
+    setState(() => _busy = false);
+    final res = outcome.result;
+    switch (res.code) {
+      case 'ok':
+        showSnack(
+          context,
+          orders.isRemote
+              ? '¡Entregado! Ganas ${cop(o.courierEarning)}'
+              : '¡Entregado! +${cop(o.courierEarning)} (simulado)',
+        );
+        celebrate(context);
+        context.go('/repartidor');
+      case 'wrong_code':
         setState(() => _error = 'Código incorrecto');
         showSnack(context, 'Código del cliente incorrecto', error: true);
-      case DeliveryResult.missingEvidence:
+      case 'missing_evidence':
         showSnack(
           context,
           'Agrega una foto de evidencia para finalizar',
           error: true,
         );
-      case DeliveryResult.invalidState:
+      case 'invalid_state':
         showSnack(context, 'El pedido no está en camino', error: true);
-      case DeliveryResult.ok:
-        showSnack(context, '¡Entregado! +${cop(o.courierEarning)} (simulado)');
-        celebrate(context);
-        context.go('/repartidor');
+      default:
+        showSnack(context, res.message, error: true);
     }
   }
 }

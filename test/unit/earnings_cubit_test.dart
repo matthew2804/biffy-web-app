@@ -11,22 +11,25 @@ void main() {
   setUp(() => s = makeServices());
 
   group('GetCourierEarnings', () {
-    test('suma hoy, la semana y el acumulado con las entregas reales', () {
-      final o = deliverQbano(s);
-      final now = s.catalog.now;
-      final e = const GetCourierEarnings()(
-        s.orders.deliveredBy('u-andres'),
-        now,
-      );
+    test(
+      'suma hoy, la semana y el acumulado con las entregas reales',
+      () async {
+        final o = await deliverQbano(s);
+        final now = s.catalog.now;
+        final e = const GetCourierEarnings()(
+          s.orders.deliveredBy('u-andres'),
+          now,
+        );
 
-      expect(e.history.first.id, o.id);
-      expect(e.today.deliveries, greaterThanOrEqualTo(1));
-      expect(e.week, hasLength(7));
-      expect(e.week.last.net, e.today.net);
-      expect(e.total.net, computeEarnings(e.history).net);
-      expect(e.settlement.weekday, DateTime.monday);
-      expect(e.settlement.isAfter(now), isTrue);
-    });
+        expect(e.history.first.id, o.id);
+        expect(e.today.deliveries, greaterThanOrEqualTo(1));
+        expect(e.week, hasLength(7));
+        expect(e.week.last.net, e.today.net);
+        expect(e.total.net, computeEarnings(e.history).net);
+        expect(e.settlement.weekday, DateTime.monday);
+        expect(e.settlement.isAfter(now), isTrue);
+      },
+    );
 
     test('sin entregas todo queda en cero', () {
       final e = const GetCourierEarnings()(const [], s.catalog.now);
@@ -48,12 +51,14 @@ void main() {
         );
         final before = c.state.today.deliveries;
 
-        final o = deliverQbano(s);
+        final o = await deliverQbano(s);
+        await Future<void>.delayed(Duration.zero);
         expect(c.state.today.deliveries, before + 1);
         expect(c.state.history.first.id, o.id);
 
         await c.close();
-        deliverQbano(s);
+        await deliverQbano(s);
+        await Future<void>.delayed(Duration.zero);
         expect(c.state.today.deliveries, before + 1);
       },
     );

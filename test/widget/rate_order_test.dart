@@ -9,7 +9,7 @@ void main() {
     'el comprador califica su pedido entregado desde el seguimiento',
     (tester) async {
       final s = makeServices();
-      final o = deliverQbano(s);
+      final o = await deliverQbano(s);
       await pumpBiffy(tester, services: s, initialLocation: '/pedido/${o.id}');
 
       await scrollTo(tester, find.byKey(const Key('rate-card')));
@@ -37,7 +37,7 @@ void main() {
     tester,
   ) async {
     final s = makeServices();
-    final o = placeQbano(s);
+    final o = await placeQbano(s);
     expect(o.status, OrderStatus.pending);
     await pumpBiffy(tester, services: s, initialLocation: '/pedido/${o.id}');
     expect(find.byKey(const Key('rate-card')), findsNothing);

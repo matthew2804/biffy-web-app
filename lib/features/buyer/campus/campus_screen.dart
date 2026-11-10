@@ -8,7 +8,7 @@ import '../../../core/widgets/actions.dart';
 import '../../../core/widgets/catalog_cards.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 
 /// Campus Live: restaurantes populares de la universidad que entregan en el
@@ -39,7 +39,7 @@ class _CampusScreenState extends State<CampusScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final catalog = context.watch<CatalogController>();
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final t = Theme.of(context).textTheme;
     final uniId = _uniId ?? session.universityId ?? 'icesi';
     final uni = universityById(uniId)!;

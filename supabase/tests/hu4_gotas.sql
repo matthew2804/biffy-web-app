@@ -118,8 +118,7 @@ begin
     'branch_id', '00000000-0000-0000-0000-00000000b101',
     'address_id', '00000000-0000-0000-0000-00000000a001',
     'payment', 'cash',
-    'lines', jsonb_build_array(jsonb_build_object('dish_id', '00000000-0000-0000-0000-00000000d001', 'qty', 1)),
-    'subtotal', 12000, 'delivery_fee', 2000, 'gotas_used', 100, 'total', 13000)));
+    'lines', jsonb_build_array(jsonb_build_object('dish_id', '00000000-0000-0000-0000-00000000d001', 'qty', 1)), 'gotas_used', 100)));
   if r ->> 'result' <> 'ok' then raise exception 'FALLA place_order: %', r; end if;
   pedido := (r -> 'order' ->> 'id')::uuid;
   codigo := r -> 'order' ->> 'delivery_code';
@@ -138,6 +137,8 @@ begin
   if r ->> 'result' <> 'ok' then raise exception 'FALLA courier_accept: %', r; end if;
   r := pg_temp.como(repa, format('public.courier_pickup(%L)', pedido));
   if r ->> 'result' <> 'ok' then raise exception 'FALLA courier_pickup: %', r; end if;
+  insert into storage.objects (bucket_id, name, owner)
+  values ('delivery-evidence', pedido || '/foto.jpg', repa);
   r := pg_temp.como(repa, format('public.courier_deliver(%L, %L, %L)', pedido, codigo, pedido || '/foto.jpg'));
   if r ->> 'result' <> 'ok' then raise exception 'FALLA courier_deliver: %', r; end if;
 

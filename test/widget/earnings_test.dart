@@ -12,7 +12,7 @@ void main() {
     tester,
   ) async {
     final s = makeServices();
-    final o = deliverQbano(s);
+    final o = await deliverQbano(s);
     s.session.login(kDemoCourierEmail, kDemoPassword);
     await pumpBiffy(
       tester,

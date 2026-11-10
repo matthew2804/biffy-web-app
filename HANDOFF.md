@@ -37,9 +37,13 @@ La confirmación de correo está **desactivada** mientras sea demo.
 
 ```text
 Pantallas (lib/features/**)
-   ↓ solo lectura/acciones
-Controladores ChangeNotifier (lib/shared/state/**)
-   ↓ contratos síncronos
+   ↓ eventos / lectura
+OrdersBloc (lib/features/orders/bloc)        Controladores ChangeNotifier (sesión,
+   ↓ llama a                                  catálogo, carrito: aún sin migrar)
+Casos de uso (lib/domain/usecases/orders)
+   ↓ dependen de interfaces
+Dominio: entidades, OrderRepository, puertos (lib/domain/**)  ← Dart puro
+   ↑ implementan
 Repositorios (lib/data/repositories/**)
    ├── InMemory…   → modo demo
    └── Supabase…   → backend real
@@ -61,8 +65,8 @@ Reglas que **no** se negocian:
 
 - La regla de alcance (radio + repartidores + campus) vive solo en
   `lib/domain/catalog_rules.dart` (`isReachable`).
-- Los pedidos solo cambian de estado por `OrderService`; ninguna pantalla toca
-  `Order`.
+- Los pedidos solo cambian de estado por `OrdersBloc` → casos de uso →
+  `OrderRepository`; ninguna pantalla toca `Order` ni los repositorios.
 - Las reglas de negocio (precios, filtros, transiciones, horarios) son funciones
   puras en `lib/domain/` con tests.
 - `AppServices.demo()` debe seguir funcionando: **los 104 tests dependen de él**.
@@ -82,7 +86,8 @@ Reglas que **no** se negocian:
 | Datos | 4 universidades, 8 puntos con geometría, 9 categorías, 5 recompensas con 18 premios, 15 sedes y 32 platos |
 | Cuentas | 3 cuentas demo reales con bienvenida de 450 Gotas |
 
-Migraciones en `supabase/migrations/` (`0000`–`0018`). El bootstrap para pegar
+Migraciones en `supabase/migrations/` (`0000`–`0019`; la `0019_order_cycle`
+es el ciclo del pedido de HU-3). El bootstrap para pegar
 en el SQL Editor es `supabase/apply_all.sql` (generado concatenando las
 migraciones).
 
@@ -94,15 +99,38 @@ migraciones).
 | `lib/main.dart` | `Supabase.initialize()` + restaura sesión |
 | `lib/data/repositories/supabase_auth_repository.dart` | Login, registro con rol, sesión, saldo, direcciones y perfil de repartidor |
 | `lib/data/repositories/supabase_catalog_repository.dart` | Catálogo con caché hidratada + Realtime |
-| `lib/data/repositories/supabase_order_repository.dart` | Pedidos: cache, mapeo y RPC; sube evidencia |
+| `lib/data/repositories/supabase_order_repository.dart` | Pedidos: caché + RPC con resultado tipado (`RpcResult`), recarga tras cada RPC, Realtime + sondeo de 30 s, sube evidencia |
+| `lib/data/repositories/rpc_result.dart` | Respuesta normalizada de un RPC (`code`, `data`, `order`) |
+| `lib/domain/order_errors.dart` | `result` del servidor → mensaje en español (con tests) |
 | `lib/shared/state/app_services.dart` | `AppServices.demo()` y `AppServices.supabase()` |
 | `lib/shared/state/session_controller.dart` | `loginAsync`, `registerAsync`, `restoreAsync`, hidratación remota y persistencia de perfil |
-| `lib/shared/state/order_service.dart` | Réplica de cada transición por RPC |
+| `lib/features/orders/bloc/` | `OrdersBloc`: eventos → casos de uso → `OrdersState` (`orders`, `revision`, `outcome`). Con servidor, **el servidor decide**: llama al RPC y el estado llega con la recarga |
+| `lib/domain/usecases/orders/` | `PlaceOrder`, `CancelOrder`, `AcceptOrder`, `RejectOrder`, `MarkOrderReady`, `AcceptOffer`, `DeclineOffer`, `ConfirmPickup`, `CompleteDelivery`, `OrderQueries`; se ensamblan en `OrderUseCases` |
+| `lib/domain/repositories/order_repository.dart` | Interfaz `OrderRepository` + `OrderResult` (mismos códigos en demo y servidor) |
+| `lib/shared/adapters/order_adapters.dart` | Conectan los puertos del dominio con `CatalogController`, `SessionController` y `NotificationCenter` |
 | `tool/admin_seed.dart` | Crea/actualiza las 3 cuentas demo con `service_role` (idempotente) |
 | `test/integration/hu1_supabase_test.dart` | 13 pruebas de perfil, verificación y RLS con usuarios reales |
 
 Verificado con un pedido real: `BF-2041` creado, aceptado, listo, asignado,
 recogido y entregado (6 eventos, evidencia en Storage, +12 Gotas).
+
+### HU-3 · Ciclo completo del pedido (comprador → restaurante → repartidor)
+
+Código y pruebas listos; **falta aplicar `0019_order_cycle.sql` al proyecto
+remoto** (ver «Cómo probarlo» abajo).
+
+- `0019_order_cycle.sql`: `place_order` calcula precios, descuento de campus,
+  tarifa, cupón, distancia y pago al repartidor en el servidor; idempotente con
+  `client_key`; el código de entrega pasa a `order_secrets` (el repartidor ya
+  no puede leerlo); cancelar/rechazar devuelve Gotas **y** cupón;
+  `order_events.from_status`; `courier_deliver` verifica la foto en Storage;
+  las ofertas solo las ven repartidores; escrituras directas revocadas;
+  `credit_gotas` ya no es llamable por clientes.
+- Prueba SQL de punta a punta: `supabase/tests/hu3_order_cycle.sql` (87
+  comprobaciones, termina en `ROLLBACK`).
+- Flutter: Clean Architecture + Bloc (ver tabla arriba), mensajes en español
+  para cada `result`, doble toque protegido, reintento seguro del pedido.
+
 
 ### HU-1 · Autenticación y perfiles reales
 
@@ -124,25 +152,32 @@ recogido y entregado (6 eventos, evidencia en Storage, +12 Gotas).
 
 Rama `hu4-gotas-recompensas-notificaciones`.
 
-- ✅ `0019` el descuento del cupón lo calcula `place_order` (antes se podía
-  inflar desde la app); valida dueño, vigencia y usos con bloqueo de fila.
+- ✅ Cupones: el descuento lo calcula `place_order` de HU-3 (`0019_order_cycle`);
+  `hu4_cupones.sql` prueba que el valor de la app se ignora, y que no se usan
+  cupones ajenos, vencidos o repetidos.
 - ✅ `0020` canjear `free_shipping` entrega su cupón (antes cobraba sin dar nada).
 - ✅ `0021` reseñas solo por `rate_order` (pedido propio, entregado, una vez,
   en la sede del pedido) y `branches.rating` con el promedio real.
 - ✅ `0022` notificaciones creadas por la base en cada transición, por usuario
   y rol, en Realtime; el usuario solo puede cambiar `read_at`.
-- ✅ `0023` `credit_gotas` falla si el saldo quedaría negativo (saldo = ledger).
+- ✅ `0023` `credit_gotas` falla si el saldo quedaría negativo (saldo = ledger)
+  y respeta `biffy.internal` de quien la llama (lo necesita `hu3_order_cycle.sql`).
 - ✅ `0024` envío gratis cuesta 5 Gotas.
 - ✅ App: pantalla para calificar, avisos en vivo sin duplicados y en hora
   local, ganancias reales del repartidor, cajas del restaurante sin caerse en demo.
-- ✅ BLoC + Clean en todas las pantallas de HU-4 (ver sección 2).
-- ✅ 69 pruebas SQL de RLS/RPC (`tool/test_supabase_sql.sh`, job `sql-tests`).
-- ⏳ Aplicar `0019`–`0024` al proyecto remoto y el checklist de despliegue de
+- ✅ BLoC + Clean en todas las pantallas de HU-4 (ver sección 2). Calificar usa
+  el caso de uso `RateOrder` con puertos (`BranchRatingPort`, `ReviewNotifier`);
+  con Supabase el notificador de pedidos es `ServerOrderNotifier` (no duplica
+  los avisos que crea la base).
+- ✅ Pruebas SQL de RLS/RPC (`tool/test_supabase_sql.sh`, job `sql-tests`):
+  la base local trae las cuentas demo (`_demo_accounts.sql`), así que
+  `hu3_order_cycle.sql` también corre ahí.
+- ⏳ Aplicar `0020`–`0024` al proyecto remoto y el checklist de despliegue de
   `supabase/README.md`; prueba final con datos reales.
 
-Calidad actual: `flutter analyze` limpio · `flutter test` **157/157**
-(21 pruebas de integración se saltan sin credenciales de Supabase) ·
-pruebas SQL **69/69**.
+Calidad actual (HU-3 + HU-4): `flutter analyze` limpio · `flutter test`
+**203/203** (21 pruebas de integración se saltan sin credenciales de Supabase) ·
+pruebas SQL **158/158** (HU-3: 87, HU-4: 71).
 
 ---
 
@@ -233,7 +268,6 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 |---|---|
 | Alta | `couriers_nearby` real (repartidores online + PostGIS) |
 | Alta | Límite diario de canjes |
-| Alta | Idempotencia de `place_order` |
 | Alta | Política INSERT de `notifications` |
 | Media | `branches.rating` recalculado desde `reviews` |
 | Media | Jobs `pg_cron`: auto-cancelar pedidos viejos, sorteo mensual, limpiar evidencias |
@@ -267,12 +301,14 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 |---|---|
 | Auth síncrona vs asíncrona | La demo usa `login/register` (síncronos, los tests dependen de ellos). Las pantallas usan `loginAsync/registerAsync`. No mezclar. |
 | IDs de pedido | `Order.id` es el código visible (`BF-2041`); `Order.dbId` es el uuid de la base. Los RPC usan **`dbId`**. Si es `null`, el pedido aún no llegó a la base. |
-| Escritura optimista | `place_order` se dispara después de crear el pedido local. Si el RPC falla, el pedido queda solo en memoria (gap de Fase 5). |
-| `dbId` tardío | Se asigna cuando responde el RPC. Una transición en ese primer segundo puede no replicarse. |
+| Servidor primero | Con Supabase el pedido **no** se crea ni cambia de estado localmente: se llama al RPC y el estado llega con la recarga. Si el RPC falla no queda nada a medias. En demo todo sigue siendo local e inmediato. |
+| Un solo API | Las pantallas despachan eventos al `OrdersBloc` (`add`) o esperan el resultado con `await bloc.request(evento)`. No hay API síncrona de pedidos. Los tests de reglas usan `bloc.useCases.<caso de uso>(...)`. |
+| Código de entrega | Vive en `order_secrets` (solo el comprador). El repartidor lo recibe vacío y lo valida el servidor; no compares códigos en la app. |
+| Direcciones y cupones | Hasta la HU de datos personales son locales (sin uuid). Con servidor, `validate()` pide una dirección guardada en la cuenta y bloquea cupones locales. |
 | Alcance | `isReachable` exige `couriersNearby > 0`. Es un valor simulado (default 1); la sede demo tiene 3. |
 | Realtime | Requiere `0010_realtime.sql` aplicado (publica `branches`, `dishes`, `orders`, `order_events`). Sin él todo funciona, pero hay que reabrir la app. |
 | `businesses` | Tiene RLS de dueño: el comprador no ve negocios (solo sedes y platos). `businessById` solo lo usan pantallas de comercio. |
-| Evidencia | Se sube a `delivery-evidence/<order_uuid>/`. El bucket es privado: para mostrarla hace falta URL firmada. |
+| Evidencia | Se sube a `delivery-evidence/<order_uuid>/`; `courier_deliver` exige que el objeto exista. Máx. 5 MB, jpeg/png/webp. El bucket es privado: para mostrarla hace falta URL firmada (pendiente). |
 | Fechas | `timestamptz` llega en UTC: el mapeo usa `.toLocal()` y `scheduled_for` se envía con `.toUtc()`. Sin eso las horas y los días (ganancias, seguimiento) salen corridos 5 h. |
 | Imágenes | `image_url` acepta una ruta `assets/...` o una URL de Storage; `catalogImage` en `lib/core/widgets/ui.dart` elige asset o red. Hoy las 4 filas de Qbano tienen `null` (se ve el emoji). |
 | Ids demo | En Supabase las sedes tienen uuid: no enlazar a ids fijos como `qbano-icesi`; usar `CatalogController.qbanoIcesi` o buscar en el catálogo. |
@@ -308,6 +344,24 @@ tool/test_supabase_sql.sh
 
 Si `gotas_reward_prizes` no existe, falta aplicar `0008`.
 Si la app no se refresca sola, falta `0010`.
+Si `place_order` responde `total_mismatch` siempre o no existe `order_secrets`,
+falta aplicar `0019`.
+
+### Probar la HU-3 (ciclo del pedido)
+
+1. **Base:** SQL Editor → pegar `supabase/apply_all.sql` → Run (debe terminar
+   con `Biffy OK · 28 tablas …`). Si solo falta lo nuevo, basta
+   `supabase/migrations/0019_order_cycle.sql`.
+2. **Prueba SQL:** pegar `supabase/tests/hu3_order_cycle.sql` → Run. Debe
+   imprimir ~87 líneas `PASS` y ningún `FALLO`; no deja datos (`ROLLBACK`).
+3. **App:** copiar `env.example.json` a `env.json` y correr
+   `flutter run --dart-define-from-file=env.json` (usa dos o tres dispositivos
+   o ventanas, una por rol).
+4. **Flujo:** comprador `diego.demo@icesi.edu.co` pide → restaurante
+   `qbano@demo.biffy.co` acepta y marca listo → repartidor
+   `andres.repartidor@demo.biffy.co` acepta, recoge y entrega con el código que
+   ve el comprador y una foto → comprobar `orders`, `order_events` y
+   `gotas_ledger`.
 
 ---
 

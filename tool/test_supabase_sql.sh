@@ -15,7 +15,8 @@ if [ -z "${DB_URL:-}" ]; then
       -p 55433:5432 postgis/postgis:16-3.4 >/dev/null
   fi
   # La imagen se reinicia una vez al terminar su inicialización.
-  until docker logs "$name" 2>&1 | grep -q 'PostgreSQL init process complete' \
+  # (grep sin -q: lee todo el log y no corta la tubería con pipefail).
+  until docker logs "$name" 2>&1 | grep 'PostgreSQL init process complete' >/dev/null \
     && docker exec "$name" pg_isready -U postgres >/dev/null 2>&1; do
     sleep 1
   done
@@ -28,11 +29,13 @@ fi
 
 run < supabase/tests/_supabase_stubs.sql
 run -1 < supabase/apply_all.sql 2>&1 | grep -E 'Biffy OK|ERROR' || true
+# Diego, Andrés y Qbano (en el proyecto real los crea tool/admin_seed.dart).
+run < supabase/tests/_demo_accounts.sql
 
 fail=0
 for f in supabase/tests/hu*.sql; do
   if out=$(run < "$f" 2>&1); then
-    echo "✅ $f ($(grep -c 'ok ·' <<<"$out") casos)"
+    echo "✅ $f ($(grep -cE 'ok ·|PASS ·' <<<"$out") casos)"
   else
     echo "❌ $f"
     grep -E 'ERROR|FALLA' <<<"$out" | head -5 || tail -5 <<<"$out"

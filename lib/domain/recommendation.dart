@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import '../core/constants/catalog_constants.dart';
 import '../core/utils/format.dart';
-import '../data/models/catalog.dart';
-import '../data/models/user.dart';
+import 'entities/catalog.dart';
+import 'entities/user.dart';
 import 'catalog_rules.dart';
 
 /// Modos de recomendación que ofrece el motor local.

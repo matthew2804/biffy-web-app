@@ -9,7 +9,7 @@ import '../../../core/widgets/ui.dart';
 import '../../../data/mock/seed_users.dart';
 import '../../../data/models/order.dart';
 import '../../../data/models/user.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 
 /// Perfil del comprador con accesos a cuenta, pedidos y modos de rol.
@@ -20,7 +20,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final t = Theme.of(context).textTheme;
     final u = session.user;
     final uni = universityById(session.universityId);

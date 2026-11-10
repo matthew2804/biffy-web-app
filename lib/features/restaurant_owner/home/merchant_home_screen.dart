@@ -9,14 +9,14 @@ import '../../../data/models/user.dart';
 import '../../../domain/order_rules.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/notification_center.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 
 /// Métricas del negocio actual derivadas de pedidos y productos locales.
 RestaurantMetrics businessMetrics(BuildContext context) {
   final session = context.read<SessionController>();
   final catalog = context.read<CatalogController>();
-  final orders = context.read<OrderService>();
+  final orders = context.read<OrdersBloc>();
   final id = session.businessId!;
   return computeMetrics(
     orders: orders.forBusiness(id),
@@ -35,7 +35,7 @@ class MerchantHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final catalog = context.watch<CatalogController>();
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final center = context.watch<NotificationCenter>();
     final t = Theme.of(context).textTheme;
     final b = catalog.businessById(session.businessId!)!;

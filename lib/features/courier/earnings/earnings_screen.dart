@@ -8,7 +8,7 @@ import '../../../core/widgets/ui.dart';
 import '../../../domain/order_rules.dart';
 import '../../../domain/usecases/get_courier_earnings.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import 'earnings_cubit.dart';
 
@@ -23,7 +23,7 @@ class EarningsScreen extends StatelessWidget {
     final catalog = context.read<CatalogController>();
     return BlocProvider(
       create: (_) => EarningsCubit(
-        orders: context.read<OrderService>(),
+        orders: context.read<OrdersBloc>(),
         courierId: session.user!.id,
         now: () => catalog.now,
       ),

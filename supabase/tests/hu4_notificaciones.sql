@@ -26,7 +26,7 @@ on conflict (user_id) do update set vehicle = excluded.vehicle, online = exclude
 insert into public.businesses (id, owner_id, brand) values
   ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-0000000000c3', 'Local HU4');
 insert into public.branches (id, business_id, name, campus_id, lat, lng) values
-  ('00000000-0000-0000-0000-00000000b101', '00000000-0000-0000-0000-00000000b001', 'Local HU4 Icesi', 'icesi', 3.3416, -76.5304);
+  ('00000000-0000-0000-0000-00000000b101', '00000000-0000-0000-0000-00000000b001', 'Local HU4 Icesi', 'icesi', 3.3640, -76.5305);  -- ~2,5 km del punto
 insert into public.dishes (id, branch_id, category_id, name, price) values
   ('00000000-0000-0000-0000-00000000d001', '00000000-0000-0000-0000-00000000b101', 'sandwich', 'Sándwich', 12000);
 insert into public.addresses (id, user_id, point_id, line, label) values
@@ -77,9 +77,7 @@ begin
     'branch_id', '00000000-0000-0000-0000-00000000b101',
     'address_id', '00000000-0000-0000-0000-00000000a001',
     'payment', 'cash',
-    'lines', jsonb_build_array(jsonb_build_object('dish_id', '00000000-0000-0000-0000-00000000d001', 'qty', 2)),
-    'subtotal', 24000, 'delivery_fee', 2000, 'total', 26000,
-    'courier_pay', 5000, 'distance_km', 2.5))) -> 'order' ->> 'id')::uuid;
+    'lines', jsonb_build_array(jsonb_build_object('dish_id', '00000000-0000-0000-0000-00000000d001', 'qty', 2))))) -> 'order' ->> 'id')::uuid;
 end $$;
 
 -- Avisos de un usuario para un pedido, en orden.
@@ -108,6 +106,8 @@ declare
   dormido uuid := '00000000-0000-0000-0000-0000000000f7';
   p uuid;
   code text;
+  oferta text;
+  km numeric;
   r jsonb;
   n int;
 begin
@@ -124,9 +124,14 @@ begin
   perform pg_temp.tiene('el comprador sabe que lo están preparando', ana, p, 'Pedido en preparación 👩‍🍳');
 
   perform pg_temp.ok(local, format('public.restaurant_ready(%L)', p));
+  select 'Oferta disponible · ' || public.cop(o.courier_pay + o.tip), o.distance_km
+    into oferta, km from public.orders o where o.id = p;
+  if km not between 2 and 3 then
+    raise exception 'FALLA: la sede debía quedar a ~2,5 km, quedó a % km', km;
+  end if;
   perform pg_temp.tiene('el comprador sabe que está listo', ana, p, 'Pedido listo 🛍️');
-  perform pg_temp.tiene('repartidor en moto recibe la oferta', repa, p, 'Oferta disponible · $5.000');
-  perform pg_temp.tiene('repartidor en bici (4 km) recibe la oferta', bici, p, 'Oferta disponible · $5.000');
+  perform pg_temp.tiene('repartidor en moto recibe la oferta', repa, p, oferta);
+  perform pg_temp.tiene('repartidor en bici (4 km) recibe la oferta', bici, p, oferta);
   if cardinality(pg_temp.avisos(pie, p)) > 0 then
     raise exception 'FALLA: el repartidor a pie (1,5 km) recibió una oferta de 2,5 km';
   end if;
@@ -147,8 +152,10 @@ begin
   perform pg_temp.ok(repa, format('public.courier_pickup(%L)', p));
   perform pg_temp.tiene('el comprador sabe que va en camino', ana, p, 'Pedido en camino 🛵');
 
+  insert into storage.objects (bucket_id, name, owner)
+  values ('delivery-evidence', p || '/foto.jpg', repa);
   perform pg_temp.ok(repa, format('public.courier_deliver(%L, %L, %L)', p,
-    (select delivery_code from public.orders where id = p), p || '/foto.jpg'));
+    (select delivery_code from public.order_secrets where order_id = p), p || '/foto.jpg'));
   perform pg_temp.tiene('el comprador sabe que se entregó', ana, p, 'Pedido entregado ✅');
   perform pg_temp.tiene('el restaurante sabe que se entregó', local, p, 'Pedido ' || code || ' entregado');
   if (select body from public.notifications where user_id = ana and order_id = p and title = 'Pedido entregado ✅')

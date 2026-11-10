@@ -159,12 +159,12 @@ begin
     'branch_id', '00000000-0000-0000-0000-00000000b101',
     'address_id', '00000000-0000-0000-0000-00000000a002',
     'payment', 'cash',
-    'lines', jsonb_build_array(jsonb_build_object('dish_id', '00000000-0000-0000-0000-00000000d001', 'qty', 1)),
-    'subtotal', 12000, 'delivery_fee', 2000, 'coupon_id', cupon, 'total', 12000)));
-  if r ->> 'result' <> 'ok' or (r -> 'order' ->> 'coupon_discount')::int <> 2000 then
+    'lines', jsonb_build_array(jsonb_build_object('dish_id', '00000000-0000-0000-0000-00000000d001', 'qty', 1)), 'coupon_id', cupon)));
+  if r ->> 'result' <> 'ok'
+     or (r #>> '{order,coupon_discount}')::int <> (r #>> '{order,delivery_fee}')::int then
     raise exception 'FALLA: el cupón de envío gratis no se pudo usar: %', r;
   end if;
-  raise notice 'ok · el cupón de envío gratis se usa en un pedido y quita los 2.000 del envío';
+  raise notice 'ok · el cupón de envío gratis se usa en un pedido y quita la tarifa (%)', r #>> '{order,delivery_fee}';
 
   -- Privacidad: Beto no ve los canjes ni cupones de Ana
   r := pg_temp.como(beto, $$ jsonb_build_object(

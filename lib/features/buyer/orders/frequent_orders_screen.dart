@@ -7,7 +7,7 @@ import '../../../core/widgets/ui.dart';
 import '../../../data/models/order.dart';
 import '../../../domain/pricing.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import 'reorder_flow.dart';
 
@@ -44,7 +44,7 @@ class FrequentOrdersScreen extends StatelessWidget {
   /// Construye la lista de pedidos frecuentes o el estado vacío.
   @override
   Widget build(BuildContext context) {
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final session = context.watch<SessionController>();
     final catalog = context.watch<CatalogController>();
     final t = Theme.of(context).textTheme;

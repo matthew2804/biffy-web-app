@@ -9,9 +9,10 @@ import '../../../core/widgets/confetti.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../domain/catalog_rules.dart';
 import '../../../domain/pricing.dart';
+import '../../../domain/usecases/orders/checkout_draft.dart';
 import '../../../shared/state/cart_controller.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import 'cart_draft.dart';
 import 'cart_screen.dart';
@@ -29,13 +30,15 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _placing = false;
 
-  /// Construye el resumen del pedido, totales y errores de validación.
+  /// Clave de idempotencia del intento en curso (ver [newClientKey]).
+  String? _clientKey;
+
   @override
   Widget build(BuildContext context) {
     context.watch<CartController>();
     context.watch<SessionController>();
     final catalog = context.watch<CatalogController>();
-    final orders = context.read<OrderService>();
+    final orders = context.read<OrdersBloc>();
     final t = Theme.of(context).textTheme;
     final draft = draftFromCart(context);
     final r = draft.restaurant;
@@ -198,20 +201,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+
   /// Crea el pedido, vacía el carrito y navega al seguimiento.
-  void _place(BuildContext context) {
+  Future<void> _place(BuildContext context) async {
+    if (_placing) return;
     setState(() => _placing = true);
-    try {
-      final order = context.read<OrderService>().placeOrder(
-        draftFromCart(context),
+    final orders = context.read<OrdersBloc>();
+    final cart = context.read<CartController>();
+    final draft = draftFromCart(context);
+    _clientKey ??= newClientKey();
+    final outcome = await orders.request(
+      OrderPlaced(draft, clientKey: _clientKey),
+    );
+    if (!context.mounted) return;
+    final result = outcome.result;
+    if (result.ok) {
+      _clientKey = null;
+      final id = outcome.orderId;
+      cart.clear();
+      showSnack(
+        context,
+        orders.isRemote
+            ? 'Pedido $id enviado al restaurante'
+            : 'Pedido $id creado · demostración sin cobros',
       );
-      context.read<CartController>().clear();
-      showSnack(context, 'Pedido ${order.id} creado · demostración sin cobros');
       celebrate(context);
-      context.go('/pedido/${order.id}');
-    } on OrderException catch (e) {
-      setState(() => _placing = false);
-      showSnack(context, e.message, error: true);
+      context.go('/pedido/$id');
+      return;
     }
+    // Un corte de red conserva la clave (reintento seguro); cualquier otro
+    // rechazo la descarta para que el próximo intento sea un pedido nuevo.
+    if (!result.isTransportError) _clientKey = null;
+    setState(() => _placing = false);
+    showSnack(context, result.message, error: true);
   }
 }

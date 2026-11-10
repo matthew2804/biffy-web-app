@@ -68,3 +68,7 @@ end $p$;
 
 grant usage on schema auth, storage to anon, authenticated;
 grant execute on function auth.uid(), auth.role() to anon, authenticated;
+
+-- Como en Supabase: el acceso a Storage lo deciden las políticas RLS.
+grant select, insert, update, delete on storage.objects to anon, authenticated;
+grant select on storage.buckets to anon, authenticated;

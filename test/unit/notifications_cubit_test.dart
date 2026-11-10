@@ -42,9 +42,9 @@ void main() {
     expect(c.state.unread, 0);
   });
 
-  test('un pedido entregado avisa al comprador en vivo', () {
+  test('un pedido entregado avisa al comprador en vivo', () async {
     final before = c.state.items.length;
-    deliverQbano(s);
+    await deliverQbano(s);
     expect(c.state.items.length, greaterThan(before));
     expect(c.state.items.map((n) => n.title), contains('Pedido entregado ✅'));
   });

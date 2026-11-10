@@ -37,24 +37,25 @@ insert into public.user_coupons (user_id, coupon_id) values
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000c002'),
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000c003');
 
-create function pg_temp.pedido(p_user uuid, p_addr uuid, p_coupon uuid, p_disc int, p_total int)
+-- Pide como el comprador. El servidor calcula precios (HU-3); si se manda
+-- [p_total] y no coincide, rechaza con total_mismatch. [coupon_discount] se
+-- manda inflado a propósito: la base debe ignorarlo.
+create function pg_temp.pedido(p_user uuid, p_addr uuid, p_coupon uuid, p_total int default null)
 returns jsonb language plpgsql as $$
 declare r jsonb;
 begin
   perform set_config('request.jwt.claim.sub', p_user::text, true);
   set local role authenticated;
-  r := public.place_order(jsonb_build_object(
+  r := public.place_order(jsonb_strip_nulls(jsonb_build_object(
     'branch_id', '00000000-0000-0000-0000-00000000b101',
     'address_id', p_addr,
     'payment', 'cash',
     'lines', jsonb_build_array(jsonb_build_object(
       'dish_id', '00000000-0000-0000-0000-00000000d001', 'qty', 1)),
-    'subtotal', 12000,
-    'delivery_fee', 2000,
     'coupon_id', p_coupon,
-    'coupon_discount', p_disc,
+    'coupon_discount', 12000,
     'total', p_total
-  ));
+  )));
   reset role;
   return r;
 end $$;
@@ -79,32 +80,40 @@ declare
   viejo uuid := '00000000-0000-0000-0000-00000000c003';
   r jsonb;
 begin
-  r := pg_temp.pedido(a, addr_a, fijo, 12000, 2000);
-  perform pg_temp.esperar('descuento inflado por el cliente se rechaza', r, 'total_mismatch');
-  if (r ->> 'expected')::int <> 11000 then
-    raise exception 'FALLA: el total esperado debía ser 11000, llegó %', r;
+  r := pg_temp.pedido(a, addr_a, fijo, 2000);
+  perform pg_temp.esperar('un total inventado por el cliente se rechaza', r, 'total_mismatch');
+  if (r #>> '{breakdown,coupon_discount}')::int <> 3000 then
+    raise exception 'FALLA: la base debía calcular 3000 de descuento, calculó %', r;
   end if;
 
-  r := pg_temp.pedido(a, addr_a, null, 3000, 11000);
-  perform pg_temp.esperar('descuento sin cupón se rechaza', r, 'total_mismatch');
+  r := pg_temp.pedido(a, addr_a, null);
+  perform pg_temp.esperar('sin cupón se crea el pedido', r, 'ok');
+  if (r #>> '{order,coupon_discount}')::int <> 0 then
+    raise exception 'FALLA: sin cupón el descuento debía ser 0 (el cliente mandó 12000)';
+  end if;
+  raise notice 'ok · el descuento que manda la app se ignora';
 
-  r := pg_temp.pedido(b, addr_b, fijo, 3000, 11000);
+  r := pg_temp.pedido(b, addr_b, fijo);
   perform pg_temp.esperar('cupón de otro usuario se rechaza', r, 'coupon_unavailable');
 
-  r := pg_temp.pedido(a, addr_a, viejo, 5000, 9000);
+  r := pg_temp.pedido(a, addr_a, viejo);
   perform pg_temp.esperar('cupón vencido se rechaza', r, 'coupon_unavailable');
 
-  r := pg_temp.pedido(a, addr_a, fijo, 3000, 11000);
+  r := pg_temp.pedido(a, addr_a, fijo);
   perform pg_temp.esperar('cupón fijo válido aplica 3000', r, 'ok');
-  if (r -> 'order' ->> 'coupon_discount')::int <> 3000 then
-    raise exception 'FALLA: coupon_discount guardado %', r -> 'order' ->> 'coupon_discount';
+  if (r #>> '{order,coupon_discount}')::int <> 3000 then
+    raise exception 'FALLA: coupon_discount guardado %', r #>> '{order,coupon_discount}';
   end if;
 
-  r := pg_temp.pedido(a, addr_a, fijo, 3000, 11000);
+  r := pg_temp.pedido(a, addr_a, fijo);
   perform pg_temp.esperar('el mismo cupón no se usa dos veces', r, 'coupon_unavailable');
 
-  r := pg_temp.pedido(a, addr_a, envio, 2000, 12000);
-  perform pg_temp.esperar('envío gratis descuenta la tarifa', r, 'ok');
+  r := pg_temp.pedido(a, addr_a, envio);
+  perform pg_temp.esperar('envío gratis se acepta', r, 'ok');
+  if (r #>> '{order,coupon_discount}')::int <> (r #>> '{order,delivery_fee}')::int then
+    raise exception 'FALLA: envío gratis debía descontar la tarifa: %', r -> 'order';
+  end if;
+  raise notice 'ok · envío gratis descuenta exactamente la tarifa';
 
   if (select used_count from public.coupons where id = fijo) <> 1 then
     raise exception 'FALLA: used_count del cupón fijo';

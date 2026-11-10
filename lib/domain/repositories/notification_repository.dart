@@ -1,4 +1,4 @@
-import '../../data/models/app_notification.dart';
+import '../entities/app_notification.dart';
 
 /// Contrato de notificaciones guardadas. El dominio no sabe que detrás está
 /// Supabase con Realtime; en modo demo no hay repositorio (todo en memoria).

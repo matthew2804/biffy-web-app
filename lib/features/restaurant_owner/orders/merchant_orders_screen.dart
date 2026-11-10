@@ -5,7 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/order.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 
 const _filters = <(String, String, bool Function(Order))>[
@@ -61,7 +61,7 @@ class _MerchantOrdersScreenState extends State<MerchantOrdersScreen> {
   /// Lista los pedidos del negocio según el filtro elegido.
   @override
   Widget build(BuildContext context) {
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final session = context.watch<SessionController>();
     final t = Theme.of(context).textTheme;
     final all = orders.forBusiness(session.businessId!)
@@ -126,7 +126,7 @@ class _KitchenCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final o = order;
-    final orders = context.read<OrderService>();
+    final orders = context.read<OrdersBloc>();
     final t = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -194,8 +194,11 @@ class _KitchenCard extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(120, 44),
                     ),
-                    onPressed: () {
-                      orders.restaurantAccept(o.id);
+                    onPressed: () async {
+                      final outcome = await orders.request(
+                        OrderAccepted(o.id),
+                      );
+                      if (!context.mounted || !outcome.ok) return;
                       showSnack(context, 'Pedido ${o.id} en preparación');
                     },
                     child: const Text('Aceptar'),
@@ -216,8 +219,11 @@ class _KitchenCard extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(160, 44),
                     ),
-                    onPressed: () {
-                      orders.markReady(o.id);
+                    onPressed: () async {
+                      final outcome = await orders.request(
+                        OrderMarkedReady(o.id),
+                      );
+                      if (!context.mounted || !outcome.ok) return;
                       showSnack(
                         context,
                         'Pedido ${o.id} listo · visible para repartidores',
@@ -248,7 +254,10 @@ class _KitchenCard extends StatelessWidget {
       builder: (ctx) => _RejectDialog(orderId: o.id),
     );
     if (reason == null || !context.mounted) return;
-    context.read<OrderService>().restaurantReject(o.id, reason);
+    final outcome = await context.read<OrdersBloc>().request(
+      OrderRejected(o.id, reason),
+    );
+    if (!context.mounted || !outcome.ok) return;
     showSnack(context, 'Pedido ${o.id} rechazado');
   }
 

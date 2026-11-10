@@ -310,6 +310,24 @@ class SessionController extends ChangeNotifier {
     await _hydrateRemote(u);
   }
 
+  /// Con backend real, el saldo de Gotas lo mueve el servidor (compra,
+  /// reembolso, entrega). Esto vuelve a leerlo; no hace nada en modo demo ni
+  /// sin sesión. Nunca lanza.
+  Future<void> syncGotas() async {
+    final u = _user;
+    if (u == null || !_auth.isRemote) return;
+    try {
+      final balance = await _auth.gotasBalance(u.id);
+      if (balance == null || _user?.id != u.id) return;
+      final d = dataFor(u.id);
+      if (d.gotas == balance) return;
+      d.gotas = balance;
+      notifyListeners();
+    } on Object {
+      // Sin conexión se conserva el último saldo conocido.
+    }
+  }
+
   /// Trae saldo, direcciones y perfil de repartidor del backend.
   Future<void> _hydrateRemote(AppUser u) async {
     // Las tres lecturas base van en paralelo.
@@ -551,7 +569,10 @@ class SessionController extends ChangeNotifier {
     d.prefs = universityId == null
         ? d.prefs.copyWith(clearUniversity: true)
         : d.prefs.copyWith(universityId: universityId);
-    if (d.verifiedUniversityId != null &&
+    // Con servidor, la verificación es suya (`profiles.verified`): cambiar la
+    // preferencia no la revoca, o el descuento de campus dejaría de cuadrar.
+    if (!_auth.isRemote &&
+        d.verifiedUniversityId != null &&
         d.verifiedUniversityId != universityId) {
       d.verifiedUniversityId = null;
     }

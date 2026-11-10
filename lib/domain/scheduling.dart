@@ -1,4 +1,4 @@
-import '../data/models/catalog.dart';
+import 'entities/catalog.dart';
 
 /// Programación de pedidos según el horario simulado del restaurante.
 DateTime _dayOf(DateTime d) => DateTime(d.year, d.month, d.day);

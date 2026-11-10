@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
-import '../../../data/models/order.dart';
+import '../../../domain/entities/order.dart';
 import '../../../domain/order_rules.dart';
 import '../../../domain/usecases/rate_order.dart';
-import '../../../shared/state/order_service.dart';
+import '../../orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import 'rate_order_cubit.dart';
 
@@ -118,21 +118,23 @@ Future<void> showRateOrderSheet(
   final user = context.read<SessionController>().user;
   if (user == null) return Future.value();
   final rateOrder = context.read<RateOrder>();
-  final orders = context.read<OrderService>();
+  final orders = context.read<OrdersBloc>();
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     builder: (_) => BlocProvider(
       create: (_) => RateOrderCubit(
         rateOrder: rateOrder,
-        orders: orders,
         order: order,
         userId: user.id,
         initialStars: initial,
       ),
       child: const _RateSheet(),
     ),
-  );
+  ).then((_) {
+    // El pedido quedó calificado: que las pantallas de pedidos se redibujen.
+    if (order.rating != null) orders.add(const OrdersChanged());
+  });
 }
 
 /// Hoja inferior para elegir estrellas y escribir un comentario.

@@ -1,5 +1,5 @@
-import '../../data/models/catalog.dart';
-import '../../data/models/rewards.dart';
+import '../entities/catalog.dart';
+import '../entities/rewards.dart';
 import '../repositories/merchant_boxes_repository.dart';
 
 /// Cajas que el restaurante puede llenar y los platos que ya metió.

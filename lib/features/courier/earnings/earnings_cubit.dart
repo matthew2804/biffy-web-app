@@ -1,17 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/usecases/get_courier_earnings.dart';
-import '../../../shared/state/order_service.dart';
+import '../../orders/bloc/orders_bloc.dart';
 
 /// Cubit de Ganancias: recalcula el resumen cada vez que cambian los pedidos
 /// (una entrega nueva, o Realtime con Supabase).
 ///
-/// Flujo: [OrderService] (pedidos compartidos) → [GetCourierEarnings]
+/// Flujo: [OrdersBloc] (pedidos compartidos) → [GetCourierEarnings]
 /// (cálculo puro) → estado [EarningsSummary] → pantalla.
 class EarningsCubit extends Cubit<EarningsSummary> {
   /// Calcula el primer resumen y empieza a escuchar los pedidos.
   EarningsCubit({
-    required OrderService orders,
+    required OrdersBloc orders,
     required this.courierId,
     required DateTime Function() now,
     GetCourierEarnings getEarnings = const GetCourierEarnings(),
@@ -19,10 +21,11 @@ class EarningsCubit extends Cubit<EarningsSummary> {
        _now = now,
        _getEarnings = getEarnings,
        super(getEarnings(orders.deliveredBy(courierId), now())) {
-    _orders.addListener(_refresh);
+    _sub = _orders.stream.listen((_) => _refresh());
   }
 
-  final OrderService _orders;
+  final OrdersBloc _orders;
+  StreamSubscription<void>? _sub;
   final DateTime Function() _now;
   final GetCourierEarnings _getEarnings;
   final String courierId;
@@ -36,7 +39,7 @@ class EarningsCubit extends Cubit<EarningsSummary> {
   /// Deja de escuchar los pedidos al cerrar la pantalla.
   @override
   Future<void> close() {
-    _orders.removeListener(_refresh);
+    _sub?.cancel();
     return super.close();
   }
 }

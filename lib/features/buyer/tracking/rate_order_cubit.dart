@@ -1,9 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/models/order.dart';
+import '../../../domain/entities/order.dart';
 import '../../../domain/order_rules.dart';
 import '../../../domain/usecases/rate_order.dart';
-import '../../../shared/state/order_service.dart';
 
 /// Etapa de la hoja de calificar.
 enum RateStatus { editing, sending, done, failed }
@@ -55,22 +54,19 @@ class RateOrderState {
 /// Cubit de la hoja de calificar: la pantalla solo emite intenciones
 /// (elegir estrellas, enviar) y pinta el estado.
 ///
-/// Flujo: pantalla → [RateOrderCubit] → [RateOrder] (regla) →
-/// `ReviewRepository` (Supabase o demo) → [OrderService.applyRating].
+/// Flujo: pantalla → [RateOrderCubit] → [RateOrder] (regla + puertos) →
+/// `ReviewRepository` (Supabase o demo).
 class RateOrderCubit extends Cubit<RateOrderState> {
-  /// Recibe el caso de uso, los pedidos y a quién califica.
+  /// Recibe el caso de uso, el pedido y quién lo califica.
   RateOrderCubit({
     required RateOrder rateOrder,
-    required OrderService orders,
     required this.order,
     required this.userId,
     int initialStars = 0,
   }) : _rateOrder = rateOrder, // ignore: prefer_initializing_formals
-       _orders = orders, // ignore: prefer_initializing_formals
        super(RateOrderState(stars: initialStars));
 
   final RateOrder _rateOrder;
-  final OrderService _orders;
   final Order order;
   final String userId;
 
@@ -95,12 +91,6 @@ class RateOrderCubit extends Cubit<RateOrderState> {
       emit(state.copyWith(status: RateStatus.failed, error: out.result));
       return;
     }
-    _orders.applyRating(
-      order.id,
-      state.stars,
-      comment,
-      branchRating: out.branchRating,
-    );
     emit(state.copyWith(status: RateStatus.done));
   }
 }

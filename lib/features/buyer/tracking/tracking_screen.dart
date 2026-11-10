@@ -12,7 +12,7 @@ import '../../../data/models/order.dart';
 import '../../../data/models/user.dart';
 import '../../../domain/pricing.dart';
 import '../../../shared/state/catalog_controller.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import '../cart/cart_screen.dart';
 import '../orders/reorder_flow.dart';
@@ -26,7 +26,7 @@ class TrackingScreen extends StatelessWidget {
   /// Construye el estado del pedido y las acciones disponibles.
   @override
   Widget build(BuildContext context) {
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final session = context.watch<SessionController>();
     final t = Theme.of(context).textTheme;
     final o = orders.byId(id);
@@ -244,14 +244,21 @@ class TrackingScreen extends StatelessWidget {
                     destructive: true,
                   );
                   if (ok && context.mounted) {
-                    final done = context.read<OrderService>().cancelByBuyer(
-                      o.id,
+                    final outcome = await context.read<OrdersBloc>().request(
+                      OrderCancelled(o.id),
                     );
-                    showSnack(
-                      context,
-                      done ? 'Pedido cancelado' : 'El restaurante ya lo aceptó',
-                      error: !done,
-                    );
+                    if (!context.mounted) return;
+                    if (outcome.ok) {
+                      showSnack(context, 'Pedido cancelado');
+                    } else {
+                      showSnack(
+                        context,
+                        outcome.result.code == 'invalid_state'
+                            ? 'El restaurante ya lo aceptó'
+                            : outcome.result.message,
+                        error: true,
+                      );
+                    }
                   }
                 },
               ),

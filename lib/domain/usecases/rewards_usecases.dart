@@ -1,4 +1,4 @@
-import '../../data/models/rewards.dart';
+import '../entities/rewards.dart';
 import '../repositories/rewards_repository.dart';
 
 /// Todo lo que muestra la pantalla de Gotas en una sola carga.

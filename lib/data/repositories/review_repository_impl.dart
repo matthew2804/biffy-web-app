@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../../domain/order_rules.dart';
 import '../../domain/repositories/review_repository.dart';
 import '../models/order.dart';
-import 'order_repository.dart';
+import '../../domain/repositories/order_repository.dart';
 
 /// Reseñas del modo demo: el promedio se calcula con los pedidos en memoria.
 class InMemoryReviewRepository implements ReviewRepository {

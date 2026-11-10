@@ -1,4 +1,4 @@
-import '../../data/models/catalog.dart';
+import '../../domain/entities/catalog.dart';
 
 /// Categorías de comida con su nombre, emoji y foto.
 const kCategories = <FoodCategory>[

@@ -4,7 +4,8 @@ import 'package:biffy/data/mock/seed_users.dart';
 import 'package:biffy/data/models/cart.dart';
 import 'package:biffy/data/models/catalog.dart';
 import 'package:biffy/data/models/order.dart';
-import 'package:biffy/shared/state/order_service.dart';
+import 'package:biffy/domain/repositories/order_repository.dart';
+import 'package:biffy/domain/usecases/orders/checkout_draft.dart';
 import 'package:biffy/core/utils/clock.dart';
 import 'package:biffy/shared/state/app_services.dart';
 import 'package:flutter/material.dart';
@@ -70,9 +71,13 @@ Future<void> tapVisible(WidgetTester tester, Finder finder) async {
 }
 
 /// Diego (demo) pide un Qbano Especial con extra queso, pago en efectivo.
-Order placeQbano(AppServices s, {int qty = 1, bool useGotas = false}) {
+Future<Order> placeQbano(
+  AppServices s, {
+  int qty = 1,
+  bool useGotas = false,
+}) async {
   s.session.login(kDemoBuyerEmail, kDemoPassword);
-  return s.orders.placeOrder(
+  final result = await s.orders.useCases.placeOrder(
     CheckoutDraft(
       buyer: s.session.user,
       restaurant: s.catalog.restaurantById('qbano-icesi'),
@@ -93,6 +98,8 @@ Order placeQbano(AppServices s, {int qty = 1, bool useGotas = false}) {
       tip: TipOption.ten,
     ),
   );
+  if (!result.ok) throw StateError('No se pudo crear el pedido: ${result.message}');
+  return result.order!;
 }
 
 /// Espera a que se oculten los SnackBar flotantes (duran 2 s).
@@ -101,20 +108,27 @@ Future<void> waitSnackBars(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Lleva un pedido de Diego hasta «entregado» con el flujo real.
-Order deliverQbano(AppServices s) {
-  final o = placeQbano(s);
-  s.orders.restaurantAccept(o.id);
-  s.orders.markReady(o.id);
-  s.orders.courierAccept(o.id, s.session.auth.byId('u-andres')!);
-  s.orders.confirmPickup(
-    o.id,
-    'u-andres',
-    codeValidated: true,
-    bagSealed: true,
-    productsVerified: true,
-  );
-  s.orders.completeDelivery(o.id, 'u-andres', o.deliveryCode, 'foto');
+/// Lleva un pedido de Diego hasta «entregado» con los casos de uso reales.
+Future<Order> deliverQbano(AppServices s) async {
+  final o = await placeQbano(s);
+  final uc = s.orders.useCases;
+  final andres = s.session.auth.byId('u-andres')!;
+  for (final step in <Future<OrderResult> Function()>[
+    () => uc.acceptOrder(o.id),
+    () => uc.markOrderReady(o.id),
+    () => uc.acceptOffer(o.id, andres),
+    () => uc.confirmPickup(
+      o.id,
+      'u-andres',
+      codeValidated: true,
+      bagSealed: true,
+      productsVerified: true,
+    ),
+    () => uc.completeDelivery(o.id, 'u-andres', o.deliveryCode, 'foto'),
+  ]) {
+    final res = await step();
+    if (!res.ok) throw StateError('Paso del pedido falló: ${res.code}');
+  }
   expect(o.status, OrderStatus.delivered);
   return o;
 }

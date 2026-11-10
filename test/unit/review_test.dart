@@ -1,5 +1,6 @@
 import 'package:biffy/data/models/order.dart';
 import 'package:biffy/domain/order_rules.dart';
+import 'package:biffy/domain/ports/review_ports.dart';
 import 'package:biffy/domain/repositories/review_repository.dart';
 import 'package:biffy/domain/usecases/rate_order.dart';
 import 'package:biffy/shared/state/app_services.dart';
@@ -12,13 +13,13 @@ void main() {
     late AppServices s;
     setUp(() => s = makeServices());
 
-    test('solo el comprador califica su pedido entregado, una vez', () {
-      final pending = placeQbano(s);
+    test('solo el comprador califica su pedido entregado, una vez', () async {
+      final pending = await placeQbano(s);
       expect(
         checkRating(pending, pending.buyerId, 5, ''),
         RateResult.invalidState,
       );
-      final o = deliverQbano(s);
+      final o = await deliverQbano(s);
       expect(checkRating(o, 'otro', 5, ''), RateResult.forbidden);
       expect(checkRating(null, o.buyerId, 5, ''), RateResult.notFound);
       expect(checkRating(o, o.buyerId, 0, ''), RateResult.invalidRating);
@@ -54,7 +55,7 @@ void main() {
     late AppServices s;
     setUp(() => s = makeServices());
 
-    /// Califica como lo hace la app: caso de uso y luego el estado compartido.
+    /// Califica como lo hace la app: con el caso de uso inyectado.
     Future<RateResult> rate(
       String id,
       String userId,
@@ -67,21 +68,13 @@ void main() {
         stars: stars,
         comment: comment,
       );
-      if (out.ok) {
-        s.orders.applyRating(
-          id,
-          stars,
-          comment,
-          branchRating: out.branchRating,
-        );
-      }
       return out.result;
     }
 
     test(
       'guarda la reseña, actualiza el promedio y avisa al restaurante',
       () async {
-        final o = deliverQbano(s);
+        final o = await deliverQbano(s);
         final before = s.notifications.all.length;
         expect(await rate(o.id, o.buyerId, 4, '  Muy rico  '), RateResult.ok);
         expect(o.rating, 4);
@@ -89,14 +82,14 @@ void main() {
         expect(s.catalog.restaurantById(o.restaurantId)!.rating, 4.0);
         expect(s.notifications.all.length, before + 1);
 
-        final o2 = deliverQbano(s);
+        final o2 = await deliverQbano(s);
         await rate(o2.id, o2.buyerId, 5);
         expect(s.catalog.restaurantById(o.restaurantId)!.rating, 4.5);
       },
     );
 
     test('no deja calificar dos veces ni pedidos ajenos', () async {
-      final o = deliverQbano(s);
+      final o = await deliverQbano(s);
       expect(await rate(o.id, o.buyerId, 5), RateResult.ok);
       expect(await rate(o.id, o.buyerId, 1), RateResult.alreadyRated);
       expect(o.rating, 5);
@@ -105,8 +98,8 @@ void main() {
 
     test('si la regla falla no llama al repositorio', () async {
       final repo = _SpyReviews();
-      final useCase = RateOrder(repo);
-      final pending = placeQbano(s);
+      final useCase = RateOrder(repo, _NoRatings(), _NoNotices());
+      final pending = await placeQbano(s);
       final out = await useCase(
         order: pending,
         userId: pending.buyerId,
@@ -127,4 +120,16 @@ class _SpyReviews implements ReviewRepository {
     calls++;
     return const ReviewOutcome(RateResult.ok);
   }
+}
+
+/// Puerto de promedio que no hace nada.
+class _NoRatings implements BranchRatingPort {
+  @override
+  void setRestaurantRating(String restaurantId, double rating) {}
+}
+
+/// Puerto de avisos que no hace nada.
+class _NoNotices implements ReviewNotifier {
+  @override
+  void rated(Order order, int stars) {}
 }

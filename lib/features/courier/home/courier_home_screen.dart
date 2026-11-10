@@ -10,7 +10,7 @@ import '../../../data/models/user.dart';
 import '../../../domain/order_rules.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/notification_center.dart';
-import '../../../shared/state/order_service.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import '../offers/offer_widgets.dart';
 
@@ -22,7 +22,7 @@ class CourierHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
-    final orders = context.watch<OrderService>();
+    final orders = context.watch<OrdersBloc>();
     final center = context.watch<NotificationCenter>();
     final now = context.read<CatalogController>().now;
     final t = Theme.of(context).textTheme;

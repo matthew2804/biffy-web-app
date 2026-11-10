@@ -1,4 +1,4 @@
-import '../data/models/rewards.dart';
+import 'entities/rewards.dart';
 
 /// Último canje de cada recompensa (por código) según el [history].
 Map<String, DateTime> lastRedeemedByReward(Iterable<RewardRedemption> history) {

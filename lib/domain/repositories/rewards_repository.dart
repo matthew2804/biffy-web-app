@@ -1,4 +1,4 @@
-import '../../data/models/rewards.dart';
+import '../entities/rewards.dart';
 
 /// Contrato de recompensas con Gotas. La implementación real es
 /// `SupabaseRewardsRepository` (RPC `redeem_reward`); el dominio no la conoce.

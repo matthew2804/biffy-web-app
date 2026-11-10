@@ -1,7 +1,7 @@
 import '../core/utils/format.dart';
-import '../data/models/cart.dart';
-import '../data/models/catalog.dart';
-import '../data/models/order.dart';
+import 'entities/cart.dart';
+import 'entities/catalog.dart';
+import 'entities/order.dart';
 import 'pricing.dart';
 
 /// Resultado de comprobar si un pedido anterior puede repetirse.

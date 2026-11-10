@@ -65,8 +65,7 @@ begin
     'branch_id', '00000000-0000-0000-0000-00000000b101',
     'address_id', '00000000-0000-0000-0000-00000000a001',
     'payment', 'cash',
-    'lines', jsonb_build_array(jsonb_build_object('dish_id', '00000000-0000-0000-0000-00000000d001', 'qty', 1)),
-    'subtotal', 12000, 'delivery_fee', 2000, 'total', 14000)));
+    'lines', jsonb_build_array(jsonb_build_object('dish_id', '00000000-0000-0000-0000-00000000d001', 'qty', 1)))));
   if r ->> 'result' <> 'ok' then raise exception 'FALLA place_order: %', r; end if;
   return (r -> 'order' ->> 'id')::uuid;
 end $$;
@@ -75,7 +74,7 @@ create function pg_temp.entregar(p_order uuid) returns void language plpgsql as 
 declare
   local uuid := '00000000-0000-0000-0000-0000000000c3';
   repa uuid := '00000000-0000-0000-0000-0000000000d4';
-  codigo text := (select delivery_code from public.orders where id = p_order);
+  codigo text := (select delivery_code from public.order_secrets where order_id = p_order);
   r jsonb;
   paso text;
 begin
@@ -86,6 +85,8 @@ begin
     r := pg_temp.como(local, paso);
     if r ->> 'result' <> 'ok' then raise exception 'FALLA %: %', paso, r; end if;
   end loop;
+  insert into storage.objects (bucket_id, name, owner)
+  values ('delivery-evidence', p_order || '/foto.jpg', repa);
   foreach paso in array array[
     format('public.courier_accept(%L)', p_order),
     format('public.courier_pickup(%L)', p_order),
