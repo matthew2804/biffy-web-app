@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../models/address.dart';
 import '../models/cart.dart';
 import '../models/catalog.dart';
-import '../../domain/order_rules.dart';
 import '../models/order.dart';
 import 'order_repository.dart';
 
@@ -211,21 +210,6 @@ class SupabaseOrderRepository implements OrderRepository {
       await _client.rpc(fn, params: params);
     } on Object {
       // Si falla, la próxima recarga corrige el estado local.
-    }
-  }
-
-  /// Califica un pedido entregado con el RPC `rate_order`.
-  Future<RateResult> rate(String dbId, int stars, String comment) async {
-    try {
-      final res = await _client.rpc(
-        'rate_order',
-        params: {
-          'p_payload': {'order_id': dbId, 'rating': stars, 'comment': comment},
-        },
-      );
-      return rateResultFrom(res is Map ? res['result'] as String? : null);
-    } on Object {
-      return RateResult.offline;
     }
   }
 

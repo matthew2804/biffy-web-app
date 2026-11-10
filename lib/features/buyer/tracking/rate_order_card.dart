@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/order.dart';
 import '../../../domain/order_rules.dart';
+import '../../../domain/usecases/rate_order.dart';
 import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
+import 'rate_order_cubit.dart';
 
 /// Tarjeta para calificar un pedido entregado, o la calificación ya enviada.
 class RateOrderCard extends StatelessWidget {
@@ -111,26 +113,35 @@ Future<void> showRateOrderSheet(
   Order order,
   int initial,
 ) {
+  final user = context.read<SessionController>().user;
+  if (user == null) return Future.value();
+  final rateOrder = context.read<RateOrder>();
+  final orders = context.read<OrderService>();
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => _RateSheet(order: order, initial: initial),
+    builder: (_) => BlocProvider(
+      create: (_) => RateOrderCubit(
+        rateOrder: rateOrder,
+        orders: orders,
+        order: order,
+        userId: user.id,
+        initialStars: initial,
+      ),
+      child: const _RateSheet(),
+    ),
   );
 }
 
 class _RateSheet extends StatefulWidget {
-  const _RateSheet({required this.order, required this.initial});
-  final Order order;
-  final int initial;
+  const _RateSheet();
 
   @override
   State<_RateSheet> createState() => _RateSheetState();
 }
 
 class _RateSheetState extends State<_RateSheet> {
-  late int _stars = widget.initial;
   final _comment = TextEditingController();
-  bool _sending = false;
 
   @override
   void dispose() {
@@ -138,72 +149,68 @@ class _RateSheetState extends State<_RateSheet> {
     super.dispose();
   }
 
-  /// Envía la calificación y cierra la hoja si salió bien.
-  Future<void> _send() async {
-    final user = context.read<SessionController>().user;
-    if (user == null) return;
-    setState(() => _sending = true);
-    final res = await context.read<OrderService>().rateOrder(
-      widget.order.id,
-      user.id,
-      _stars,
-      comment: _comment.text,
-    );
-    if (!mounted) return;
-    setState(() => _sending = false);
-    if (res == RateResult.ok) {
-      Navigator.pop(context);
-      showSnack(context, '¡Gracias por calificar! ⭐');
-    } else {
-      showSnack(context, rateMessage(res), error: true);
-    }
-  }
-
-  /// Hoja con estrellas, comentario opcional y botón de enviar.
+  /// Hoja con estrellas, comentario opcional y botón de enviar. Solo pinta el
+  /// estado del [RateOrderCubit] y le avisa lo que toca el usuario.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          0,
-          16,
-          16 + MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Califica tu pedido', style: t.titleLarge),
-            const SizedBox(height: 4),
-            Text(widget.order.restaurantName, style: t.bodyMedium),
-            const SizedBox(height: 8),
-            StarsRow(
-              value: _stars,
-              keyPrefix: 'rate-star',
-              size: 40,
-              onTap: (v) => setState(() => _stars = v),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('rate-comment'),
-              controller: _comment,
-              maxLength: kMaxReviewComment,
-              maxLines: 3,
-              minLines: 1,
-              decoration: const InputDecoration(
-                hintText: 'Cuéntanos más (opcional)',
+    final cubit = context.read<RateOrderCubit>();
+    return BlocConsumer<RateOrderCubit, RateOrderState>(
+      listenWhen: (a, b) => a.status != b.status,
+      listener: (context, state) {
+        if (state.status == RateStatus.done) {
+          Navigator.pop(context);
+          showSnack(context, '¡Gracias por calificar! ⭐');
+        } else if (state.status == RateStatus.failed) {
+          showSnack(context, rateMessage(state.error!), error: true);
+        }
+      },
+      builder: (context, state) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            16 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Califica tu pedido', style: t.titleLarge),
+              const SizedBox(height: 4),
+              Text(cubit.order.restaurantName, style: t.bodyMedium),
+              const SizedBox(height: 8),
+              StarsRow(
+                value: state.stars,
+                keyPrefix: 'rate-star',
+                size: 40,
+                onTap: cubit.selectStars,
               ),
-            ),
-            const SizedBox(height: 8),
-            PrimaryButton(
-              key: const Key('rate-submit'),
-              label: _sending ? 'Enviando…' : 'Enviar calificación',
-              icon: Icons.star_rounded,
-              onPressed: _stars == 0 || _sending ? null : _send,
-            ),
-          ],
+              const SizedBox(height: 8),
+              TextField(
+                key: const Key('rate-comment'),
+                controller: _comment,
+                maxLength: kMaxReviewComment,
+                maxLines: 3,
+                minLines: 1,
+                decoration: const InputDecoration(
+                  hintText: 'Cuéntanos más (opcional)',
+                ),
+              ),
+              const SizedBox(height: 8),
+              PrimaryButton(
+                key: const Key('rate-submit'),
+                label: state.status == RateStatus.sending
+                    ? 'Enviando…'
+                    : 'Enviar calificación',
+                icon: Icons.star_rounded,
+                onPressed: state.canSubmit
+                    ? () => cubit.submit(_comment.text)
+                    : null,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -9,10 +9,12 @@ import '../../data/mock/seed_users.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/catalog_repository.dart';
 import '../../data/repositories/order_repository.dart';
+import '../../data/repositories/review_repository_impl.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/supabase_catalog_repository.dart';
 import '../../data/repositories/supabase_order_repository.dart';
 import '../../data/repositories/supabase_profile_repository.dart';
+import '../../domain/usecases/rate_order.dart';
 import 'cart_controller.dart';
 import 'catalog_controller.dart';
 import 'notification_center.dart';
@@ -30,6 +32,7 @@ class AppServices {
     required this.catalog,
     required this.cart,
     required this.orders,
+    required this.rateOrder,
   });
 
   /// Contenedor completo con datos de demostración en memoria.
@@ -41,8 +44,9 @@ class AppServices {
     final session = SessionController(auth, notifications, c);
     final catalog = CatalogController(catalogRepo, session, c);
     final cart = CartController(catalogRepo);
+    final orderRepo = InMemoryOrderRepository();
     final orders = OrderService(
-      repo: InMemoryOrderRepository(),
+      repo: orderRepo,
       catalog: catalog,
       session: session,
       notifications: notifications,
@@ -63,6 +67,7 @@ class AppServices {
       catalog: catalog,
       cart: cart,
       orders: orders,
+      rateOrder: RateOrder(InMemoryReviewRepository(orderRepo)),
     );
   }
 
@@ -108,6 +113,7 @@ class AppServices {
       catalog: catalog,
       cart: cart,
       orders: orders,
+      rateOrder: RateOrder(SupabaseReviewRepository()),
     );
   }
 
@@ -118,6 +124,9 @@ class AppServices {
   final CartController cart;
   final OrderService orders;
 
+  /// Caso de uso de calificar (HU-4); lo usa `RateOrderCubit`.
+  final RateOrder rateOrder;
+
   /// Proveedores que publican los controladores en el árbol.
   List<SingleChildWidget> get providers => [
     Provider<Clock>.value(value: clock),
@@ -126,5 +135,6 @@ class AppServices {
     ChangeNotifierProvider<CatalogController>.value(value: catalog),
     ChangeNotifierProvider<CartController>.value(value: cart),
     ChangeNotifierProvider<OrderService>.value(value: orders),
+    Provider<RateOrder>.value(value: rateOrder),
   ];
 }

@@ -1,4 +1,7 @@
+import 'package:biffy/data/models/order.dart';
 import 'package:biffy/domain/order_rules.dart';
+import 'package:biffy/domain/repositories/review_repository.dart';
+import 'package:biffy/domain/usecases/rate_order.dart';
 import 'package:biffy/shared/state/app_services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -47,45 +50,81 @@ void main() {
     });
   });
 
-  group('OrderService.rateOrder', () {
+  group('Caso de uso RateOrder', () {
     late AppServices s;
     setUp(() => s = makeServices());
+
+    /// Califica como lo hace la app: caso de uso y luego el estado compartido.
+    Future<RateResult> rate(
+      String id,
+      String userId,
+      int stars, [
+      String comment = '',
+    ]) async {
+      final out = await s.rateOrder(
+        order: s.orders.byId(id),
+        userId: userId,
+        stars: stars,
+        comment: comment,
+      );
+      if (out.ok) {
+        s.orders.applyRating(
+          id,
+          stars,
+          comment,
+          branchRating: out.branchRating,
+        );
+      }
+      return out.result;
+    }
 
     test(
       'guarda la reseña, actualiza el promedio y avisa al restaurante',
       () async {
         final o = deliverQbano(s);
         final before = s.notifications.all.length;
-        final res = await s.orders.rateOrder(
-          o.id,
-          o.buyerId,
-          4,
-          comment: '  Muy rico  ',
-        );
-        expect(res, RateResult.ok);
+        expect(await rate(o.id, o.buyerId, 4, '  Muy rico  '), RateResult.ok);
         expect(o.rating, 4);
         expect(o.review, 'Muy rico');
         expect(s.catalog.restaurantById(o.restaurantId)!.rating, 4.0);
         expect(s.notifications.all.length, before + 1);
 
         final o2 = deliverQbano(s);
-        await s.orders.rateOrder(o2.id, o2.buyerId, 5);
+        await rate(o2.id, o2.buyerId, 5);
         expect(s.catalog.restaurantById(o.restaurantId)!.rating, 4.5);
       },
     );
 
     test('no deja calificar dos veces ni pedidos ajenos', () async {
       final o = deliverQbano(s);
-      expect(await s.orders.rateOrder(o.id, o.buyerId, 5), RateResult.ok);
-      expect(
-        await s.orders.rateOrder(o.id, o.buyerId, 1),
-        RateResult.alreadyRated,
-      );
+      expect(await rate(o.id, o.buyerId, 5), RateResult.ok);
+      expect(await rate(o.id, o.buyerId, 1), RateResult.alreadyRated);
       expect(o.rating, 5);
-      expect(
-        await s.orders.rateOrder(o.id, 'u-andres', 1),
-        RateResult.forbidden,
+      expect(await rate(o.id, 'u-andres', 1), RateResult.forbidden);
+    });
+
+    test('si la regla falla no llama al repositorio', () async {
+      final repo = _SpyReviews();
+      final useCase = RateOrder(repo);
+      final pending = placeQbano(s);
+      final out = await useCase(
+        order: pending,
+        userId: pending.buyerId,
+        stars: 5,
       );
+      expect(out.result, RateResult.invalidState);
+      expect(repo.calls, 0);
     });
   });
+}
+
+/// Repositorio falso que cuenta las llamadas.
+class _SpyReviews implements ReviewRepository {
+  int calls = 0;
+
+  @override
+  Future<ReviewOutcome> submit(Order order, int stars, String comment) async {
+    calls++;
+    return const ReviewOutcome(RateResult.ok);
+  }
 }

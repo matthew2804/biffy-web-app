@@ -640,43 +640,22 @@ class OrderService extends ChangeNotifier {
     return DeliveryResult.ok;
   }
 
-  /// El comprador califica su pedido entregado (1..5 estrellas).
-  ///
-  /// Con Supabase la reseña entra por `rate_order` y el promedio de la sede
-  /// lo recalcula la base; en demo se recalcula aquí con [averageRating].
-  Future<RateResult> rateOrder(
+  /// Refleja una reseña ya guardada por el caso de uso `RateOrder`: marca el
+  /// pedido como calificado, actualiza el promedio de la sede y avisa al
+  /// restaurante (en demo; con Supabase el aviso lo crea la base).
+  void applyRating(
     String id,
-    String userId,
-    int stars, {
-    String comment = '',
-  }) async {
-    final o = byId(id);
-    final check = checkRating(o, userId, stars, comment);
-    if (check != RateResult.ok) return check;
-    final order = o!;
-    final text = comment.trim();
-
-    final remote = _remote;
-    if (remote != null) {
-      final dbId = order.dbId;
-      if (dbId == null) return RateResult.offline;
-      final res = await remote.rate(dbId, stars, text);
-      if (res != RateResult.ok) return res;
-    }
-
+    int stars,
+    String comment, {
+    double? branchRating,
+  }) {
+    final order = byId(id);
+    if (order == null || order.rating != null) return;
     order.rating = stars;
-    order.review = text;
-
-    if (remote == null) {
-      final avg = averageRating(
-        all
-            .where((x) => x.restaurantId == order.restaurantId)
-            .map((x) => x.rating)
-            .whereType<int>(),
-      );
-      if (avg != null) catalog.setRestaurantRating(order.restaurantId, avg);
+    order.review = comment.trim();
+    if (branchRating != null) {
+      catalog.setRestaurantRating(order.restaurantId, branchRating);
     }
-
     _notify(
       title: 'Nueva calificación ⭐',
       body: '${order.buyerName} calificó ${order.id} con $stars de 5.',
@@ -684,7 +663,6 @@ class OrderService extends ChangeNotifier {
       route: '/negocio/pedidos',
     );
     notifyListeners();
-    return RateResult.ok;
   }
 
   /// Devuelve el pedido o lanza error si no existe.
