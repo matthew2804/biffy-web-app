@@ -180,3 +180,54 @@ RestaurantMetrics computeMetrics({
     topProducts: topList.take(5).toList(),
   );
 }
+
+/// Resultado de calificar un pedido. Usa los mismos códigos que el RPC
+/// `rate_order`, más [offline] cuando no hay conexión con la base.
+enum RateResult {
+  ok,
+  notFound,
+  forbidden,
+  invalidState,
+  alreadyRated,
+  invalidRating,
+  commentTooLong,
+  offline,
+}
+
+/// Largo máximo del comentario de una reseña.
+const kMaxReviewComment = 500;
+
+/// Valida si [userId] puede calificar [order] con [stars] estrellas.
+/// Mismo orden de validaciones que `rate_order` en la base.
+RateResult checkRating(Order? order, String userId, int stars, String comment) {
+  if (stars < 1 || stars > 5) return RateResult.invalidRating;
+  if (comment.trim().length > kMaxReviewComment) {
+    return RateResult.commentTooLong;
+  }
+  if (order == null) return RateResult.notFound;
+  if (order.buyerId != userId) return RateResult.forbidden;
+  if (order.status != OrderStatus.delivered) return RateResult.invalidState;
+  if (order.rating != null) return RateResult.alreadyRated;
+  return RateResult.ok;
+}
+
+/// Traduce el `result` del RPC `rate_order`.
+RateResult rateResultFrom(String? code) => switch (code) {
+  'ok' => RateResult.ok,
+  'not_found' => RateResult.notFound,
+  'forbidden' => RateResult.forbidden,
+  'invalid_state' => RateResult.invalidState,
+  'already_rated' => RateResult.alreadyRated,
+  'invalid_rating' => RateResult.invalidRating,
+  'comment_too_long' => RateResult.commentTooLong,
+  _ => RateResult.offline,
+};
+
+/// Promedio con un decimal, igual que `branches.rating` en la base.
+/// `null` si no hay calificaciones.
+double? averageRating(Iterable<int> stars) {
+  final list = stars.toList();
+  if (list.isEmpty) return null;
+  final avg = list.reduce((a, b) => a + b) / list.length;
+  return (avg * 10).round() / 10;
+}

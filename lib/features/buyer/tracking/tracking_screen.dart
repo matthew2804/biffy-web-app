@@ -16,6 +16,7 @@ import '../../../shared/state/order_service.dart';
 import '../../../shared/state/session_controller.dart';
 import '../cart/cart_screen.dart';
 import '../orders/reorder_flow.dart';
+import 'rate_order_card.dart';
 
 /// Seguimiento del pedido con línea de tiempo, código y resumen.
 class TrackingScreen extends StatelessWidget {
@@ -254,6 +255,10 @@ class TrackingScreen extends StatelessWidget {
                   }
                 },
               ),
+            if (o.status == OrderStatus.delivered) ...[
+              RateOrderCard(order: o),
+              const SizedBox(height: 12),
+            ],
             if (o.status == OrderStatus.delivered ||
                 o.status == OrderStatus.cancelled)
               PrimaryButton(

@@ -623,6 +623,53 @@ class OrderService extends ChangeNotifier {
     return DeliveryResult.ok;
   }
 
+  /// El comprador califica su pedido entregado (1..5 estrellas).
+  ///
+  /// Con Supabase la reseña entra por `rate_order` y el promedio de la sede
+  /// lo recalcula la base; en demo se recalcula aquí con [averageRating].
+  Future<RateResult> rateOrder(
+    String id,
+    String userId,
+    int stars, {
+    String comment = '',
+  }) async {
+    final o = byId(id);
+    final check = checkRating(o, userId, stars, comment);
+    if (check != RateResult.ok) return check;
+    final order = o!;
+    final text = comment.trim();
+
+    final remote = _remote;
+    if (remote != null) {
+      final dbId = order.dbId;
+      if (dbId == null) return RateResult.offline;
+      final res = await remote.rate(dbId, stars, text);
+      if (res != RateResult.ok) return res;
+    }
+
+    order.rating = stars;
+    order.review = text;
+
+    if (remote == null) {
+      final avg = averageRating(
+        all
+            .where((x) => x.restaurantId == order.restaurantId)
+            .map((x) => x.rating)
+            .whereType<int>(),
+      );
+      if (avg != null) catalog.setRestaurantRating(order.restaurantId, avg);
+    }
+
+    notifications.push(
+      title: 'Nueva calificación ⭐',
+      body: '${order.buyerName} calificó ${order.id} con $stars de 5.',
+      audience: 'business:${_businessOf(order)}',
+      route: '/negocio/pedidos',
+    );
+    notifyListeners();
+    return RateResult.ok;
+  }
+
   /// Devuelve el pedido o lanza error si no existe.
   Order _require(String id) {
     final o = byId(id);

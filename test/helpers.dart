@@ -100,3 +100,21 @@ Future<void> waitSnackBars(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 3));
   await tester.pumpAndSettle();
 }
+
+/// Lleva un pedido de Diego hasta «entregado» con el flujo real.
+Order deliverQbano(AppServices s) {
+  final o = placeQbano(s);
+  s.orders.restaurantAccept(o.id);
+  s.orders.markReady(o.id);
+  s.orders.courierAccept(o.id, s.session.auth.byId('u-andres')!);
+  s.orders.confirmPickup(
+    o.id,
+    'u-andres',
+    codeValidated: true,
+    bagSealed: true,
+    productsVerified: true,
+  );
+  s.orders.completeDelivery(o.id, 'u-andres', o.deliveryCode, 'foto');
+  expect(o.status, OrderStatus.delivered);
+  return o;
+}

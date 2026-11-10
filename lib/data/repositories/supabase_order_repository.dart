@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../models/address.dart';
 import '../models/cart.dart';
 import '../models/catalog.dart';
+import '../../domain/order_rules.dart';
 import '../models/order.dart';
 import 'order_repository.dart';
 
@@ -95,6 +96,18 @@ class SupabaseOrderRepository implements OrderRepository {
             );
       }
 
+      final reviewsByOrder = <String, Map<String, dynamic>>{};
+      final ids = [for (final row in rows) row['id'] as String];
+      if (ids.isNotEmpty) {
+        final reviews = await _client
+            .from('reviews')
+            .select('order_id, rating, comment')
+            .inFilter('order_id', ids);
+        for (final row in reviews) {
+          reviewsByOrder[row['order_id'] as String] = row;
+        }
+      }
+
       final incoming = rows
           .map(
             (row) => _order(
@@ -104,6 +117,13 @@ class SupabaseOrderRepository implements OrderRepository {
             ),
           )
           .toList();
+
+      for (final o in incoming) {
+        final review = reviewsByOrder[o.dbId];
+        if (review == null) continue;
+        o.rating = (review['rating'] as num?)?.toInt();
+        o.review = (review['comment'] as String?) ?? '';
+      }
 
       _merge(incoming);
     } on Object {
@@ -133,6 +153,8 @@ class SupabaseOrderRepository implements OrderRepository {
       existing.evidence = fresh.evidence;
       existing.deliveredAt = fresh.deliveredAt;
       existing.gotasCredited = fresh.gotasCredited;
+      existing.rating = fresh.rating ?? existing.rating;
+      if (fresh.rating != null) existing.review = fresh.review;
       existing.history
         ..clear()
         ..addAll(fresh.history);
@@ -189,6 +211,21 @@ class SupabaseOrderRepository implements OrderRepository {
       await _client.rpc(fn, params: params);
     } on Object {
       // Si falla, la próxima recarga corrige el estado local.
+    }
+  }
+
+  /// Califica un pedido entregado con el RPC `rate_order`.
+  Future<RateResult> rate(String dbId, int stars, String comment) async {
+    try {
+      final res = await _client.rpc(
+        'rate_order',
+        params: {
+          'p_payload': {'order_id': dbId, 'rating': stars, 'comment': comment},
+        },
+      );
+      return rateResultFrom(res is Map ? res['result'] as String? : null);
+    } on Object {
+      return RateResult.offline;
     }
   }
 
