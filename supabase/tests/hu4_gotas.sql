@@ -159,6 +159,27 @@ begin
   raise notice 'ok · repetir la entrega no duplica (%)', r ->> 'result';
   perform pg_temp.cuadra(ana, 'después de la entrega');
 
+  -- Un descuento mayor al saldo falla en vez de recortar a 0
+  n := (select count(*) from public.gotas_ledger where user_id = ana);
+  begin
+    perform public.credit_gotas(ana, -100000, 'Prueba de sobregiro', null);
+    raise exception 'FALLA: credit_gotas dejó sobregirar';
+  exception when others then
+    if sqlerrm not like 'insufficient_gotas%' then raise; end if;
+  end;
+  if (select count(*) from public.gotas_ledger where user_id = ana) <> n then
+    raise exception 'FALLA: el sobregiro dejó un movimiento';
+  end if;
+  perform pg_temp.cuadra(ana, 'un sobregiro se rechaza sin tocar nada');
+
+  begin
+    perform public.credit_gotas(ana, 5, '   ', null);
+    raise exception 'FALLA: credit_gotas aceptó un movimiento sin motivo';
+  exception when others then
+    if sqlerrm not like '%motivo%' then raise; end if;
+  end;
+  raise notice 'ok · no se aceptan movimientos sin motivo';
+
   -- Todos los movimientos tienen motivo
   if exists (select 1 from public.gotas_ledger where coalesce(trim(reason), '') = '') then
     raise exception 'FALLA: hay movimientos sin motivo';
