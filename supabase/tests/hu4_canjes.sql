@@ -140,6 +140,7 @@ begin
 
   -- Envío gratis: cobra su costo y deja un cupón usable
   select gotas_cost into costo from public.gotas_rewards where code = 'free_shipping';
+  if costo <> 5 then raise exception 'FALLA: envío gratis debe costar 5 Gotas, cuesta %', costo; end if;
   antes := pg_temp.saldo(beto);
   r := pg_temp.como(beto, $$ public.redeem_reward('{"code":"free_shipping"}') $$);
   if r ->> 'result' <> 'ok' or pg_temp.saldo(beto) <> antes - costo then

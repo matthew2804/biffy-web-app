@@ -73,6 +73,7 @@ supabase/
     0021_reviews.sql              # rate_order + promedio de la sede
     0022_order_notifications.sql  # avisos por cambio de pedido + Realtime
     0023_gotas_no_negative.sql    # credit_gotas falla en vez de descuadrar
+    0024_free_shipping_5_gotas.sql # envío gratis cuesta 5 Gotas
     0099_verify.sql               # verifica tablas, columnas y RPC clave
   tests/
     _supabase_stubs.sql           # auth/storage/roles mínimos para Postgres local
@@ -174,7 +175,7 @@ El catálogo está en `gotas_rewards` y cada caja tiene sus premios con peso en
 | Caja | Costo | Límite | Premios |
 |---|---|---|---|
 | `box_5` · Caja básica | 5 | **ilimitada** | platos de restaurantes o premios de plataforma |
-| `free_shipping` | 10 | cada 12 h | quita el envío del pedido |
+| `free_shipping` | 5 | cada 12 h | quita el envío del pedido |
 | `box_25` · Caja sorpresa | 25 | cada 12 h | 5 premios |
 | `box_50` · Caja premium | 50 | cada 12 h | 5 premios |
 | `box_100` · Caja sorteo | 100 | cada 24 h | 5 premios + boleto |
@@ -329,7 +330,7 @@ Modo demo local hoy → Supabase real al publicar. Marcar cada punto al hacerlo
 en el panel del proyecto `jwdzpwsfwtkdeeuceaco`:
 
 - [ ] **Migraciones:** aplicar `apply_all.sql` (o `supabase db push`) con
-      todas las migraciones hasta `0023`. Debe salir `Biffy OK`.
+      todas las migraciones hasta `0024`. Debe salir `Biffy OK`.
 - [ ] **Pruebas SQL** en verde antes de aplicar: `tool/test_supabase_sql.sh`.
 - [ ] **Confirmación de correo activada en producción:** Authentication →
       Providers → Email → *Confirm email* on, con plantilla en español.

@@ -4,7 +4,7 @@
 -- Uso: Supabase Dashboard -> SQL Editor -> New query -> pegar todo -> Run.
 -- Se genera concatenando supabase/migrations/*.sql. No editar a mano.
 -- Proyecto: jwdzpwsfwtkdeeuceaco
--- Generado: 2026-11-10 07:23
+-- Generado: 2026-11-10 08:13
 -- ============================================================================
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0000_legacy_cleanup.sql
@@ -4574,6 +4574,20 @@ end;
 $$;
 
 revoke all on function public.credit_gotas(uuid, int, text, uuid) from public, anon, authenticated;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0024_free_shipping_5_gotas.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0024 · Envío gratis cuesta 5 Gotas
+-- ============================================================================
+-- La HU-4 fija el canje directo de envío gratis en 5 Gotas (0012 lo había
+-- subido a 10). El enfriamiento de 12 h se mantiene.
+-- ============================================================================
+
+update public.gotas_rewards
+   set gotas_cost = 5
+ where code = 'free_shipping';
 
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0099_verify.sql
