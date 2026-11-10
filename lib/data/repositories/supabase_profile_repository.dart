@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../models/address.dart';
@@ -287,7 +288,7 @@ class SupabaseProfileRepository {
         .order('created_at', ascending: false)
         .limit(50);
 
-    return rows.map(_notification).toList();
+    return rows.map(notificationFromRow).toList();
   }
 
   /// Escucha en Realtime los avisos nuevos o leídos del usuario.
@@ -311,7 +312,7 @@ class SupabaseProfileRepository {
             callback: (payload) {
               final row = payload.newRecord;
               if (row['id'] == null) return;
-              onChange(_notification(row));
+              onChange(notificationFromRow(row));
             },
           )
           .subscribe();
@@ -321,15 +322,18 @@ class SupabaseProfileRepository {
     }
   }
 
-  /// Convierte una fila de `notifications` al modelo.
-  static AppNotification _notification(Map<String, dynamic> row) =>
+  /// Convierte una fila de `notifications` al modelo (hora local).
+  @visibleForTesting
+  static AppNotification notificationFromRow(Map<String, dynamic> row) =>
       AppNotification(
         id: row['id'] as String,
         title: (row['title'] as String?) ?? '',
         body: (row['body'] as String?) ?? '',
         audience: (row['audience'] as String?) ?? 'all',
         createdAt:
-            DateTime.tryParse((row['created_at'] as String?) ?? '') ??
+            DateTime.tryParse(
+              (row['created_at'] as String?) ?? '',
+            )?.toLocal() ??
             DateTime.now(),
         route: row['route'] as String?,
         read: row['read_at'] != null,

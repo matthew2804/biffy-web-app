@@ -1,6 +1,7 @@
 import 'package:biffy/core/utils/clock.dart';
 import 'package:biffy/data/models/app_notification.dart';
 import 'package:biffy/data/models/user.dart';
+import 'package:biffy/data/repositories/supabase_profile_repository.dart';
 import 'package:biffy/shared/state/notification_center.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -167,6 +168,19 @@ void main() {
       expect(read, hasLength(2));
       center.markAllRead(buyer, UserRole.buyer);
       expect(read, hasLength(2));
+    });
+
+    test('los avisos de la base quedan en hora local', () {
+      final n = SupabaseProfileRepository.notificationFromRow({
+        'id': '7d1c0e9a-0000-4000-8000-000000000002',
+        'title': 'Pedido entregado ✅',
+        'audience': 'user:u1',
+        'created_at': '2026-11-10T01:30:00+00:00',
+        'read_at': null,
+      });
+      expect(n.createdAt.isUtc, isFalse);
+      expect(n.createdAt, DateTime.utc(2026, 11, 10, 1, 30).toLocal());
+      expect(n.read, isFalse);
     });
   });
 }
