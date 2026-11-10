@@ -164,6 +164,19 @@ class SupabaseOrderRepository implements OrderRepository {
         declinedByOrder.putIfAbsent(orderId, () => {}).add(courierId);
       }
 
+      // Reseñas de los pedidos visibles (HU-4): marcan qué ya se calificó.
+      final reviewsByOrder = <String, Map<String, dynamic>>{};
+      final ids = [for (final row in rows) row['id'] as String];
+      if (ids.isNotEmpty) {
+        final reviews = await _client
+            .from('reviews')
+            .select('order_id, rating, comment')
+            .inFilter('order_id', ids);
+        for (final row in reviews) {
+          reviewsByOrder[row['order_id'] as String] = row;
+        }
+      }
+
       final incoming = rows.map((row) {
         final id = row['id'] as String;
         final order = _order(
@@ -173,6 +186,11 @@ class SupabaseOrderRepository implements OrderRepository {
           deliveryCode: codeByOrder[id],
         );
         order.declinedBy.addAll(declinedByOrder[id] ?? const {});
+        final review = reviewsByOrder[id];
+        if (review != null) {
+          order.rating = (review['rating'] as num?)?.toInt();
+          order.review = (review['comment'] as String?) ?? '';
+        }
         return order;
       }).toList();
 
@@ -209,6 +227,8 @@ class SupabaseOrderRepository implements OrderRepository {
       existing.evidence = fresh.evidence;
       existing.deliveredAt = fresh.deliveredAt;
       existing.gotasCredited = fresh.gotasCredited;
+      existing.rating = fresh.rating ?? existing.rating;
+      if (fresh.rating != null) existing.review = fresh.review;
       existing.declinedBy.addAll(fresh.declinedBy);
       existing.history
         ..clear()

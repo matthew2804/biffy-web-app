@@ -49,6 +49,18 @@ Repositorios (lib/data/repositories/**)
    └── Supabase…   → backend real
 ```
 
+HU-4 usa BLoC + Clean por feature (acuerdo del equipo):
+
+```text
+Pantalla ──► Cubit (lib/features/**/x_cubit.dart)
+               ──► Caso de uso (lib/domain/usecases/)
+                     ──► Interfaz (lib/domain/repositories/)
+                           ◄── Supabase… / InMemory… (lib/data/repositories/)
+```
+
+Cubits de HU-4: `RateOrderCubit`, `RewardsCubit`, `MerchantBoxesCubit`,
+`NotificationsCubit`, `EarningsCubit`. Se inyectan desde `AppServices.providers`.
+
 Reglas que **no** se negocian:
 
 - La regla de alcance (radio + repartidores + campus) vive solo en
@@ -136,8 +148,36 @@ remoto** (ver «Cómo probarlo» abajo).
 - ⏳ Adjuntar al informe la salida literal de `0099_verify.sql` (la consulta ya
   se ejecutó en el SQL Editor; falta el pantallazo/texto).
 
-Calidad actual: `flutter analyze` limpio · `flutter test` **122/122**
-(21 pruebas de integración se saltan sin credenciales de Supabase).
+### HU-4 · Gotas, recompensas, cupones, reseñas y notificaciones
+
+Rama `hu4-gotas-recompensas-notificaciones`.
+
+- ✅ Cupones: el descuento lo calcula `place_order` de HU-3 (`0019_order_cycle`);
+  `hu4_cupones.sql` prueba que el valor de la app se ignora, y que no se usan
+  cupones ajenos, vencidos o repetidos.
+- ✅ `0020` canjear `free_shipping` entrega su cupón (antes cobraba sin dar nada).
+- ✅ `0021` reseñas solo por `rate_order` (pedido propio, entregado, una vez,
+  en la sede del pedido) y `branches.rating` con el promedio real.
+- ✅ `0022` notificaciones creadas por la base en cada transición, por usuario
+  y rol, en Realtime; el usuario solo puede cambiar `read_at`.
+- ✅ `0023` `credit_gotas` falla si el saldo quedaría negativo (saldo = ledger)
+  y respeta `biffy.internal` de quien la llama (lo necesita `hu3_order_cycle.sql`).
+- ✅ `0024` envío gratis cuesta 5 Gotas.
+- ✅ App: pantalla para calificar, avisos en vivo sin duplicados y en hora
+  local, ganancias reales del repartidor, cajas del restaurante sin caerse en demo.
+- ✅ BLoC + Clean en todas las pantallas de HU-4 (ver sección 2). Calificar usa
+  el caso de uso `RateOrder` con puertos (`BranchRatingPort`, `ReviewNotifier`);
+  con Supabase el notificador de pedidos es `ServerOrderNotifier` (no duplica
+  los avisos que crea la base).
+- ✅ Pruebas SQL de RLS/RPC (`tool/test_supabase_sql.sh`, job `sql-tests`):
+  la base local trae las cuentas demo (`_demo_accounts.sql`), así que
+  `hu3_order_cycle.sql` también corre ahí.
+- ⏳ Aplicar `0020`–`0024` al proyecto remoto y el checklist de despliegue de
+  `supabase/README.md`; prueba final con datos reales.
+
+Calidad actual (HU-3 + HU-4): `flutter analyze` limpio · `flutter test`
+**203/203** (21 pruebas de integración se saltan sin credenciales de Supabase) ·
+pruebas SQL **158/158** (HU-3: 87, HU-4: 71).
 
 ---
 
@@ -294,6 +334,12 @@ select count(*) from public.gotas_rewards;        -- 4
 select count(*) from public.gotas_reward_prizes;  -- 15
 select code, status from public.orders order by created_at desc limit 5;
 select status from public.order_events order by created_at desc limit 6;
+```
+
+Pruebas SQL sin tocar el proyecto (Docker):
+
+```bash
+tool/test_supabase_sql.sh
 ```
 
 Si `gotas_reward_prizes` no existe, falta aplicar `0008`.

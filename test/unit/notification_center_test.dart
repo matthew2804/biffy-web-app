@@ -1,6 +1,7 @@
 import 'package:biffy/core/utils/clock.dart';
 import 'package:biffy/data/models/app_notification.dart';
 import 'package:biffy/data/models/user.dart';
+import 'package:biffy/data/repositories/supabase_notification_repository.dart';
 import 'package:biffy/shared/state/notification_center.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -123,6 +124,63 @@ void main() {
 
       center.markAllRead(buyer, UserRole.buyer);
       expect(center.unreadFor(buyer, UserRole.buyer), 0);
+    });
+
+    test(
+      'upsert agrega el aviso de Realtime una sola vez y sin persistirlo',
+      () {
+        final saved = <AppNotification>[];
+        final center = NotificationCenter(
+          clock,
+          persist: (n) async => saved.add(n),
+        );
+        final buyer = user(UserRole.buyer);
+        AppNotification aviso({bool read = false}) => AppNotification(
+          id: '7d1c0e9a-0000-4000-8000-000000000001',
+          title: 'Pedido en camino 🛵',
+          body: 'Repa va en camino con tu pedido BF-2041.',
+          audience: 'user:u1',
+          createdAt: DateTime(2026, 1, 1, 12, 5),
+          route: '/pedido/BF-2041',
+          read: read,
+        );
+
+        center.upsert(aviso());
+        center.upsert(aviso());
+        expect(center.visibleFor(buyer, UserRole.buyer), hasLength(1));
+        expect(center.unreadFor(buyer, UserRole.buyer), 1);
+        expect(saved, isEmpty);
+
+        center.upsert(aviso(read: true));
+        expect(center.unreadFor(buyer, UserRole.buyer), 0);
+      },
+    );
+
+    test('marcar todas como leídas avisa al backend de cada una', () {
+      final read = <String>[];
+      final center = NotificationCenter(clock, onRead: read.add);
+      final buyer = user(UserRole.buyer);
+      center.push(title: 'A', body: '', audience: 'user:u1');
+      center.push(title: 'B', body: '', audience: 'user:u1');
+      center.push(title: 'Otro', body: '', audience: 'user:u2');
+
+      center.markAllRead(buyer, UserRole.buyer);
+      expect(read, hasLength(2));
+      center.markAllRead(buyer, UserRole.buyer);
+      expect(read, hasLength(2));
+    });
+
+    test('los avisos de la base quedan en hora local', () {
+      final n = SupabaseNotificationRepository.notificationFromRow({
+        'id': '7d1c0e9a-0000-4000-8000-000000000002',
+        'title': 'Pedido entregado ✅',
+        'audience': 'user:u1',
+        'created_at': '2026-11-10T01:30:00+00:00',
+        'read_at': null,
+      });
+      expect(n.createdAt.isUtc, isFalse);
+      expect(n.createdAt, DateTime.utc(2026, 11, 10, 1, 30).toLocal());
+      expect(n.read, isFalse);
     });
   });
 }

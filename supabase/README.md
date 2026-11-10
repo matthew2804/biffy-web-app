@@ -61,11 +61,26 @@ supabase/
     0009_welcome_gotas.sql        # 450 Gotas al crear el perfil
     0010_realtime.sql             # publica branches/dishes/orders en Realtime
     0011_branch_couriers.sql      # sedes nuevas nacen visibles
+    0012_box_items.sql            # cajas por restaurante y límites por recompensa
+    0013_prize_claim.sql          # canje del premio en el restaurante
+    0014_geo_guards.sql           # puntos de sede, polígonos y validación en pedidos
+    0015_campus_polygons.sql      # polígono real del campus Icesi
+    0016_survey_reward.sql        # premio por completar la encuesta
+    0017_coupons_notifications.sql # cupón por premio y notificaciones propias
+    0018_order_idempotency.sql    # place_order sin duplicados por reintento
     0019_order_cycle.sql          # ciclo del pedido (HU-3): precios en servidor,
                                   # order_secrets, reembolso de cupón, idempotencia
+    0020_free_shipping_coupon.sql # canjear envío gratis entrega su cupón (HU-4)
+    0021_reviews.sql              # rate_order + promedio de la sede (HU-4)
+    0022_order_notifications.sql  # avisos por cambio de pedido + Realtime (HU-4)
+    0023_gotas_no_negative.sql    # credit_gotas no descuadra el saldo (HU-4)
+    0024_free_shipping_5_gotas.sql # envío gratis cuesta 5 Gotas (HU-4)
     0099_verify.sql               # verifica tablas, columnas y RPC clave
   tests/
+    _supabase_stubs.sql           # auth/storage/roles mínimos para Postgres local
+    _demo_accounts.sql            # Diego, Andrés y Qbano para la base local
     hu3_order_cycle.sql           # prueba SQL del ciclo completo (con ROLLBACK)
+    hu4_*.sql                     # pruebas de RLS y RPC de HU-4 (con ROLLBACK)
 ```
 
 > `apply_all.sql` se regenera concatenando `migrations/*.sql`. No se edita a
@@ -133,6 +148,16 @@ Decisiones pensadas para no volver a tocar la base:
   `order_json`) **no son llamables por clientes**.
 - Storage: `dish-images` público; `delivery-evidence` y `merchant-docs`
   privados por carpeta (pedido / negocio).
+- Gotas: `gotas_ledger` es la única fuente del saldo. El cliente no puede
+  insertar, editar ni borrar movimientos; `credit_gotas` solo la llaman los RPC
+  y falla si el saldo quedaría negativo, así `profiles.gotas` siempre es la
+  suma del ledger.
+- Cupones: el descuento lo calcula `place_order` con el cupón del comprador
+  (vigencia, usos y dueño); el valor que manda la app se ignora.
+- Reseñas: solo entran por `rate_order` (pedido propio, entregado, una vez, en
+  la sede del pedido). Nadie edita ni borra reseñas desde la app.
+- Notificaciones: las crea la base. Cada usuario lee solo las suyas y solo
+  puede cambiar `read_at`.
 - La app solo lleva la **clave publicable**. La `service_role` y la contraseña
   de la base nunca van al repositorio.
 
@@ -164,6 +189,7 @@ Cada transición escribe en `order_events` quién la hizo y de qué estado a cu�
 | `use_reward_redemption(code)` | restaurante | Valida el código del plato ganado y lo marca como reclamado |
 | `verify_university(payload)` | comprador | Verifica el correo contra el dominio de la universidad |
 | `register_business(payload)` | restaurante | Crea negocio + sedes y lo vincula al perfil |
+| `rate_order(payload)` | comprador | Califica un pedido entregado propio (1–5, una vez) y recalcula `branches.rating` |
 
 Todas devuelven `jsonb` con `result` (`ok`, `invalid_state`, `forbidden`,
 `already_assigned`, `wrong_code`, `missing_evidence`, …) para mapear directo a
@@ -177,7 +203,7 @@ El catálogo está en `gotas_rewards` y cada caja tiene sus premios con peso en
 | Caja | Costo | Límite | Premios |
 |---|---|---|---|
 | `box_5` · Caja básica | 5 | **ilimitada** | platos de restaurantes o premios de plataforma |
-| `free_shipping` | 10 | cada 12 h | quita el envío del pedido |
+| `free_shipping` | 5 | cada 12 h | quita el envío del pedido |
 | `box_25` · Caja sorpresa | 25 | cada 12 h | 5 premios |
 | `box_50` · Caja premium | 50 | cada 12 h | 5 premios |
 | `box_100` · Caja sorteo | 100 | cada 24 h | 5 premios + boleto |
@@ -191,6 +217,47 @@ El peso es relativo: se suma y se sortea con `random()`, así que ajustar
 probabilidades es cambiar `weight` (en `0008_reward_boxes.sql` o con un
 `update`), nunca código de la app. El premio queda guardado en
 `reward_redemptions` (`prize_label`, `prize_type`, `prize_amount`).
+
+## Notificaciones
+
+Un trigger en `order_events` (cada transición deja uno) crea una fila por
+destinatario en `notifications`, con `user_id`, `role` y `order_id`:
+
+| Evento | Quién recibe |
+|---|---|
+| Pedido nuevo | comprador y dueño del restaurante |
+| Aceptado / rechazado | comprador |
+| Cancelado por el cliente | restaurante |
+| Listo | comprador y repartidores en línea cuyo vehículo alcanza la distancia y no tienen pedido activo |
+| Repartidor asignado | comprador, restaurante y el repartidor; la oferta se marca leída para los demás |
+| En camino | comprador |
+| Entregado | comprador (con las Gotas ganadas) y restaurante |
+| Calificación | restaurante |
+
+La tabla está en Realtime: la app se suscribe a `user_id = <yo>` y los avisos
+llegan sin recargar. En modo demo los sigue creando la app
+(`NotificationOrderAdapter`); con Supabase el notificador es `ServerOrderNotifier`
+y no crea avisos locales, así no se duplican.
+
+## Pruebas SQL (RLS y RPC)
+
+```bash
+tool/test_supabase_sql.sh
+```
+
+Levanta un Postgres con PostGIS en Docker, aplica `_supabase_stubs.sql` y
+`apply_all.sql`, y corre `supabase/tests/hu*.sql`. Cada prueba usa varios
+usuarios (comprador, otro comprador, restaurante, repartidores) y termina en
+`rollback`. No toca el proyecto real. Con `DB_URL=postgres://…` usa una base
+existente; así corre en el CI (job `sql-tests`).
+
+| Archivo | Qué prueba |
+|---|---|
+| `hu4_cupones.sql` | descuento calculado en la base, cupón ajeno, vencido o repetido |
+| `hu4_gotas.sql` | bienvenida, ledger de solo lectura, una acreditación por entrega, saldo = ledger |
+| `hu4_canjes.sql` | cajas, enfriamiento, saldo insuficiente, envío gratis → cupón usable |
+| `hu4_resenas.sql` | solo pedidos propios entregados, una vez, promedio de la sede |
+| `hu4_notificaciones.sql` | avisos por rol en cada estado, privacidad y `read_at` |
 
 ## Cuentas demo
 
@@ -289,25 +356,38 @@ update public.branches set campus_delivery_only = true where campus_id = 'icesi'
 
 ## Al desplegar (checklist)
 
-Modo demo local hoy → Supabase real al publicar. En orden:
+Modo demo local hoy → Supabase real al publicar. Marcar cada punto al hacerlo
+en el panel del proyecto `jwdzpwsfwtkdeeuceaco`:
 
-1. **Aplicar migraciones** (`apply_all.sql` o `db push`).
-2. **Auth:** definir si el registro envía correo de confirmación.
-   - Demo/staging: desactivado (Authentication → Providers → Email → *Confirm email* off).
-   - Producción: activado + plantilla de correo en español.
-3. **Cuentas demo:** crearlas con `service_role` desde un script local
-   (`admin.createUser`), nunca desde la app. Mismos correos del README.
-4. **Catálogo semilla:** cargar negocios, sedes y platos con el mismo script.
-   Necesita un `owner_id` real, por eso no va en la migración.
-5. **Claves:** `env.json`/secrets del CI con `SUPABASE_URL` y la clave
-   publicable. La `service_role` solo en el script de administración.
-6. **Límites:** revisar *Auth → Rate limits* y el tamaño máximo de subida.
-7. **Respaldos:** activar PITR/backups según el plan (el plan Free no los
-   incluye).
-8. **Rotar** cualquier clave o contraseña que se haya compartido por chat.
-9. **Smoke test:** registro → pedido → aceptar en restaurante → aceptar como
-   repartidor → recoger → entregar, verificando `orders`, `order_events` y
-   `gotas_ledger`.
+- [ ] **Migraciones:** aplicar `apply_all.sql` (o `supabase db push`) con
+      todas las migraciones hasta `0024` (HU-4 son `0020`–`0024`). Debe salir `Biffy OK`.
+- [ ] **Pruebas SQL** en verde antes de aplicar: `tool/test_supabase_sql.sh`.
+- [ ] **Confirmación de correo activada en producción:** Authentication →
+      Providers → Email → *Confirm email* on, con plantilla en español.
+      Las cuentas demo no se afectan: `tool/admin_seed.dart` las crea ya
+      confirmadas (`email_confirm: true`).
+- [ ] **Límites de Auth:** Authentication → Rate limits (correos por hora,
+      intentos de inicio de sesión) y largo mínimo de contraseña.
+- [ ] **Límite de subida** en Storage (fotos de platos y evidencias).
+- [ ] **Respaldos:** activar PITR o backups diarios según el plan (el plan
+      Free no los incluye; si no hay presupuesto, exportar con `pg_dump`
+      antes de cada entrega).
+- [ ] **Rotar claves expuestas:** cualquier `service_role`, contraseña de la
+      base o token que se haya pegado en un chat, issue o captura. En el
+      repositorio solo debe quedar la clave publicable (`env.json`).
+- [ ] **Secrets del CI:** en GitHub → Settings → Secrets → Actions, crear
+      `SUPABASE_URL` y `SUPABASE_KEY` (clave publicable) para que corra el
+      smoke test contra el proyecto.
+- [ ] **Cuentas demo y catálogo:** `tool/admin_seed.dart` y
+      `tool/seed_supabase.dart` con `service_role` desde un computador local,
+      nunca desde la app.
+- [ ] **Prueba final con datos reales:** un comprador y un repartidor nuevos
+      + un restaurante hacen el ciclo completo (pedir → aceptar → listo →
+      tomar → recoger → entregar); el comprador califica, canjea una caja y
+      recibe las notificaciones. Revisar `orders`, `order_events`,
+      `gotas_ledger`, `reviews` y `notifications`.
+- [ ] **Modo demo intacto:** sin `SUPABASE_URL`, `flutter test` (incluido
+      `test/integration/full_flow.dart`) sigue en verde.
 
 ## Si `apply_all.sql` falla
 

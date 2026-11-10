@@ -13,11 +13,20 @@ import '../../data/repositories/in_memory_order_repository.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/supabase_catalog_repository.dart';
 import '../../data/repositories/supabase_order_repository.dart';
+import '../../data/repositories/review_repository_impl.dart';
+import '../../data/repositories/supabase_notification_repository.dart';
 import '../../data/repositories/supabase_profile_repository.dart';
+import '../../data/repositories/supabase_rewards_repository.dart';
+import '../../domain/repositories/merchant_boxes_repository.dart';
+import '../../domain/ports/order_ports.dart';
 import '../../domain/repositories/order_repository.dart';
+import '../../domain/repositories/rewards_repository.dart';
+import '../../domain/usecases/rate_order.dart';
 import '../../domain/usecases/orders/order_usecases.dart';
 import '../../features/orders/bloc/orders_bloc.dart';
 import '../adapters/order_adapters.dart';
+import '../adapters/review_adapters.dart';
+import '../adapters/server_order_notifier.dart';
 import 'cart_controller.dart';
 import 'catalog_controller.dart';
 import 'notification_center.dart';
@@ -37,10 +46,20 @@ class AppServices {
     required this.catalog,
     required this.cart,
     required this.orders,
+    required this.rateOrder,
+    this.rewards,
+    this.merchantBoxes,
   });
 
   /// Contenedor completo con datos de demostración en memoria.
-  factory AppServices.demo({Clock? clock, int? randomSeed, bool seed = true}) {
+  ///
+  /// [rewards] permite probar la pantalla de Gotas con un repositorio falso.
+  factory AppServices.demo({
+    Clock? clock,
+    int? randomSeed,
+    bool seed = true,
+    RewardsRepository? rewards,
+  }) {
     final c = clock ?? Clock();
     final catalogRepo = InMemoryCatalogRepository();
     final auth = InMemoryAuthRepository(seedUsers(catalogRepo.businesses));
@@ -74,6 +93,12 @@ class AppServices {
       catalog: catalog,
       cart: cart,
       orders: orders,
+      rateOrder: RateOrder(
+        InMemoryReviewRepository(orderRepo),
+        CatalogRatingAdapter(catalog),
+        LocalReviewNotifier(notifications, catalog),
+      ),
+      rewards: rewards,
     );
   }
 
@@ -89,16 +114,19 @@ class AppServices {
     final repo = catalogRepo ?? await SupabaseCatalogRepository.load();
     final orderStore = orderRepo ?? await SupabaseOrderRepository.load();
     final profileRepo = SupabaseProfileRepository();
+    final rewardsRepo = SupabaseRewardsRepository();
+    final notificationsRepo = SupabaseNotificationRepository();
     final notifications = NotificationCenter(
       c,
-      persist: profileRepo.saveNotification,
-      onRead: profileRepo.markNotificationRead,
+      persist: notificationsRepo.save,
+      onRead: notificationsRepo.markRead,
     );
     final session = SessionController(
       remoteAuth,
       notifications,
       c,
       profile: profileRepo,
+      notificationsRepo: notificationsRepo,
     );
     final catalog = CatalogController(repo, session, c);
     final cart = CartController(repo);
@@ -117,6 +145,13 @@ class AppServices {
       catalog: catalog,
       cart: cart,
       orders: orders,
+      rateOrder: RateOrder(
+        SupabaseReviewRepository(),
+        CatalogRatingAdapter(catalog),
+        const ServerReviewNotifier(),
+      ),
+      rewards: rewardsRepo,
+      merchantBoxes: rewardsRepo,
     );
   }
 
@@ -136,7 +171,11 @@ class AppServices {
         catalog: CatalogOrderAdapter(catalog),
         buyers: sessionAdapter,
         wallet: sessionAdapter,
-        notifier: NotificationOrderAdapter(notifications, demo: demo),
+        // Con Supabase los avisos los crea la base (0022) y llegan por
+        // Realtime; en demo los crea la app.
+        notifier: demo
+            ? NotificationOrderAdapter(notifications, demo: true)
+            : const ServerOrderNotifier() as OrderNotifier,
         clock: clock,
       ),
     );
@@ -149,6 +188,15 @@ class AppServices {
   final CartController cart;
   final OrdersBloc orders;
 
+  /// Caso de uso de calificar (HU-4); lo usa `RateOrderCubit`.
+  final RateOrder rateOrder;
+
+  /// Recompensas en la base; `null` en modo demo (usa `kBenefits`).
+  final RewardsRepository? rewards;
+
+  /// Cajas del restaurante en la base; `null` en modo demo.
+  final MerchantBoxesRepository? merchantBoxes;
+
   /// Proveedores que publican los controladores en el árbol.
   List<SingleChildWidget> get providers => [
     Provider<Clock>.value(value: clock),
@@ -157,5 +205,8 @@ class AppServices {
     ChangeNotifierProvider<CatalogController>.value(value: catalog),
     ChangeNotifierProvider<CartController>.value(value: cart),
     BlocProvider<OrdersBloc>.value(value: orders),
+    Provider<RateOrder>.value(value: rateOrder),
+    Provider<RewardsRepository?>.value(value: rewards),
+    Provider<MerchantBoxesRepository?>.value(value: merchantBoxes),
   ];
 }

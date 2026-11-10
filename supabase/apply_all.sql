@@ -4,14 +4,14 @@
 -- Uso: Supabase Dashboard -> SQL Editor -> New query -> pegar todo -> Run.
 -- Se genera concatenando supabase/migrations/*.sql. No editar a mano.
 -- Proyecto: jwdzpwsfwtkdeeuceaco
--- Generado: 2026-11-09 21:20
+-- Generado: 2026-11-10 13:33
 --
 -- AVISO: la migración 0000 reemplaza las tablas de public. Las tablas con
 -- filas NO se borran: se conservan como legacy_<nombre> con RLS activo.
 -- ============================================================================
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0000_legacy_cleanup.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0000 · Limpieza inicial del esquema public
 -- ============================================================================
@@ -122,9 +122,9 @@ begin
 end
 $cleanup$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0001_init.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0001 · Extensiones, tipos y utilidades
 -- ============================================================================
@@ -174,9 +174,9 @@ begin
 end;
 $$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0002_schema.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0002 · Esquema base
 -- ============================================================================
@@ -650,9 +650,9 @@ begin
   end loop;
 end $$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0003_functions.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0003 · Funciones de negocio (RPC)
 -- ============================================================================
@@ -1552,9 +1552,9 @@ grant execute on function public.courier_pickup(uuid) to authenticated;
 grant execute on function public.courier_deliver(uuid, text, text) to authenticated;
 grant execute on function public.redeem_reward(jsonb) to authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0004_rls.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0004 · Row Level Security
 -- ============================================================================
@@ -1812,9 +1812,9 @@ grant select, insert, update, delete on all tables in schema public
 grant select on public.notifications to authenticated;
 grant select on public.coupons to authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0005_storage.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0005 · Storage (buckets y políticas)
 -- ============================================================================
@@ -1922,9 +1922,9 @@ create policy merchant_docs_delete on storage.objects
     and (storage.foldername(name))[1] = public.my_business_id()::text
   );
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0006_seed_reference.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0006 · Datos de referencia
 -- ============================================================================
@@ -2005,9 +2005,9 @@ begin
 end
 $geo$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0008_reward_boxes.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0008 · Cajas con premios aleatorios
 -- ============================================================================
@@ -2201,9 +2201,9 @@ on conflict (reward_id, code) do update set
   weight = excluded.weight,
   is_active = true;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0009_welcome_gotas.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0009 · Gotas de bienvenida
 -- ============================================================================
@@ -2231,9 +2231,9 @@ create trigger on_profile_created_welcome
   after insert on public.profiles
   for each row execute function public.credit_welcome_gotas();
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0010_realtime.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0010 · Realtime
 -- ============================================================================
@@ -2261,9 +2261,9 @@ begin
   end loop;
 end $$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0011_branch_couriers.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0011 · Sedes visibles desde el primer día
 -- ============================================================================
@@ -2280,9 +2280,9 @@ update public.branches
    set couriers_nearby = 1
  where couriers_nearby = 0;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0012_box_items.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0012 · Cajas configurables por restaurante y límites por recompensa
 -- ============================================================================
@@ -2571,9 +2571,9 @@ on conflict (reward_id, code) do update set
   weight = excluded.weight,
   is_active = true;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0013_prize_claim.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0013 · Canje del premio en el restaurante
 -- ============================================================================
@@ -2835,9 +2835,9 @@ $$;
 revoke all on function public.redeem_reward(jsonb) from public, anon;
 grant execute on function public.redeem_reward(jsonb) to authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0014_geo_guards.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0014 · Geografía: puntos de sede, polígonos de campus y validación en pedidos
 -- ============================================================================
@@ -3164,9 +3164,9 @@ $$;
 revoke all on function public.place_order(jsonb) from public, anon;
 grant execute on function public.place_order(jsonb) to authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0015_campus_polygons.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0015 · Polígono real del campus Icesi (OpenStreetMap)
 -- ============================================================================
@@ -3294,9 +3294,9 @@ begin
   end if;
 end $$;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0016_survey_reward.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0016 · Recompensa de la encuesta de preferencias
 -- ============================================================================
 -- Acredita 300 Gotas una sola vez cuando el comprador completa la encuesta.
@@ -3355,9 +3355,9 @@ $$;
 revoke all on function public.complete_survey() from public, anon;
 grant execute on function public.complete_survey() to authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0017_coupons_notifications.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0017 · Cupones desde premios de caja y notificaciones propias
 -- ============================================================================
@@ -3437,9 +3437,9 @@ create policy notifications_update on public.notifications
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0018_order_idempotency.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0018 · Idempotencia de place_order
 -- ============================================================================
@@ -3706,9 +3706,9 @@ $$;
 revoke all on function public.place_order(jsonb) from public, anon;
 grant execute on function public.place_order(jsonb) to authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0019_order_cycle.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0019 · Ciclo completo del pedido (HU-3)
 -- ============================================================================
@@ -4646,9 +4646,624 @@ revoke execute on function public.order_json(public.orders) from public, anon, a
 revoke execute on function public.credit_gotas(uuid, int, text, uuid) from public, anon, authenticated;
 revoke execute on function public.order_event(uuid, public.order_status, text, public.order_status) from public, anon, authenticated;
 
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0020_free_shipping_coupon.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0020 · El canje de envío gratis entrega su cupón
+-- ============================================================================
+-- `free_shipping` no tiene premios en gotas_reward_prizes, así que el canje
+-- quedaba sin prize_type y el trigger de 0017 no creaba el cupón: se cobraban
+-- las Gotas y no llegaba nada. Ahora el canje directo guarda el premio
+-- `free_shipping` con el nombre de la recompensa, el trigger crea el cupón
+-- `free_delivery` y el RPC devuelve el premio para mostrarlo en la app.
+-- ============================================================================
+
+create or replace function public.redeem_reward(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_reward public.gotas_rewards;
+  v_balance int;
+  v_redemption uuid;
+  v_prize public.gotas_reward_prizes;
+  v_prize_id uuid;
+  v_dish_id uuid;
+  v_branch_id uuid;
+  v_item_label text;
+  v_claim text;
+  v_total int;
+  v_roll numeric;
+  v_used int;
+begin
+  if v_uid is null then
+    return jsonb_build_object('result', 'not_authenticated');
+  end if;
+
+  select * into v_reward
+    from public.gotas_rewards
+   where code = p_payload ->> 'code'
+     and is_active;
+  if not found then
+    return jsonb_build_object('result', 'reward_not_found');
+  end if;
+
+  -- Enfriamiento configurable (0 = ilimitado).
+  if v_reward.cooldown_hours > 0 and exists (
+    select 1 from public.reward_redemptions r
+     where r.user_id = v_uid
+       and r.reward_id = v_reward.id
+       and r.created_at > now() - make_interval(hours => v_reward.cooldown_hours)
+  ) then
+    return jsonb_build_object(
+      'result', 'cooldown',
+      'cooldown_hours', v_reward.cooldown_hours
+    );
+  end if;
+
+  -- Límite diario opcional.
+  if v_reward.daily_limit is not null then
+    select count(*) into v_used
+      from public.reward_redemptions r
+     where r.user_id = v_uid
+       and r.reward_id = v_reward.id
+       and r.created_at > now() - interval '24 hours';
+    if v_used >= v_reward.daily_limit then
+      return jsonb_build_object('result', 'daily_limit');
+    end if;
+  end if;
+
+  select gotas into v_balance
+    from public.profiles
+   where id = v_uid
+     for update;
+
+  if v_balance is null then
+    return jsonb_build_object('result', 'no_profile');
+  end if;
+  if v_balance < v_reward.gotas_cost then
+    return jsonb_build_object(
+      'result', 'insufficient_gotas',
+      'balance', v_balance,
+      'cost', v_reward.gotas_cost
+    );
+  end if;
+
+  -- 1) Platos que los restaurantes metieron en la caja.
+  if v_reward.merchant_managed then
+    select bi.dish_id, bi.branch_id, d.name
+      into v_dish_id, v_branch_id, v_item_label
+      from public.box_items bi
+      join public.dishes d on d.id = bi.dish_id
+      join public.branches b on b.id = bi.branch_id
+     where bi.reward_id = v_reward.id
+       and bi.is_active
+       and d.active
+       and d.deleted_at is null
+       and b.deleted_at is null
+     order by random()
+     limit 1;
+  end if;
+
+  -- 2) Si no hay platos, premios de plataforma.
+  if v_dish_id is null and v_reward.reward_type in ('mystery_box', 'monthly_raffle') then
+    select coalesce(sum(weight), 0) into v_total
+      from public.gotas_reward_prizes
+     where reward_id = v_reward.id and is_active;
+
+    if v_total > 0 then
+      v_roll := random() * v_total;
+      select p.id into v_prize_id
+        from (
+          select id, sum(weight) over (order by id) as cum
+            from public.gotas_reward_prizes
+           where reward_id = v_reward.id and is_active
+        ) p
+       where p.cum >= v_roll
+       order by p.cum
+       limit 1;
+
+      if v_prize_id is not null then
+        select * into v_prize
+          from public.gotas_reward_prizes
+         where id = v_prize_id;
+      end if;
+    end if;
+  end if;
+
+  -- 3) Canje directo de envío gratis: el premio es la recompensa misma.
+  if v_dish_id is null and v_prize.id is null
+     and v_reward.reward_type = 'free_shipping' then
+    v_prize.label := v_reward.name;
+    v_prize.prize_type := 'free_shipping';
+    v_prize.amount := 0;
+  end if;
+
+  -- Código de reclamación solo para platos.
+  if v_dish_id is not null then
+    v_claim := upper(substr(md5(gen_random_uuid()::text), 1, 6));
+  end if;
+
+  insert into public.reward_redemptions (
+    user_id, reward_id, gotas_spent,
+    prize_id, prize_label, prize_type, prize_amount,
+    prize_dish_id, prize_branch_id,
+    claim_code, expires_at
+  ) values (
+    v_uid, v_reward.id, v_reward.gotas_cost,
+    case when v_dish_id is null then v_prize.id else null end,
+    coalesce(v_item_label, v_prize.label),
+    case when v_dish_id is not null then 'product' else v_prize.prize_type end,
+    case when v_dish_id is null then coalesce(v_prize.amount, 0) else 0 end,
+    v_dish_id,
+    v_branch_id,
+    v_claim,
+    case when v_dish_id is not null then now() + interval '30 days' end
+  )
+  returning id into v_redemption;
+
+  perform public.credit_gotas(
+    v_uid, -v_reward.gotas_cost, 'Canje: ' || v_reward.name, null
+  );
+
+  return jsonb_build_object(
+    'result', 'ok',
+    'redemption_id', v_redemption,
+    'reward', v_reward.code,
+    'balance', v_balance - v_reward.gotas_cost,
+    'prize', case
+      when v_dish_id is not null then jsonb_build_object(
+        'label', v_item_label,
+        'type', 'product',
+        'amount', 0,
+        'dish_id', v_dish_id,
+        'branch_id', v_branch_id,
+        'claim_code', v_claim
+      )
+      when v_prize.label is null then null
+      else jsonb_build_object(
+        'label', v_prize.label,
+        'type', v_prize.prize_type,
+        'amount', v_prize.amount
+      )
+    end
+  );
+end;
+$$;
+
+revoke all on function public.redeem_reward(jsonb) from public, anon;
+grant execute on function public.redeem_reward(jsonb) to authenticated;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0021_reviews.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0021 · Reseñas por RPC y promedio de la sede
+-- ============================================================================
+-- Antes el comprador insertaba directo en `reviews` y la política no validaba
+-- que `branch_id` fuera la sede del pedido: se podía calificar cualquier sede.
+-- Ahora las reseñas solo entran por `rate_order`, que toma la sede del pedido,
+-- y un trigger recalcula `branches.rating` con el promedio real.
+-- ============================================================================
+
+drop policy if exists reviews_insert on public.reviews;
+revoke insert, update, delete on public.reviews from anon, authenticated;
+
+-- ------------------------------------------------------------ Calificar
+-- payload: { order_id, rating (1..5), comment? }
+create or replace function public.rate_order(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_order public.orders;
+  v_rating int;
+  v_comment text := trim(coalesce(p_payload ->> 'comment', ''));
+  v_review public.reviews;
+begin
+  if v_uid is null then
+    return jsonb_build_object('result', 'not_authenticated');
+  end if;
+
+  v_rating := case
+    when (p_payload ->> 'rating') ~ '^[0-9]+$' then (p_payload ->> 'rating')::int
+  end;
+  if v_rating is null or v_rating not between 1 and 5 then
+    return jsonb_build_object('result', 'invalid_rating');
+  end if;
+  if char_length(v_comment) > 500 then
+    return jsonb_build_object('result', 'comment_too_long', 'max', 500);
+  end if;
+
+  select * into v_order
+    from public.orders
+   where id = nullif(p_payload ->> 'order_id', '')::uuid;
+  if not found then
+    return jsonb_build_object('result', 'not_found');
+  end if;
+  if v_order.buyer_id <> v_uid then
+    return jsonb_build_object('result', 'forbidden');
+  end if;
+  if v_order.status <> 'delivered' then
+    return jsonb_build_object('result', 'invalid_state');
+  end if;
+
+  insert into public.reviews (order_id, user_id, branch_id, rating, comment)
+  values (v_order.id, v_uid, v_order.branch_id, v_rating, v_comment)
+  on conflict (order_id) do nothing
+  returning * into v_review;
+
+  if v_review.id is null then
+    return jsonb_build_object('result', 'already_rated');
+  end if;
+
+  return jsonb_build_object(
+    'result', 'ok',
+    'review', to_jsonb(v_review),
+    'branch_rating', (select rating from public.branches where id = v_order.branch_id)
+  );
+end;
+$$;
+
+revoke all on function public.rate_order(jsonb) from public, anon;
+grant execute on function public.rate_order(jsonb) to authenticated;
+
+-- ------------------------------------------------- Promedio de la sede
+create or replace function public.refresh_branch_rating()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_branch uuid := coalesce(new.branch_id, old.branch_id);
+  v_avg numeric;
+begin
+  select round(avg(rating)::numeric, 1) into v_avg
+    from public.reviews
+   where branch_id = v_branch;
+
+  if v_avg is not null then
+    update public.branches set rating = v_avg where id = v_branch;
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists reviews_branch_rating on public.reviews;
+create trigger reviews_branch_rating
+  after insert or update or delete on public.reviews
+  for each row execute function public.refresh_branch_rating();
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0022_order_notifications.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0022 · Notificaciones generadas por la base
+-- ============================================================================
+-- Antes cada app creaba los avisos de los otros roles y la base los rechazaba
+-- (solo se puede insertar para uno mismo): el comprador nunca se enteraba de
+-- que el restaurante aceptó o que el repartidor iba en camino.
+--
+-- Ahora un trigger sobre `order_events` (cada transición deja uno) crea una
+-- fila por destinatario con su `user_id` y `role`:
+--   pedido nuevo           → comprador y dueño del restaurante
+--   aceptado / rechazado   → comprador
+--   cancelado por cliente  → restaurante
+--   listo                  → comprador y repartidores en línea que lo alcanzan
+--   repartidor asignado    → comprador, restaurante y el repartidor
+--   en camino / entregado  → comprador (y restaurante al entregar)
+-- y otro sobre `reviews` avisa al restaurante de cada calificación.
+-- La tabla se publica en Realtime; RLS hace que cada quien reciba solo lo suyo.
+-- ============================================================================
+
+alter table public.notifications
+  add column if not exists role public.user_role,
+  add column if not exists order_id uuid references public.orders (id) on delete cascade;
+
+create index if not exists notifications_user_idx
+  on public.notifications (user_id, created_at desc);
+create index if not exists notifications_order_idx
+  on public.notifications (order_id);
+
+-- El usuario solo puede marcar como leída; no puede reescribir el aviso.
+revoke update on public.notifications from authenticated;
+grant update (read_at) on public.notifications to authenticated;
+
+-- ------------------------------------------------------------ Utilidades
+create or replace function public.cop(p_amount int)
+returns text
+language sql
+immutable
+as $$
+  select '$' || replace(to_char(coalesce(p_amount, 0), 'FM999,999,999'), ',', '.')
+$$;
+
+create or replace function public.notify(
+  p_user uuid,
+  p_role public.user_role,
+  p_audience text,
+  p_title text,
+  p_body text,
+  p_route text,
+  p_order uuid
+) returns void
+language sql
+security definer
+set search_path = public
+as $$
+  insert into public.notifications (user_id, role, audience, title, body, route, order_id)
+  select p_user, p_role, p_audience, p_title, coalesce(p_body, ''), p_route, p_order
+   where p_user is not null
+$$;
+
+revoke all on function public.notify(uuid, public.user_role, text, text, text, text, uuid)
+  from public, anon, authenticated;
+
+-- -------------------------------------------------- Avisos por transición
+create or replace function public.notify_order_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  o public.orders;
+  v_business uuid;
+  v_owner uuid;
+  v_items text;
+  v_buyer_route text;
+  v_biz_audience text;
+  c record;
+begin
+  select * into o from public.orders where id = new.order_id;
+  if not found then
+    return new;
+  end if;
+
+  select b.business_id, bz.owner_id into v_business, v_owner
+    from public.branches b
+    join public.businesses bz on bz.id = b.business_id
+   where b.id = o.branch_id;
+
+  select string_agg(i.qty || '× ' || i.name, ', ' order by i.name)
+    into v_items
+    from public.order_items i
+   where i.order_id = o.id;
+
+  v_buyer_route := '/pedido/' || o.code;
+  v_biz_audience := 'business:' || v_business;
+
+  if new.status = 'pending' then
+    perform public.notify(o.buyer_id, 'buyer', 'user:' || o.buyer_id,
+      'Pedido ' || o.code || ' creado',
+      'Esperando que ' || o.restaurant_name || ' lo acepte.',
+      v_buyer_route, o.id);
+    perform public.notify(v_owner, 'restaurant', v_biz_audience,
+      'Nuevo pedido ' || o.code,
+      coalesce(v_items, ''),
+      '/negocio/pedidos', o.id);
+
+  elsif new.status = 'preparing' then
+    perform public.notify(o.buyer_id, 'buyer', 'user:' || o.buyer_id,
+      'Pedido en preparación 👩‍🍳',
+      o.restaurant_name || ' aceptó tu pedido ' || o.code || '.',
+      v_buyer_route, o.id);
+
+  elsif new.status = 'cancelled' and new.actor_label = 'Comprador' then
+    perform public.notify(v_owner, 'restaurant', v_biz_audience,
+      'Pedido ' || o.code || ' cancelado por el cliente',
+      coalesce(v_items, ''),
+      '/negocio/pedidos', o.id);
+
+  elsif new.status = 'cancelled' then
+    perform public.notify(o.buyer_id, 'buyer', 'user:' || o.buyer_id,
+      'Pedido ' || o.code || ' rechazado',
+      'Motivo: ' || coalesce(nullif(o.reject_reason, ''), 'sin motivo')
+        || '. No se realizó ningún cobro.',
+      v_buyer_route, o.id);
+
+  elsif new.status = 'ready' and new.actor_label = 'Repartidor' then
+    perform public.notify(o.buyer_id, 'buyer', 'user:' || o.buyer_id,
+      'Repartidor asignado 🛵',
+      coalesce(o.courier_name, 'Un repartidor') || ' recogerá tu pedido ' || o.code || '.',
+      v_buyer_route, o.id);
+    perform public.notify(v_owner, 'restaurant', v_biz_audience,
+      'Repartidor asignado a ' || o.code,
+      coalesce(o.courier_name, 'El repartidor') || ' va en camino a recoger.',
+      '/negocio/pedidos', o.id);
+    perform public.notify(o.courier_id, 'courier', 'courier:' || o.courier_id,
+      'Pedido ' || o.code || ' asignado',
+      'Ve a ' || o.restaurant_name || case
+        when coalesce(o.pickup_code, '') = '' then ' a recoger el pedido.'
+        else ' y muestra el código ' || o.pickup_code || '.'
+      end,
+      '/repartidor/recogida/' || o.code, o.id);
+    -- La oferta ya no está disponible para los demás.
+    update public.notifications
+       set read_at = now()
+     where order_id = o.id
+       and role = 'courier'
+       and user_id is distinct from o.courier_id
+       and read_at is null;
+
+  elsif new.status = 'ready' then
+    perform public.notify(o.buyer_id, 'buyer', 'user:' || o.buyer_id,
+      'Pedido listo 🛍️',
+      'Tu pedido ' || o.code || ' está listo. Buscando repartidor…',
+      v_buyer_route, o.id);
+    for c in
+      select cp.user_id
+        from public.courier_profiles cp
+       where cp.online
+         and o.distance_km <= public.vehicle_max_km(cp.vehicle)
+         and not exists (
+           select 1 from public.orders x
+            where x.courier_id = cp.user_id
+              and x.status in ('ready', 'on_the_way')
+         )
+    loop
+      perform public.notify(c.user_id, 'courier', 'courier:' || c.user_id,
+        'Oferta disponible · ' || public.cop(o.courier_pay + o.tip),
+        o.restaurant_name || ' → ' || coalesce(o.address_snapshot ->> 'label', 'entrega')
+          || ' (' || o.distance_km || ' km).',
+        '/repartidor/oferta/' || o.code, o.id);
+    end loop;
+
+  elsif new.status = 'on_the_way' then
+    perform public.notify(o.buyer_id, 'buyer', 'user:' || o.buyer_id,
+      'Pedido en camino 🛵',
+      coalesce(o.courier_name, 'Tu repartidor') || ' va en camino con tu pedido ' || o.code || '.',
+      v_buyer_route, o.id);
+
+  elsif new.status = 'delivered' then
+    perform public.notify(o.buyer_id, 'buyer', 'user:' || o.buyer_id,
+      'Pedido entregado ✅',
+      '¡Buen provecho! Ganaste ' || (o.subtotal / 1000) || ' Gotas con ' || o.code || '.',
+      v_buyer_route, o.id);
+    perform public.notify(v_owner, 'restaurant', v_biz_audience,
+      'Pedido ' || o.code || ' entregado',
+      'Entregado por ' || coalesce(o.courier_name, 'el repartidor') || '.',
+      '/negocio/pedidos', o.id);
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists order_events_notify on public.order_events;
+create trigger order_events_notify
+  after insert on public.order_events
+  for each row execute function public.notify_order_event();
+
+-- ------------------------------------------------- Aviso de calificación
+create or replace function public.notify_review()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  o public.orders;
+  v_business uuid;
+  v_owner uuid;
+begin
+  select * into o from public.orders where id = new.order_id;
+  select b.business_id, bz.owner_id into v_business, v_owner
+    from public.branches b
+    join public.businesses bz on bz.id = b.business_id
+   where b.id = new.branch_id;
+
+  perform public.notify(v_owner, 'restaurant', 'business:' || v_business,
+    'Nueva calificación ⭐',
+    coalesce(o.buyer_name, 'Un cliente') || ' calificó ' || coalesce(o.code, 'un pedido')
+      || ' con ' || new.rating || ' de 5.',
+    '/negocio/pedidos', new.order_id);
+  return null;
+end;
+$$;
+
+drop trigger if exists reviews_notify on public.reviews;
+create trigger reviews_notify
+  after insert on public.reviews
+  for each row execute function public.notify_review();
+
+-- ------------------------------------------------------------ Realtime
+do $$
+begin
+  alter publication supabase_realtime add table public.notifications;
+exception
+  when duplicate_object then null;
+  when undefined_object then
+    raise notice 'No existe la publicación supabase_realtime; se omite notifications.';
+end $$;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0023_gotas_no_negative.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0023 · credit_gotas nunca descuadra el saldo
+-- ============================================================================
+-- Antes hacía `greatest(0, gotas + amount)`: si alguna vez se descontaba más
+-- de lo que había, el saldo quedaba en 0 pero el ledger guardaba el negativo
+-- completo, y profiles.gotas dejaba de ser la suma de gotas_ledger.
+-- Ahora falla (y revierte todo el RPC que la llamó) en vez de recortar.
+-- Además deja `biffy.internal` como estaba: antes lo apagaba siempre y le
+-- quitaba el permiso a quien lo había encendido (p. ej. un script que crea
+-- usuarios y luego ajusta perfiles).
+-- ============================================================================
+
+create or replace function public.credit_gotas(
+  p_user uuid,
+  p_amount int,
+  p_reason text,
+  p_order uuid default null
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_balance int;
+  v_internal text := current_setting('biffy.internal', true);
+begin
+  if p_amount = 0 then
+    return;
+  end if;
+  if coalesce(trim(p_reason), '') = '' then
+    raise exception 'credit_gotas: el movimiento necesita un motivo';
+  end if;
+
+  select gotas into v_balance
+    from public.profiles
+   where id = p_user
+     for update;
+  if not found then
+    raise exception 'credit_gotas: perfil % no existe', p_user;
+  end if;
+  if v_balance + p_amount < 0 then
+    raise exception 'insufficient_gotas: saldo %, movimiento %', v_balance, p_amount;
+  end if;
+
+  perform set_config('biffy.internal', '1', true);
+
+  insert into public.gotas_ledger (user_id, amount, reason, order_id)
+  values (p_user, p_amount, p_reason, p_order);
+
+  update public.profiles
+     set gotas = v_balance + p_amount
+   where id = p_user;
+
+  perform set_config('biffy.internal', coalesce(v_internal, '0'), true);
+end;
+$$;
+
+revoke all on function public.credit_gotas(uuid, int, text, uuid) from public, anon, authenticated;
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- 0024_free_shipping_5_gotas.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ============================================================================
+-- 0024 · Envío gratis cuesta 5 Gotas
+-- ============================================================================
+-- La HU-4 fija el canje directo de envío gratis en 5 Gotas (0012 lo había
+-- subido a 10). El enfriamiento de 12 h se mantiene.
+-- ============================================================================
+
+update public.gotas_rewards
+   set gotas_cost = 5
+ where code = 'free_shipping';
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- 0099_verify.sql
--- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- ============================================================================
 -- 0007 · Verificación final
 -- ============================================================================
@@ -4782,4 +5397,3 @@ begin
   raise notice 'Biffy OK · % tablas · % políticas RLS · % funciones en public',
     v_tables, v_policies, v_functions;
 end $$;
-

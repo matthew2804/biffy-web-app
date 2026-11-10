@@ -1,138 +1,105 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
 import '../../../core/constants/catalog_constants.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
-import '../../../data/repositories/supabase_rewards_repository.dart';
+import '../../../data/models/rewards.dart';
+import '../../../domain/repositories/rewards_repository.dart';
 import '../../../shared/state/session_controller.dart';
+import 'rewards_cubit.dart';
 
 /// Pantalla de Gotas: saldo, cómo ganarlas, canjes e historial.
 ///
-/// En modo demo usa los beneficios locales (`kBenefits`); con Supabase usa las
-/// cajas de la base y el RPC `redeem_reward`.
-class RewardsScreen extends StatefulWidget {
+/// En modo demo usa los beneficios locales (`kBenefits`); con Supabase la
+/// maneja un [RewardsCubit] (cajas de la base y el RPC `redeem_reward`).
+class RewardsScreen extends StatelessWidget {
   const RewardsScreen({super.key});
 
-  /// Crea el estado de la pantalla de recompensas.
+  /// En demo muestra los beneficios locales; con Supabase crea el cubit.
   @override
-  State<RewardsScreen> createState() => _RewardsScreenState();
-}
-
-/// Estado de la pantalla de Gotas con el repositorio remoto opcional.
-class _RewardsScreenState extends State<RewardsScreen> {
-  /// Repositorio remoto; null en modo demo.
-  SupabaseRewardsRepository? _repo;
-
-  /// Cajas cargadas desde Supabase.
-  Future<List<GotasBox>>? _boxes;
-
-  /// Historial de canjes remoto.
-  Future<List<RewardRedemption>>? _history;
-
-  /// Libro de movimientos de Gotas.
-  Future<List<GotasMovement>>? _ledger;
-
-  /// Evita doble toque mientras un canje está en curso.
-  bool _busy = false;
-
-  /// Conecta con Supabase solo si la sesión es remota.
-  @override
-  void initState() {
-    super.initState();
-    // Solo se conecta a la base si la sesión es remota.
-    if (context.read<SessionController>().auth.isRemote) {
-      _repo = SupabaseRewardsRepository();
-      _reload();
-    }
-  }
-
-  /// Dispara la carga de cajas, historial y movimientos.
-  void _reload() {
-    _boxes = _repo!.boxes();
-    _history = _repo!.history();
-    _ledger = _repo!.ledger();
-  }
-
-  /// Canjea una caja/recompensa y muestra el premio sorteado.
-  Future<void> _open(GotasBox box, int gotas) async {
-    final ok = await showConfirm(
-      context,
-      title: '¿Abrir ${box.name}?',
-      message: box.isRandom
-          ? 'Se descontarán ${box.cost} Gotas y el premio es aleatorio (${box.prizes} posibles).'
-          : 'Se descontarán ${box.cost} Gotas de tu saldo ($gotas).',
-      confirm: box.isRandom ? 'Abrir' : 'Canjear',
-    );
-    if (!ok || !mounted) return;
-
-    setState(() => _busy = true);
-    final out = await _repo!.redeem(box.code);
-    if (!mounted) return;
-
-    // El saldo real vive en la base: se refresca tras el canje.
-    await context.read<SessionController>().refreshRemote();
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _reload();
-    });
-
-    if (!out.ok) {
-      showSnack(context, out.error ?? 'No pudimos canjear', error: true);
-      return;
-    }
-
-    if (out.prizeLabel == null) {
-      showSnack(context, '¡${box.name} canjeada!');
-      return;
-    }
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('¡Te salió un premio! 🎉'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              out.prizeLabel!,
-              style: const TextStyle(
-                fontFamily: AppTypography.heading,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text('Gastaste ${box.cost} Gotas · saldo: ${out.balance}'),
-            if (out.claimCode != null) ...[
-              const SizedBox(height: 12),
-              const Text('Muestra este código en el restaurante:'),
-              Text(
-                out.claimCode!,
-                style: const TextStyle(
-                  fontFamily: AppTypography.heading,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 4,
-                ),
-              ),
-              const Text('Válido por 30 días.'),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Listo'),
-          ),
-        ],
+  Widget build(BuildContext context) {
+    final repo = context.read<RewardsRepository?>();
+    if (repo == null) return const _RewardsPage(state: null);
+    final session = context.read<SessionController>();
+    return BlocProvider(
+      create: (_) =>
+          RewardsCubit(repo, refreshBalance: session.refreshRemote)..load(),
+      child: BlocConsumer<RewardsCubit, RewardsState>(
+        listenWhen: (a, b) => a.redeemCount != b.redeemCount,
+        listener: (context, state) =>
+            _showOutcome(context, state.lastBox!, state.lastOutcome!),
+        builder: (context, state) => _RewardsPage(state: state),
       ),
     );
   }
+}
+
+/// Muestra el resultado de un canje: error, aviso simple o el premio.
+Future<void> _showOutcome(
+  BuildContext context,
+  GotasBox box,
+  RedeemOutcome out,
+) async {
+  if (!out.ok) {
+    showSnack(context, out.error ?? 'No pudimos canjear', error: true);
+    return;
+  }
+  if (out.prizeLabel == null) {
+    showSnack(context, '¡${box.name} canjeada!');
+    return;
+  }
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('¡Te salió un premio! 🎉'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            out.prizeLabel!,
+            style: const TextStyle(
+              fontFamily: AppTypography.heading,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text('Gastaste ${box.cost} Gotas · saldo: ${out.balance}'),
+          if (out.claimCode != null) ...[
+            const SizedBox(height: 12),
+            const Text('Muestra este código en el restaurante:'),
+            Text(
+              out.claimCode!,
+              style: const TextStyle(
+                fontFamily: AppTypography.heading,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4,
+              ),
+            ),
+            const Text('Válido por 30 días.'),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('Listo'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Cuerpo de la pantalla. Con [state] `null` es el modo demo.
+class _RewardsPage extends StatelessWidget {
+  const _RewardsPage({required this.state});
+
+  final RewardsState? state;
 
   /// Construye el saldo, los beneficios y el historial.
   @override
@@ -169,7 +136,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 ],
               ),
             ),
-            if (_repo == null) ..._demoBenefits(context, session, d.gotas) else ..._remoteBoxes(context, d.gotas),
+            if (state == null)
+              ..._demoBenefits(context, session, d.gotas)
+            else
+              ..._remoteBoxes(context, state!, d.gotas),
             if (d.coupons.isNotEmpty) ...[
               const SectionHeader('Mis cupones'),
               for (final c in d.coupons)
@@ -180,8 +150,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
                   subtitle: Text(c.used ? 'Usado' : 'Disponible en el carrito'),
                 ),
             ],
-            if (_repo == null) ..._localHistory(t, session, now),
-            if (_repo != null) ..._remoteHistory(t, now),
+            if (state == null) ..._localHistory(t, session, now),
+            if (state != null) ..._remoteHistory(context, state!, t, now),
           ],
         ),
       ),
@@ -210,7 +180,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
                         b.title,
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
-                      Text(b.description, style: Theme.of(context).textTheme.bodySmall),
+                      Text(
+                        b.description,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                       Text(
                         '${b.cost} Gotas',
                         style: const TextStyle(fontWeight: FontWeight.w700),
@@ -220,7 +193,9 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 ),
                 FilledButton(
                   key: Key('redeem-${b.id}'),
-                  style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(96, 44),
+                  ),
                   onPressed: gotas < b.cost
                       ? null
                       : () async {
@@ -252,65 +227,54 @@ class _RewardsScreenState extends State<RewardsScreen> {
     ];
   }
 
-  /// Sección de cajas de Supabase, con el tiempo de recarga de cada una.
-  List<Widget> _remoteBoxes(BuildContext context, int gotas) {
-    return [
-      const SectionHeader('Cajas y recompensas'),
-      FutureBuilder<List<RewardRedemption>>(
-        // El historial define cuándo vuelve a estar disponible cada caja.
-        future: _history,
-        builder: (context, historySnap) {
-          final lastByReward = <String, DateTime>{};
-          for (final r in historySnap.data ?? const <RewardRedemption>[]) {
-            lastByReward.putIfAbsent(r.rewardCode, () => r.at);
-          }
-
-          return FutureBuilder<List<GotasBox>>(
-            future: _boxes,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              if (snapshot.hasError) {
-                return ErrorView(
-                  title: 'No pudimos cargar las recompensas',
-                  onRetry: () => setState(_reload),
-                );
-              }
-              final boxes = snapshot.data ?? const <GotasBox>[];
-              if (boxes.isEmpty) {
-                return const Text('Todavía no hay recompensas activas.');
-              }
-              return Column(
-                children: [
-                  for (final box in boxes)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _BoxTile(
-                        box: box,
-                        gotas: gotas,
-                        busy: _busy,
-                        availableAt: _availableAt(box, lastByReward[box.code]),
-                        onOpen: () => _open(box, gotas),
-                      ),
-                    ),
-                ],
-              );
-            },
-          );
-        },
-      ),
-    ];
+  /// Confirma y pide al cubit que canjee la caja.
+  Future<void> _open(BuildContext context, GotasBox box, int gotas) async {
+    final ok = await showConfirm(
+      context,
+      title: '¿Abrir ${box.name}?',
+      message: box.isRandom
+          ? 'Se descontarán ${box.cost} Gotas y el premio es aleatorio (${box.prizes} posibles).'
+          : 'Se descontarán ${box.cost} Gotas de tu saldo ($gotas).',
+      confirm: box.isRandom ? 'Abrir' : 'Canjear',
+    );
+    if (!ok || !context.mounted) return;
+    await context.read<RewardsCubit>().redeem(box);
   }
 
-  /// Calcula cuándo se puede volver a abrir una caja (null = disponible ya).
-  DateTime? _availableAt(GotasBox box, DateTime? lastUsed) {
-    if (lastUsed == null || box.cooldownHours <= 0) return null;
-    final next = lastUsed.add(Duration(hours: box.cooldownHours));
-    return next.isAfter(DateTime.now()) ? next : null;
+  /// Sección de cajas de Supabase, con el tiempo de recarga de cada una.
+  List<Widget> _remoteBoxes(
+    BuildContext context,
+    RewardsState state,
+    int gotas,
+  ) {
+    final cubit = context.read<RewardsCubit>();
+    return [
+      const SectionHeader('Cajas y recompensas'),
+      if (state.status == RewardsStatus.loading && state.boxes.isEmpty)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        )
+      else if (state.status == RewardsStatus.error && state.boxes.isEmpty)
+        ErrorView(
+          title: 'No pudimos cargar las recompensas',
+          onRetry: cubit.load,
+        )
+      else if (state.boxes.isEmpty)
+        const Text('Todavía no hay recompensas activas.')
+      else
+        for (final box in state.boxes)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _BoxTile(
+              box: box,
+              gotas: gotas,
+              busy: state.busy,
+              availableAt: cubit.availableAt(box),
+              onOpen: () => _open(context, box, gotas),
+            ),
+          ),
+    ];
   }
 
   /// Historial de movimientos local (modo demo).
@@ -342,70 +306,49 @@ class _RewardsScreenState extends State<RewardsScreen> {
   }
 
   /// Premios pendientes de reclamar e historial de canjes (Supabase).
-  List<Widget> _remoteHistory(TextTheme t, DateTime now) {
+  List<Widget> _remoteHistory(
+    BuildContext context,
+    RewardsState state,
+    TextTheme t,
+    DateTime now,
+  ) {
+    final loading = state.status == RewardsStatus.loading;
+    final pending = state.pendingPrizes;
     return [
       const SectionHeader('Mis premios'),
-      FutureBuilder<List<RewardRedemption>>(
-        future: _history,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          final pending = (snapshot.data ?? const <RewardRedemption>[])
-              .where((r) => r.isPendingPrize)
-              .toList();
-          if (pending.isEmpty) {
-            return Text(
-              'No tienes premios pendientes de reclamar.',
-              style: t.bodySmall,
-            );
-          }
-          return Column(
-            children: [for (final p in pending) _PrizeCard(prize: p)],
-          );
-        },
-      ),
+      if (loading && state.history.isEmpty)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Center(child: CircularProgressIndicator()),
+        )
+      else if (pending.isEmpty)
+        Text('No tienes premios pendientes de reclamar.', style: t.bodySmall)
+      else
+        for (final p in pending) _PrizeCard(prize: p),
       const SectionHeader('Movimientos'),
-      FutureBuilder<List<GotasMovement>>(
-        future: _ledger,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          final rows = snapshot.data ?? const <GotasMovement>[];
-          if (rows.isEmpty) {
-            return Text('Aún no tienes movimientos.', style: t.bodySmall);
-          }
-          return Column(
-            children: [
-              for (final m in rows)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(m.reason),
-                  subtitle: Text(relativeDay(m.at, now)),
-                  trailing: Text(
-                    '${m.amount > 0 ? '+' : ''}${m.amount}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: m.amount > 0
-                          ? AppColors.success
-                          : AppColors.error,
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
+      if (loading && state.ledger.isEmpty)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Center(child: CircularProgressIndicator()),
+        )
+      else if (state.ledger.isEmpty)
+        Text('Aún no tienes movimientos.', style: t.bodySmall)
+      else
+        for (final m in state.ledger)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(m.reason),
+            subtitle: Text(relativeDay(m.at, now)),
+            trailing: Text(
+              '${m.amount > 0 ? '+' : ''}${m.amount}',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: m.amount > 0 ? AppColors.success : AppColors.error,
+              ),
+            ),
+          ),
     ];
   }
-
 }
 
 /// Tarjeta con el saldo actual de Gotas.

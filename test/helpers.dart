@@ -4,6 +4,7 @@ import 'package:biffy/data/mock/seed_users.dart';
 import 'package:biffy/data/models/cart.dart';
 import 'package:biffy/data/models/catalog.dart';
 import 'package:biffy/data/models/order.dart';
+import 'package:biffy/domain/repositories/order_repository.dart';
 import 'package:biffy/domain/usecases/orders/checkout_draft.dart';
 import 'package:biffy/core/utils/clock.dart';
 import 'package:biffy/shared/state/app_services.dart';
@@ -105,4 +106,29 @@ Future<Order> placeQbano(
 Future<void> waitSnackBars(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 3));
   await tester.pumpAndSettle();
+}
+
+/// Lleva un pedido de Diego hasta «entregado» con los casos de uso reales.
+Future<Order> deliverQbano(AppServices s) async {
+  final o = await placeQbano(s);
+  final uc = s.orders.useCases;
+  final andres = s.session.auth.byId('u-andres')!;
+  for (final step in <Future<OrderResult> Function()>[
+    () => uc.acceptOrder(o.id),
+    () => uc.markOrderReady(o.id),
+    () => uc.acceptOffer(o.id, andres),
+    () => uc.confirmPickup(
+      o.id,
+      'u-andres',
+      codeValidated: true,
+      bagSealed: true,
+      productsVerified: true,
+    ),
+    () => uc.completeDelivery(o.id, 'u-andres', o.deliveryCode, 'foto'),
+  ]) {
+    final res = await step();
+    if (!res.ok) throw StateError('Paso del pedido falló: ${res.code}');
+  }
+  expect(o.status, OrderStatus.delivered);
+  return o;
 }

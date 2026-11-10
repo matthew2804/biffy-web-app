@@ -111,7 +111,8 @@ class Restaurant {
   String tagline;
   final String cuisine;
   String address;
-  final double rating;
+  /// Promedio de reseñas; se actualiza cuando el comprador califica.
+  double rating;
   final int prepMin;
   final double lat;
   final double lng;

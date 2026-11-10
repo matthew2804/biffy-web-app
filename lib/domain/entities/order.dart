@@ -141,6 +141,12 @@ class Order {
   String? evidence;
   DateTime? deliveredAt;
   bool gotasCredited = false;
+
+  /// Estrellas (1..5) que le dio el comprador; `null` si no ha calificado.
+  int? rating;
+
+  /// Comentario de la reseña.
+  String review = '';
   final Set<String> declinedBy = {};
   final List<StatusEvent> history;
 

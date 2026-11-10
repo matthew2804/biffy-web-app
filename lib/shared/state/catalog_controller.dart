@@ -198,6 +198,15 @@ class CatalogController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Actualiza el promedio de reseñas de una sede (modo demo; con Supabase
+  /// llega por Realtime desde `branches.rating`).
+  void setRestaurantRating(String restaurantId, double rating) {
+    final r = restaurantById(restaurantId);
+    if (r == null || r.rating == rating) return;
+    r.rating = rating;
+    notifyListeners();
+  }
+
   /// Suma las unidades vendidas de un plato.
   void recordSale(String dishId, int qty) {
     repo.recordSale(dishId, qty);

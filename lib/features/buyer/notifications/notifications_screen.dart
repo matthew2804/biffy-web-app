@@ -1,32 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../shared/state/notification_center.dart';
 import '../../../shared/state/session_controller.dart';
+import 'notifications_cubit.dart';
 
 /// Notificaciones locales del rol activo; cada una abre su pantalla.
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
-  /// Construye la lista de notificaciones del rol activo.
+  /// Crea el [NotificationsCubit] y pinta su estado.
   @override
   Widget build(BuildContext context) {
-    final center = context.watch<NotificationCenter>();
-    final session = context.watch<SessionController>();
-    final list = center.visibleFor(session.user, session.activeRole);
+    return BlocProvider(
+      create: (_) => NotificationsCubit(
+        center: context.read<NotificationCenter>(),
+        session: context.read<SessionController>(),
+      ),
+      child: BlocBuilder<NotificationsCubit, NotificationsState>(
+        builder: (context, state) => _NotificationsView(state: state),
+      ),
+    );
+  }
+}
+
+/// Lista de avisos: solo dibuja el [NotificationsState].
+class _NotificationsView extends StatelessWidget {
+  const _NotificationsView({required this.state});
+
+  final NotificationsState state;
+
+  /// Construye la lista de avisos y el botón de marcar leídas.
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<NotificationsCubit>();
+    final list = state.items;
     final now = DateTime.now();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notificaciones'),
         actions: [
-          if (list.any((n) => !n.read))
+          if (state.unread > 0)
             TextButton(
-              onPressed: () =>
-                  center.markAllRead(session.user, session.activeRole),
+              key: const Key('notif-mark-all'),
+              onPressed: cubit.markAllRead,
               child: const Text('Marcar leídas'),
             ),
         ],
@@ -35,7 +56,7 @@ class NotificationsScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
-            if (!session.settings.notifications)
+            if (!state.enabled)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: BiffyCard(
@@ -58,7 +79,7 @@ class NotificationsScreen extends StatelessWidget {
                         ? null
                         : Border.all(color: AppColors.primary, width: 2),
                     onTap: () {
-                      center.markRead(n.id);
+                      cubit.open(n);
                       if (n.route != null) context.push(n.route!);
                     },
                     child: Row(

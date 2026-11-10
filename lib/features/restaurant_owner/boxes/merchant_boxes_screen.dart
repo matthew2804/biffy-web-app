@@ -1,80 +1,80 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/catalog.dart';
-import '../../../data/repositories/supabase_rewards_repository.dart';
+import '../../../data/models/rewards.dart';
+import '../../../domain/repositories/merchant_boxes_repository.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
+import 'merchant_boxes_cubit.dart';
 
 /// Permite al restaurante meter y sacar sus platos de las cajas de Gotas.
 ///
 /// Solo funciona con Supabase: la demo local no tiene cajas configurables.
-class MerchantBoxesScreen extends StatefulWidget {
+/// La lógica vive en [MerchantBoxesCubit]; esta pantalla solo la pinta.
+class MerchantBoxesScreen extends StatelessWidget {
   const MerchantBoxesScreen({super.key});
 
+  /// En demo avisa que requiere Supabase; con la base crea el cubit.
   @override
-  State<MerchantBoxesScreen> createState() => _MerchantBoxesScreenState();
+  Widget build(BuildContext context) {
+    final repo = context.read<MerchantBoxesRepository?>();
+    if (repo == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Cajas con Gotas')),
+        body: const MobileFrame(
+          child: EmptyState(
+            emoji: '📦',
+            title: 'Solo con Supabase',
+            body: 'Las cajas configurables se activan al conectar la base.',
+          ),
+        ),
+      );
+    }
+    return BlocProvider(
+      create: (_) => MerchantBoxesCubit(repo)..load(),
+      child: const _MerchantBoxesView(),
+    );
+  }
 }
 
-/// Estado de la pantalla: carga cajas e ítems del negocio.
-class _MerchantBoxesScreenState extends State<MerchantBoxesScreen> {
-  final _repo = SupabaseRewardsRepository();
+/// Contenido de la pantalla cuando hay Supabase.
+class _MerchantBoxesView extends StatefulWidget {
+  const _MerchantBoxesView();
 
-  /// Cajas configurables y platos que ya están dentro.
-  Future<({List<GotasBox> boxes, List<BoxItemView> items})>? _future;
+  /// Crea el estado de la pantalla.
+  @override
+  State<_MerchantBoxesView> createState() => _MerchantBoxesViewState();
+}
 
-  /// Evita doble toque mientras se guarda un cambio.
-  bool _busy = false;
-
+/// Estado: guarda el campo del código de premio.
+class _MerchantBoxesViewState extends State<_MerchantBoxesView> {
   /// Código que el comprador dicta en la sede.
   final _codeController = TextEditingController();
 
+  /// Libera el controlador del código.
   @override
   void dispose() {
     _codeController.dispose();
     super.dispose();
   }
 
-  /// Valida un código de premio y lo marca como reclamado.
-  Future<void> _validate() async {
-    final code = _codeController.text.trim();
-    if (code.isEmpty) return;
-    final res = await _repo.useRedemption(code);
-    if (!mounted) return;
-    if (res.ok) {
-      _codeController.clear();
-      showSnack(context, 'Premio entregado: ${res.prize}');
-    } else {
-      showSnack(context, res.error ?? 'No se pudo validar', error: true);
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _load();
-  }
-
-  /// Lee cajas activas y los platos que el negocio tiene metidos.
-  Future<({List<GotasBox> boxes, List<BoxItemView> items})> _load() async {
-    final boxes = await _repo.boxes();
-    final items = await _repo.merchantItems();
-    return (
-      boxes: boxes.where((b) => b.merchantManaged).toList(),
-      items: items,
+  /// Pide al cubit validar el código y limpia el campo si salió bien.
+  Future<void> _validate(BuildContext context) async {
+    final ok = await context.read<MerchantBoxesCubit>().claim(
+      _codeController.text,
     );
+    if (ok) _codeController.clear();
   }
-
-  /// Vuelve a cargar tras un cambio.
-  void _reload() => setState(() => _future = _load());
 
   /// Abre el selector de platos del menú propio para una caja.
-  Future<void> _addDish(GotasBox box) async {
+  Future<void> _addDish(BuildContext context, GotasBox box) async {
     final catalog = context.read<CatalogController>();
     final businessId = context.read<SessionController>().businessId;
+    final cubit = context.read<MerchantBoxesCubit>();
     if (businessId == null) return;
 
     // Platos activos del negocio (todas sus sedes).
@@ -112,128 +112,103 @@ class _MerchantBoxesScreenState extends State<MerchantBoxesScreen> {
         ),
       ),
     );
-    if (picked == null || !mounted) return;
-
-    setState(() => _busy = true);
-    await _repo.addItem(
-      rewardCode: box.code,
-      branchId: picked.restaurantId,
-      dishId: picked.id,
-    );
-    if (!mounted) return;
-    setState(() => _busy = false);
-    _reload();
-    showSnack(context, '${picked.name} entró a ${box.name}');
+    if (picked == null) return;
+    await cubit.addDish(box, picked);
   }
 
-  /// Saca un plato de una caja.
-  Future<void> _remove(BoxItemView item) async {
-    setState(() => _busy = true);
-    await _repo.removeItem(item.id);
-    if (!mounted) return;
-    setState(() => _busy = false);
-    _reload();
-    showSnack(context, '${item.dishName} salió de la caja');
-  }
-
+  /// Pinta el estado del cubit y muestra sus avisos.
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionController>();
     final t = Theme.of(context).textTheme;
+    final cubit = context.read<MerchantBoxesCubit>();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cajas con Gotas')),
       body: MobileFrame(
-        child: !session.auth.isRemote
-            ? const EmptyState(
+        child: BlocConsumer<MerchantBoxesCubit, MerchantBoxesState>(
+          listenWhen: (a, b) => a.messageCount != b.messageCount,
+          listener: (context, state) =>
+              showSnack(context, state.message!, error: state.messageIsError),
+          builder: (context, state) {
+            if (state.status == BoxesStatus.loading &&
+                state.data.boxes.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state.status == BoxesStatus.error) {
+              return ErrorView(
+                title: 'No pudimos cargar las cajas',
+                onRetry: cubit.load,
+              );
+            }
+            final data = state.data;
+            if (data.boxes.isEmpty) {
+              return const EmptyState(
                 emoji: '📦',
-                title: 'Solo con Supabase',
-                body: 'Las cajas configurables se activan al conectar la base.',
-              )
-            : FutureBuilder<({List<GotasBox> boxes, List<BoxItemView> items})>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final data = snapshot.data;
-                  if (data == null) {
-                    return ErrorView(
-                      title: 'No pudimos cargar las cajas',
-                      onRetry: () => setState(_reload),
-                    );
-                  }
-                  if (data.boxes.isEmpty) {
-                    return const EmptyState(
-                      emoji: '📦',
-                      title: 'Sin cajas configurables',
-                      body: 'Aún no hay cajas activas para tu negocio.',
-                    );
-                  }
-                  return ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                title: 'Sin cajas configurables',
+                body: 'Aún no hay cajas activas para tu negocio.',
+              );
+            }
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              children: [
+                BiffyCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      BiffyCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Validar premio',
-                              style: TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Escribe el código que muestra el cliente.',
-                              style: t.bodySmall,
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    key: const Key('claim-code-input'),
-                                    controller: _codeController,
-                                    textCapitalization:
-                                        TextCapitalization.characters,
-                                    decoration: const InputDecoration(
-                                      hintText: 'ABC123',
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                FilledButton(
-                                  key: const Key('claim-code-validate'),
-                                  onPressed: _validate,
-                                  child: const Text('Validar'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                      const Text(
+                        'Validar premio',
+                        style: TextStyle(fontWeight: FontWeight.w800),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 4),
                       Text(
-                        'Elige qué platos puede entregar tu negocio en cada caja.',
-                        style: t.bodyMedium,
+                        'Escribe el código que muestra el cliente.',
+                        style: t.bodySmall,
                       ),
-                      const SizedBox(height: 12),
-                      for (final box in data.boxes)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _BoxCard(
-                            box: box,
-                            items: data.items
-                                .where((i) => i.rewardCode == box.code)
-                                .toList(),
-                            busy: _busy,
-                            onAdd: () => _addDish(box),
-                            onRemove: _remove,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              key: const Key('claim-code-input'),
+                              controller: _codeController,
+                              textCapitalization: TextCapitalization.characters,
+                              decoration: const InputDecoration(
+                                hintText: 'ABC123',
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          FilledButton(
+                            key: const Key('claim-code-validate'),
+                            onPressed: () => _validate(context),
+                            child: const Text('Validar'),
+                          ),
+                        ],
+                      ),
                     ],
-                  );
-                },
-              ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Elige qué platos puede entregar tu negocio en cada caja.',
+                  style: t.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                for (final box in data.boxes)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _BoxCard(
+                      box: box,
+                      items: data.itemsOf(box),
+                      busy: state.busy,
+                      onAdd: () => _addDish(context, box),
+                      onRemove: cubit.removeDish,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -255,6 +230,7 @@ class _BoxCard extends StatelessWidget {
   final VoidCallback onAdd;
   final void Function(BoxItemView item) onRemove;
 
+  /// Dibuja la caja con sus platos y botones.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;

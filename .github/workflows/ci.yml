@@ -41,3 +41,26 @@ jobs:
           else
             echo "Sin secretos configurados: se omite el smoke test."
           fi
+
+  sql-tests:
+    # Migraciones + pruebas de RLS/RPC en un Postgres con PostGIS (sin Supabase).
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Migraciones y pruebas SQL
+        env:
+          DB_URL: postgres://postgres:postgres@localhost:5432/postgres
+        run: tool/test_supabase_sql.sh
