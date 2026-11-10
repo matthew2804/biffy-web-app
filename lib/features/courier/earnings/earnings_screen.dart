@@ -21,6 +21,8 @@ class EarningsScreen extends StatelessWidget {
     final orders = context.watch<OrderService>();
     final now = context.read<CatalogController>().now;
     final t = Theme.of(context).textTheme;
+    // Con Supabase todo sale de las entregas guardadas en la base.
+    final real = session.auth.isRemote;
     final all = orders.deliveredBy(session.user!.id)
       ..sort(
         (a, b) => (b.deliveredAt ?? b.createdAt).compareTo(
@@ -55,7 +57,13 @@ class EarningsScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             Text('Ganancias', style: t.headlineSmall),
-            Text('Valores simulados de la demostración.', style: t.bodySmall),
+            Text(
+              real
+                  ? 'Calculado con tus entregas registradas.'
+                  : 'Valores simulados de la demostración.',
+              key: const Key('earnings-source'),
+              style: t.bodySmall,
+            ),
             const SizedBox(height: 12),
             BigNumber('Total de hoy (neto)', cop(today.net), highlight: true),
             const SizedBox(height: 12),
@@ -65,7 +73,7 @@ class EarningsScreen extends StatelessWidget {
                   InfoRow('Entregas completadas hoy', '${today.deliveries}'),
                   InfoRow('Pagos por entrega', cop(today.gross)),
                   InfoRow(
-                    'Tarifa Biffy simulada (${(kBiffyFeeRate * 100).round()}%)',
+                    'Tarifa Biffy${real ? '' : ' simulada'} (${(kBiffyFeeRate * 100).round()}%)',
                     '-${cop(today.biffyFee)}',
                     valueColor: AppColors.error,
                   ),
@@ -84,11 +92,16 @@ class EarningsScreen extends StatelessWidget {
             const SizedBox(height: 12),
             BiffyCard(
               child: Text(
-                '📅 Próxima liquidación informativa: ${shortDate(settlement)}. '
-                'La demo no procesa transferencias. Acumulado: ${cop(total.net)} en ${total.deliveries} entregas.',
+                real
+                    ? '📅 Próxima liquidación: ${shortDate(settlement)}. '
+                          'Acumulado: ${cop(total.net)} en ${total.deliveries} entregas.'
+                    : '📅 Próxima liquidación informativa: ${shortDate(settlement)}. '
+                          'La demo no procesa transferencias. Acumulado: ${cop(total.net)} en ${total.deliveries} entregas.',
               ),
             ),
-            const SectionHeader('Metas y bonos de demostración'),
+            SectionHeader(
+              real ? 'Metas del día' : 'Metas y bonos de demostración',
+            ),
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
