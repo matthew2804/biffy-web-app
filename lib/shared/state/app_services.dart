@@ -14,6 +14,8 @@ import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/supabase_catalog_repository.dart';
 import '../../data/repositories/supabase_order_repository.dart';
 import '../../data/repositories/supabase_profile_repository.dart';
+import '../../data/repositories/supabase_rewards_repository.dart';
+import '../../domain/repositories/rewards_repository.dart';
 import '../../domain/usecases/rate_order.dart';
 import 'cart_controller.dart';
 import 'catalog_controller.dart';
@@ -33,10 +35,18 @@ class AppServices {
     required this.cart,
     required this.orders,
     required this.rateOrder,
+    this.rewards,
   });
 
   /// Contenedor completo con datos de demostración en memoria.
-  factory AppServices.demo({Clock? clock, int? randomSeed, bool seed = true}) {
+  ///
+  /// [rewards] permite probar la pantalla de Gotas con un repositorio falso.
+  factory AppServices.demo({
+    Clock? clock,
+    int? randomSeed,
+    bool seed = true,
+    RewardsRepository? rewards,
+  }) {
     final c = clock ?? Clock();
     final catalogRepo = InMemoryCatalogRepository();
     final auth = InMemoryAuthRepository(seedUsers(catalogRepo.businesses));
@@ -68,6 +78,7 @@ class AppServices {
       cart: cart,
       orders: orders,
       rateOrder: RateOrder(InMemoryReviewRepository(orderRepo)),
+      rewards: rewards,
     );
   }
 
@@ -114,6 +125,7 @@ class AppServices {
       cart: cart,
       orders: orders,
       rateOrder: RateOrder(SupabaseReviewRepository()),
+      rewards: SupabaseRewardsRepository(),
     );
   }
 
@@ -127,6 +139,9 @@ class AppServices {
   /// Caso de uso de calificar (HU-4); lo usa `RateOrderCubit`.
   final RateOrder rateOrder;
 
+  /// Recompensas en la base; `null` en modo demo (usa `kBenefits`).
+  final RewardsRepository? rewards;
+
   /// Proveedores que publican los controladores en el árbol.
   List<SingleChildWidget> get providers => [
     Provider<Clock>.value(value: clock),
@@ -136,5 +151,6 @@ class AppServices {
     ChangeNotifierProvider<CartController>.value(value: cart),
     ChangeNotifierProvider<OrderService>.value(value: orders),
     Provider<RateOrder>.value(value: rateOrder),
+    Provider<RewardsRepository?>.value(value: rewards),
   ];
 }

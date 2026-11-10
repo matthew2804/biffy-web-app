@@ -1,173 +1,15 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
-/// Recompensa canjeable con Gotas tal como viene de la base.
-class GotasBox {
-  const GotasBox({
-    required this.code,
-    required this.name,
-    required this.type,
-    required this.cost,
-    required this.prizes,
-    this.tier,
-    this.drawFrequency,
-    this.cooldownHours = 0,
-    this.merchantManaged = false,
-    this.sort = 0,
-  });
+import '../../domain/repositories/rewards_repository.dart';
+import '../models/rewards.dart';
 
-  /// Código estable usado por el RPC (`box_25`, `free_shipping`, ...).
-  final String code;
-
-  /// Nombre visible para el comprador.
-  final String name;
-
-  /// `mystery_box`, `monthly_raffle`, `free_shipping` o `discount`.
-  final String type;
-
-  /// Costo en Gotas.
-  final int cost;
-
-  /// Nivel de la caja (1, 2, 3...). Null si no aplica.
-  final int? tier;
-
-  /// Cuántos premios distintos puede entregar (0 = recompensa directa).
-  final int prizes;
-
-  /// `monthly` para el sorteo mensual; null en el resto.
-  final String? drawFrequency;
-
-  /// Horas de espera entre canjes. 0 = ilimitada.
-  final int cooldownHours;
-
-  /// `true` si los restaurantes pueden meter sus platos en esta caja.
-  final bool merchantManaged;
-
-  /// Orden de presentación en la lista.
-  final int sort;
-
-  /// `true` si al canjearla se sortea un premio.
-  bool get isRandom => type == 'mystery_box' || type == 'monthly_raffle';
-
-  /// Texto corto con el límite de canjes.
-  String get limitLabel =>
-      cooldownHours == 0 ? 'Ilimitada' : 'Cada $cooldownHours h';
-
-  /// Emoji que representa la recompensa en la interfaz.
-  String get emoji => switch (type) {
-    'mystery_box' => '📦',
-    'monthly_raffle' => '🎟️',
-    'free_shipping' => '🚚',
-    _ => '🎁',
-  };
-}
-
-/// Resultado de canjear una recompensa.
-class RedeemOutcome {
-  const RedeemOutcome({
-    required this.ok,
-    required this.balance,
-    this.prizeLabel,
-    this.prizeType,
-    this.prizeAmount = 0,
-    this.error,
-    this.cooldownHours = 0,
-    this.claimCode,
-  });
-
-  /// `true` si el canje se completó en la base.
-  final bool ok;
-
-  /// Saldo que queda después del canje.
-  final int balance;
-
-  /// Texto del premio sorteado (null en recompensas directas).
-  final String? prizeLabel;
-
-  /// Tipo del premio: `discount`, `free_shipping`, `product`, `raffle_ticket`.
-  final String? prizeType;
-
-  /// Valor del premio en pesos (0 si no aplica).
-  final int prizeAmount;
-
-  /// Código de error devuelto por el RPC, ya traducido.
-  final String? error;
-
-  /// Horas de espera cuando el canje se bloquea por enfriamiento.
-  final int cooldownHours;
-
-  /// Código para reclamar un plato en la sede.
-  final String? claimCode;
-}
-
-/// Un canje del historial.
-class RewardRedemption {
-  const RewardRedemption({
-    required this.spent,
-    required this.at,
-    this.prizeLabel,
-    this.id = '',
-    this.rewardCode = '',
-    this.prizeType,
-    this.status = 'granted',
-    this.claimCode,
-    this.branchName,
-  });
-
-  /// Gotas descontadas.
-  final int spent;
-
-  /// Cuándo se canjeó.
-  final DateTime at;
-
-  /// Premio obtenido, si la recompensa era aleatoria.
-  final String? prizeLabel;
-
-  /// Id del canje (para operaciones del comercio).
-  final String id;
-
-  /// Código de la caja canjeada (`box_5`, ...).
-  final String rewardCode;
-
-  /// `discount`, `free_shipping`, `product` o `raffle_ticket`.
-  final String? prizeType;
-
-  /// `granted`, `used`, `expired` o `cancelled`.
-  final String status;
-
-  /// Código que el comprador muestra en la sede (solo platos).
-  final String? claimCode;
-
-  /// Sede donde se reclama el plato.
-  final String? branchName;
-
-  /// `true` si es un plato pendiente de reclamar.
-  bool get isPendingPrize =>
-      prizeType == 'product' && status == 'granted' && claimCode != null;
-}
-
-/// Un movimiento del libro de Gotas.
-class GotasMovement {
-  const GotasMovement({
-    required this.amount,
-    required this.reason,
-    required this.at,
-  });
-
-  /// Gotas sumadas (positivo) o restadas (negativo).
-  final int amount;
-
-  /// Motivo del movimiento.
-  final String reason;
-
-  /// Cuándo ocurrió.
-  final DateTime at;
-}
+export '../models/rewards.dart';
 
 /// Acceso a recompensas y canjes en Supabase.
 ///
 /// Toda la escritura pasa por el RPC `redeem_reward`: la app nunca descuenta
 /// Gotas por su cuenta en modo remoto.
-class SupabaseRewardsRepository {
+class SupabaseRewardsRepository implements RewardsRepository {
   /// Usa el cliente de Supabase indicado o el global.
   SupabaseRewardsRepository({sb.SupabaseClient? client})
     : _client = client ?? sb.Supabase.instance.client;
@@ -175,6 +17,7 @@ class SupabaseRewardsRepository {
   final sb.SupabaseClient _client;
 
   /// Catálogo de recompensas activas con su número de premios.
+  @override
   Future<List<GotasBox>> boxes() async {
     // Los premios se piden en paralelo con las recompensas.
     final prizesF = _client.from('gotas_reward_prizes').select('reward_id');
@@ -193,7 +36,9 @@ class SupabaseRewardsRepository {
       // Proyecto sin la migración 0012: se lee el esquema anterior.
       rewards = await _client
           .from('gotas_rewards')
-          .select('id, code, name, reward_type, gotas_cost, tier, draw_frequency')
+          .select(
+            'id, code, name, reward_type, gotas_cost, tier, draw_frequency',
+          )
           .eq('is_active', true)
           .order('gotas_cost');
     }
@@ -226,6 +71,7 @@ class SupabaseRewardsRepository {
   }
 
   /// Canjea una recompensa. Devuelve el premio y el saldo nuevo.
+  @override
   Future<RedeemOutcome> redeem(String code) async {
     try {
       final res = await _client.rpc(
@@ -261,6 +107,7 @@ class SupabaseRewardsRepository {
   }
 
   /// Últimos canjes del usuario (RLS solo devuelve los propios).
+  @override
   Future<List<RewardRedemption>> history() async {
     final rows = await _client
         .from('reward_redemptions')
@@ -283,10 +130,9 @@ class SupabaseRewardsRepository {
             prizeType: row['prize_type'] as String?,
             status: (row['status'] as String?) ?? 'granted',
             claimCode: row['claim_code'] as String?,
-            branchName:
-                (row['branch'] is Map
-                    ? (row['branch'] as Map)['name'] as String?
-                    : null),
+            branchName: (row['branch'] is Map
+                ? (row['branch'] as Map)['name'] as String?
+                : null),
             rewardCode:
                 (row['reward'] is Map
                     ? (row['reward'] as Map)['code'] as String?
@@ -298,6 +144,7 @@ class SupabaseRewardsRepository {
   }
 
   /// Últimos movimientos del libro de Gotas (RLS solo devuelve los propios).
+  @override
   Future<List<GotasMovement>> ledger() async {
     final rows = await _client
         .from('gotas_ledger')
@@ -395,15 +242,12 @@ class SupabaseRewardsRepository {
     final rewardId = reward?['id'] as String?;
     if (rewardId == null) return;
 
-    await _client.from('box_items').upsert(
-      {
-        'reward_id': rewardId,
-        'branch_id': branchId,
-        'dish_id': dishId,
-        'is_active': true,
-      },
-      onConflict: 'reward_id,branch_id,dish_id',
-    );
+    await _client.from('box_items').upsert({
+      'reward_id': rewardId,
+      'branch_id': branchId,
+      'dish_id': dishId,
+      'is_active': true,
+    }, onConflict: 'reward_id,branch_id,dish_id');
   }
 
   /// Saca un plato de la caja.
@@ -420,34 +264,4 @@ class SupabaseRewardsRepository {
     'daily_limit' => 'Alcanzaste el límite de hoy para esta caja.',
     _ => 'No pudimos completar el canje.',
   };
-}
-
-/// Un plato dentro de una caja, visto por el comerciante.
-class BoxItemView {
-  const BoxItemView({
-    required this.id,
-    required this.rewardCode,
-    required this.dishId,
-    required this.branchId,
-    required this.dishName,
-    required this.branchName,
-  });
-
-  /// Id de la fila en `box_items`.
-  final String id;
-
-  /// Código de la caja (`box_5`, `box_25`, ...).
-  final String rewardCode;
-
-  /// Plato incluido.
-  final String dishId;
-
-  /// Sede a la que pertenece.
-  final String branchId;
-
-  /// Nombre del plato.
-  final String dishName;
-
-  /// Nombre de la sede.
-  final String branchName;
 }
