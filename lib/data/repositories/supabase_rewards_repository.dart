@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../domain/repositories/merchant_boxes_repository.dart';
 import '../../domain/repositories/rewards_repository.dart';
 import '../models/rewards.dart';
 
@@ -9,7 +10,8 @@ export '../models/rewards.dart';
 ///
 /// Toda la escritura pasa por el RPC `redeem_reward`: la app nunca descuenta
 /// Gotas por su cuenta en modo remoto.
-class SupabaseRewardsRepository implements RewardsRepository {
+class SupabaseRewardsRepository
+    implements RewardsRepository, MerchantBoxesRepository {
   /// Usa el cliente de Supabase indicado o el global.
   SupabaseRewardsRepository({sb.SupabaseClient? client})
     : _client = client ?? sb.Supabase.instance.client;
@@ -166,6 +168,7 @@ class SupabaseRewardsRepository implements RewardsRepository {
   }
 
   /// Valida el código de un premio en la sede (solo el negocio dueño).
+  @override
   Future<({bool ok, String? prize, String? error})> useRedemption(
     String code,
   ) async {
@@ -194,6 +197,7 @@ class SupabaseRewardsRepository implements RewardsRepository {
   // ---------------------------------------------------- Lado comerciante
 
   /// Platos que el negocio tiene metidos en cajas (RLS limita a sus sedes).
+  @override
   Future<List<BoxItemView>> merchantItems() async {
     final rows = await _client
         .from('box_items')
@@ -229,6 +233,7 @@ class SupabaseRewardsRepository implements RewardsRepository {
   }
 
   /// Mete un plato del negocio en una caja (idempotente).
+  @override
   Future<void> addItem({
     required String rewardCode,
     required String branchId,
@@ -251,6 +256,7 @@ class SupabaseRewardsRepository implements RewardsRepository {
   }
 
   /// Saca un plato de la caja.
+  @override
   Future<void> removeItem(String id) async {
     await _client.from('box_items').delete().eq('id', id);
   }

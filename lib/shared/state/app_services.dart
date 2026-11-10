@@ -15,6 +15,7 @@ import '../../data/repositories/supabase_catalog_repository.dart';
 import '../../data/repositories/supabase_order_repository.dart';
 import '../../data/repositories/supabase_profile_repository.dart';
 import '../../data/repositories/supabase_rewards_repository.dart';
+import '../../domain/repositories/merchant_boxes_repository.dart';
 import '../../domain/repositories/rewards_repository.dart';
 import '../../domain/usecases/rate_order.dart';
 import 'cart_controller.dart';
@@ -36,6 +37,7 @@ class AppServices {
     required this.orders,
     required this.rateOrder,
     this.rewards,
+    this.merchantBoxes,
   });
 
   /// Contenedor completo con datos de demostración en memoria.
@@ -97,6 +99,7 @@ class AppServices {
     final repo = catalogRepo ?? await SupabaseCatalogRepository.load();
     final orderStore = orderRepo ?? await SupabaseOrderRepository.load();
     final profileRepo = SupabaseProfileRepository();
+    final rewardsRepo = SupabaseRewardsRepository();
     final notifications = NotificationCenter(
       c,
       persist: profileRepo.saveNotification,
@@ -125,7 +128,8 @@ class AppServices {
       cart: cart,
       orders: orders,
       rateOrder: RateOrder(SupabaseReviewRepository()),
-      rewards: SupabaseRewardsRepository(),
+      rewards: rewardsRepo,
+      merchantBoxes: rewardsRepo,
     );
   }
 
@@ -142,6 +146,9 @@ class AppServices {
   /// Recompensas en la base; `null` en modo demo (usa `kBenefits`).
   final RewardsRepository? rewards;
 
+  /// Cajas del restaurante en la base; `null` en modo demo.
+  final MerchantBoxesRepository? merchantBoxes;
+
   /// Proveedores que publican los controladores en el árbol.
   List<SingleChildWidget> get providers => [
     Provider<Clock>.value(value: clock),
@@ -152,5 +159,6 @@ class AppServices {
     ChangeNotifierProvider<OrderService>.value(value: orders),
     Provider<RateOrder>.value(value: rateOrder),
     Provider<RewardsRepository?>.value(value: rewards),
+    Provider<MerchantBoxesRepository?>.value(value: merchantBoxes),
   ];
 }
