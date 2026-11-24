@@ -205,8 +205,7 @@ Rama `hu4-gotas-recompensas-notificaciones`.
 - ✅ Pruebas SQL de RLS/RPC (`tool/test_supabase_sql.sh`, job `sql-tests`):
   la base local trae las cuentas demo (`_demo_accounts.sql`), así que
   `hu3_order_cycle.sql` también corre ahí.
-- ⏳ Aplicar `0020`–`0024` al proyecto remoto y el checklist de despliegue de
-  `supabase/README.md`; prueba final con datos reales.
+- ✅ `0020`–`0024` aplicadas en el proyecto remoto (comprobado el 2026-11-24).
 
 ### HU-5 · Pasarela de pagos (Wompi) + efectivo con billete
 
@@ -248,9 +247,49 @@ Rama `hu5-pasarela-pagos`.
   idempotente; el flujo real ya quedó verificado con BF-2058 y el endpoint
   acepta los eventos reales.
 
+### HU-4 (sprint final) · Flujo completo y cierre de entrega
+
+Rama `hu4-cierre-entrega` (desde `dev`).
+
+- ✅ **`0027_server_guards.sql`** (aplicada en el remoto, `0099_verify` sin
+  errores). Con triggers, así sirve con cualquier versión de `place_order`:
+  - Horario: el pedido «Ahora» exige la sede abierta (hora de Colombia) y el
+    programado, una hora dentro del horario. `app_settings.demo_lunch` simula
+    las 12:00 también en el servidor.
+  - Repartidores: `branches.couriers_nearby` se calcula con los repartidores
+    conectados (`courier_set_online`); zona general sirve a todas las sedes y
+    zona campus solo a las de su universidad. El cliente ya no lo puede escribir.
+  - `sold_today` lo lleva el servidor: sube con cada ítem, valida el límite con
+    la fila bloqueada, baja al cancelar (`order_items.sold_on`) y se reinicia a
+    medianoche (`pg_cron`).
+  - Rechazos como excepción `biffy:<código>` → `RpcResult.fromException` →
+    mensaje en español (`branch_closed`, `invalid_schedule`, `no_portions`).
+- ✅ El repartidor guarda su disponibilidad en el servidor al conectarse, cambiar
+  de zona e iniciar sesión; se desconecta al cerrar sesión.
+- ✅ Foto de evidencia para el comprador: `OrderRepository.evidenceUrl` (URL
+  firmada de 1 h) → `GetDeliveryEvidence` → `DeliveryEvidenceCubit` →
+  tarjeta en el seguimiento.
+- ✅ Notificaciones entre dispositivos y cupones reales comprobados contra el
+  proyecto real con tres sesiones: `test/integration/hu4_servidor_test.dart`.
+- ✅ Carga / vacío / error con reintento: `SyncStatus` en los repositorios de
+  catálogo y pedidos, `OrdersState.sync` + `OrdersRefreshRequested`, widget
+  `SyncStateView`. Aviso «No hay repartidores conectados ahora».
+- ✅ Sin «(simulado)» en modo Supabase donde ya es real.
+- ✅ CI: jobs `integration-supabase` y `build-android`, artefactos web y APK,
+  disparo manual.
+- ✅ Sin secretos en el historial de git (ver `DEPLOY.md` §6).
+- ✅ Documentación: `docs/ARQUITECTURA.md`, `docs/MANUAL_DE_PRUEBA.md`,
+  `docs/GUION_DEMO.md`, `DEPLOY.md`.
+- ⏳ **Necesita rol Owner/Admin en Supabase:** rotar la contraseña de la base,
+  `service_role` y `CRON_SECRET`; activar la confirmación de correo y revisar
+  los rate limits.
+- ⏳ **Necesita admin del repo en GitHub:** secrets `SUPABASE_URL` y
+  `SUPABASE_KEY` para que corra `integration-supabase`.
+- ⏳ Evidencia en video o capturas del recorrido de `docs/MANUAL_DE_PRUEBA.md`.
+
 Calidad actual (HU-3 + HU-4 + HU-5): `flutter analyze` limpio · `flutter test`
-**251/251** (21 pruebas de integración se saltan sin credenciales de Supabase) ·
-pruebas SQL **158/158** de HU-3/HU-4 + `hu5_payments.sql`.
+**266/266** (26 de integración se saltan sin credenciales; con `env.json`
+pasan 22 contra el proyecto real) · pruebas SQL **237/237**.
 
 ---
 
@@ -339,7 +378,7 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 
 | Prioridad | Pendiente |
 |---|---|
-| Alta | `couriers_nearby` real (repartidores online + PostGIS) |
+| ✅ | `couriers_nearby` real (repartidores conectados, `0027`). Falta la ubicación en vivo del repartidor para usar PostGIS. |
 | Alta | Límite diario de canjes |
 | Alta | Política INSERT de `notifications` |
 | Media | `branches.rating` recalculado desde `reviews` |
@@ -378,10 +417,11 @@ Orden sugerido. Cada punto tiene criterio de aceptación.
 | Un solo API | Las pantallas despachan eventos al `OrdersBloc` (`add`) o esperan el resultado con `await bloc.request(evento)`. No hay API síncrona de pedidos. Los tests de reglas usan `bloc.useCases.<caso de uso>(...)`. |
 | Código de entrega | Vive en `order_secrets` (solo el comprador). El repartidor lo recibe vacío y lo valida el servidor; no compares códigos en la app. |
 | Direcciones y cupones | Hasta la HU de datos personales son locales (sin uuid). Con servidor, `validate()` pide una dirección guardada en la cuenta y bloquea cupones locales. |
-| Alcance | `isReachable` exige `couriersNearby > 0`. Es un valor simulado (default 1); la sede demo tiene 3. |
-| Realtime | Requiere `0010_realtime.sql` aplicado (publica `branches`, `dishes`, `orders`, `order_events`). Sin él todo funciona, pero hay que reabrir la app. |
+| Alcance | `isReachable` exige `couriersNearby > 0`. En demo es simulado (la sede demo tiene 3); con Supabase lo calcula la `0027` con los repartidores **conectados**: sin ninguno, el comprador no ve sedes. |
+| Realtime | Requiere `0010` y `0022` (publican `branches`, `dishes`, `orders`, `order_events` y `notifications`). El estado `subscribed` llega un poco antes de que el servidor registre la escucha: en pruebas, espera ~3 s antes del primer cambio. |
+| Reglas por trigger | Horario, porciones y `sold_today` (`0027`) se lanzan como excepción `biffy:<código>`, no como `result`. Si agregas una regla así, añade el código a `order_errors.dart`. Las pruebas SQL fijan la hora con `set biffy.now = '…'`. |
 | `businesses` | Tiene RLS de dueño: el comprador no ve negocios (solo sedes y platos). `businessById` solo lo usan pantallas de comercio. |
-| Evidencia | Se sube a `delivery-evidence/<order_uuid>/`; `courier_deliver` exige que el objeto exista. Máx. 5 MB, jpeg/png/webp. El bucket es privado: para mostrarla hace falta URL firmada (pendiente). |
+| Evidencia | Se sube a `delivery-evidence/<order_uuid>/`; `courier_deliver` exige que el objeto exista. Máx. 5 MB, jpeg/png/webp. El bucket es privado: el comprador la ve con URL firmada de 1 h (`evidenceUrl`). |
 | Fechas | `timestamptz` llega en UTC: el mapeo usa `.toLocal()` y `scheduled_for` se envía con `.toUtc()`. Sin eso las horas y los días (ganancias, seguimiento) salen corridos 5 h. |
 | Imágenes | `image_url` acepta una ruta `assets/...` o una URL de Storage; `catalogImage` en `lib/core/widgets/ui.dart` elige asset o red. Hoy las 4 filas de Qbano tienen `null` (se ve el emoji). |
 | Ids demo | En Supabase las sedes tienen uuid: no enlazar a ids fijos como `qbano-icesi`; usar `CatalogController.qbanoIcesi` o buscar en el catálogo. |
