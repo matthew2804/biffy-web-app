@@ -33,8 +33,19 @@ jobs:
       - name: Pruebas
         run: flutter test
 
-      - name: Build web (modo demo)
-        run: flutter build web --release
+      - name: Build web (Supabase si hay secretos)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_KEY" ]; then
+            flutter build web --release \
+              --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+              --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
+          else
+            echo "::warning::Sin SUPABASE_URL/SUPABASE_KEY: build web en modo demo."
+            flutter build web --release
+          fi
 
       - name: Guardar build web
         uses: actions/upload-artifact@v4
@@ -99,8 +110,19 @@ jobs:
       - name: Dependencias
         run: flutter pub get
 
-      - name: Build APK (modo demo)
-        run: flutter build apk --release
+      - name: Build APK (Supabase si hay secretos)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_KEY" ]; then
+            flutter build apk --release \
+              --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+              --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
+          else
+            echo "::warning::Sin SUPABASE_URL/SUPABASE_KEY: APK en modo demo."
+            flutter build apk --release
+          fi
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4

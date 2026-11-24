@@ -475,6 +475,24 @@ class DemoBadge extends StatelessWidget {
   );
 }
 
+/// Insignia que distingue un pago seguro de Wompi de una simulación local.
+class PaymentModeBadge extends StatelessWidget {
+  const PaymentModeBadge({super.key, required this.demo});
+
+  /// `true` cuando la app corre sin Supabase y el pago es simulado.
+  final bool demo;
+
+  /// Dibuja la etiqueta con el candado o el matraz según el modo.
+  @override
+  Widget build(BuildContext context) => Tag(
+    demo ? '🧪 Demo · pago simulado' : '🔒 Wompi · pago seguro',
+    color: demo
+        ? AppColors.secondary.withValues(alpha: 0.25)
+        : AppColors.success.withValues(alpha: 0.14),
+    textColor: AppColors.text,
+  );
+}
+
 /// Chip con el color y la etiqueta del estado de un pedido.
 class StatusChip extends StatelessWidget {
   const StatusChip(this.status, {super.key, this.kitchen = false});

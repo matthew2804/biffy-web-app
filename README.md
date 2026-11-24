@@ -2,8 +2,8 @@
 
 Biffy es una aplicación de domicilios de comida para estudiantes universitarios en Colombia. Conecta tres roles sobre un mismo pedido: **comprador**, **restaurante** y **repartidor**.
 
-- **Sprint 1 (actual):** frontend Flutter funcional con datos simulados. Sin pagos reales, sin GPS y sin notificaciones push.
-- **Rama `supabase`:** integración del backend en preparación (ver [Supabase](#supabase-en-integración)). Hoy la app sigue funcionando 100 % en memoria, sin red.
+- **Estado actual:** Flutter con backend Supabase **opcional**; pedidos, pagos con Wompi (sandbox) y efectivo, cupones/Gotas, avisos in-app y evidencia de entrega. La demo local sigue funcionando sin red.
+- **Modo:** `flutter run` arranca en demo; `flutter run --dart-define-from-file=env.json` usa Supabase y abre el Checkout Web de Wompi.
 
 > La app web anterior (React/Lovable) se conserva solo como referencia de comportamiento y diseño en [`legacy_web/`](legacy_web/). No se le agregan funcionalidades.
 
@@ -107,7 +107,7 @@ lib/
     restaurant_owner/        # registration, home, orders, menu, products, statistics, profile
   shared/state/              # Controladores ChangeNotifier y ControllerScope
 test/
-  unit/  widget/  integration/   # 251 pruebas (sin dispositivo)
+  unit/  widget/  integration/   # 269 pruebas (sin dispositivo)
   helpers.dart
 integration_test/app_test.dart   # Flujo completo en Android/iOS
 supabase/
@@ -166,9 +166,9 @@ Estado verificado en esta rama:
 | Comando | Resultado |
 |---|---|
 | `flutter analyze` | `No issues found!` |
-| `flutter test` | **266 pruebas pasan** (26 de integración se saltan sin `env.json`) |
+| `flutter test` | **269 pruebas pasan** (26 de integración se saltan sin `env.json`) |
 | `flutter test test/integration/… --dart-define-from-file=env.json` | 22 pruebas contra el Supabase real (smoke, HU-1, HU-4) |
-| `tool/test_supabase_sql.sh` | **237 casos SQL** (RLS, RPC, pagos, horario, porciones) |
+| `tool/test_supabase_sql.sh` | **238 casos SQL** (RLS, RPC, pagos, horario, porciones) |
 
 - **Unitarias:** precios, reglas de catálogo, sesión y Gotas, carrito, servicio de pedidos, programación y asistente.
 - **Widgets:** recorrido de todas las rutas de los tres roles (falla ante excepciones u overflow), flujos del comprador y de roles, modo oscuro y punto sin cobertura.
@@ -237,6 +237,14 @@ El RPC recibe un único `jsonb`, así se agregan campos sin volver a tocar firma
 | Pagos con Wompi (sandbox) y efectivo | ✅ |
 
 Con `env.json` la app arranca contra Supabase; sin él sigue en modo demo local.
+Esto aplica también a los builds de release: un APK o web compilado sin
+`--dart-define-from-file=env.json` (o sin los `--dart-define`) queda en demo y
+los pagos se simulan. El CI genera los artefactos con Supabase cuando existen
+los secrets `SUPABASE_URL` y `SUPABASE_KEY`.
+
+En modo demo el pago ya **no se aprueba solo**: la pantalla `/pago` muestra una
+simulación de Wompi y exige pulsar **Simular pago** (y elegir banco si es PSE).
+Para ver el Checkout Web real, corre con `--dart-define-from-file=env.json`.
 
 ## legacy_web
 

@@ -154,6 +154,8 @@ supabase/
     0025_university_revalidation.sql # código al correo institucional, vencimiento
                                   # a 30 días y revocación de Campus
     0026_payments.sql             # pagos Wompi + efectivo con billete (HU-5)
+    0027_server_guards.sql        # reglas de horario/porciones/couriers en el servidor
+    0028_payment_provider_method.sql # método real que reporta Wompi
     0099_verify.sql               # verifica tablas, columnas y RPC clave
   functions/
     send-university-code/         # envía el código al correo con Resend
@@ -455,7 +457,8 @@ Modo demo local hoy → Supabase real al publicar. Marcar cada punto al hacerlo
 en el panel del proyecto `jwdzpwsfwtkdeeuceaco`:
 
 - [ ] **Migraciones:** aplicar `apply_all.sql` (o `supabase db push`) con
-      todas las migraciones hasta `0024` (HU-4 son `0020`–`0024`). Debe salir `Biffy OK`.
+      todas las migraciones hasta `0028` (HU-4 son `0020`-`0024` y HU-5 la
+      `0026`). Debe salir `Biffy OK`.
 - [ ] **Pruebas SQL** en verde antes de aplicar: `tool/test_supabase_sql.sh`.
 - [ ] **Confirmación de correo activada en producción:** Authentication →
       Providers → Email → *Confirm email* on, con plantilla en español.

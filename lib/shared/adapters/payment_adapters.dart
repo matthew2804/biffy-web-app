@@ -21,8 +21,7 @@ PaymentStatus paymentStatusFromDb(String? value) => switch (value) {
 };
 
 /// Fecha opcional de una fila de Supabase.
-DateTime? _date(Object? value) =>
-    DateTime.tryParse((value ?? '').toString());
+DateTime? _date(Object? value) => DateTime.tryParse((value ?? '').toString());
 
 /// Convierte una fila de `payments` en la entidad del dominio.
 Payment paymentFromRow(Map<String, dynamic> row) => Payment(
@@ -36,6 +35,7 @@ Payment paymentFromRow(Map<String, dynamic> row) => Payment(
   checkoutUrl: row['checkout_url'] as String?,
   statusDetail: row['status_detail'] as String?,
   providerTransactionId: row['provider_transaction_id'] as String?,
+  providerMethod: row['provider_method'] as String?,
   createdAt: _date(row['created_at']),
   approvedAt: _date(row['approved_at']),
   refundedAt: _date(row['refunded_at']),

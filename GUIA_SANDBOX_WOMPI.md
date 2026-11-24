@@ -128,12 +128,20 @@ cambiar el resultado en algunos sandbox (p. ej. `APPROVED` / `DECLINED`).
 
 ## 8. Probar el flujo completo
 
+> **Importante:** `flutter run` a secas arranca en modo demo y **no abre
+> Wompi**; la pantalla `/pago` pide pulsar “Simular pago”. Para la pasarela real
+> compila con `--dart-define-from-file=env.json` (también en release/APK).
+
 1. En la app, inicia sesión como comprador demo.
 2. Arma el carrito, elige horario y método (Nequi/Daviplata/tarjeta/PSE).
+   La app guarda una **preferencia**; el método final y el banco PSE se eligen
+   dentro de Wompi.
 3. Pulsa **Pagar**. Debe abrirse el Checkout Web de Wompi.
 4. Paga con el dato de prueba.
 5. Verifica:
-   - `payments.status = 'approved'` y `orders.payment_status = 'approved'`.
+   - `payments.status = 'approved'`, `orders.payment_status = 'approved'` y
+     `payments.provider_method` con el método real (`CARD`, `NEQUI`, `PSE`…).
+   - La app muestra “Pagado con …”, aunque la preferencia fuera otro método.
    - El pedido aparece en el panel del restaurante **solo después** de aprobar.
    - El webhook dejó una fila en `payment_events`.
 6. Repite con la tarjeta rechazada:
@@ -206,6 +214,10 @@ Guarda en `tool/evidence/hu5_payments/`:
   `payment_events.result = applied` y `signature_valid = true`.
 - [x] Flutter: `PaymentBloc`, `/pago/:id`, banner de rechazo con motivo,
   reintento y efectivo con billetes/vueltas.
+- [x] `0028_payment_provider_method.sql`: guarda el método real que reporta
+  Wompi en `payments.provider_method`; el webhook lo envía a `payment_apply`.
+- [x] Selector tipo Rappi y simulación de Wompi en modo demo; la app real se
+  compila con `--dart-define-from-file=env.json`.
 - [x] Cron de vencidos: `.github/workflows/expire-payments.yml` cada 15 minutos
   con el secret `CRON_SECRET` (ya configurado en GitHub y Supabase).
 - [—] Compra rechazada y carpeta de evidencia: **no se adjuntan**; el equipo

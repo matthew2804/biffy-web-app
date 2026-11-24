@@ -130,9 +130,12 @@ void main() {
     expect(find.text(cop(49800)), findsWidgets);
     expect(find.text('-${cop(4980)}'), findsOneWidget);
     expect(find.text(cop(46320)), findsOneWidget);
-    expect(find.text('Pago seguro con Wompi'), findsOneWidget);
+    expect(find.text('Pago simulado (demo)'), findsOneWidget);
     await tapVisible(tester, find.byKey(const Key('confirm-order')));
     expect(s.orders.forBuyer('u-diego').length, before + 1);
+    // En demo el pago no se aprueba hasta simularlo en Wompi.
+    await tester.pumpAndSettle();
+    await tapVisible(tester, find.byKey(const Key('demo-pay')));
     // El pago simulado aprueba en 10 ms: deja que navegue al seguimiento.
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pumpAndSettle();
@@ -140,6 +143,34 @@ void main() {
     final id = s.orders.forBuyer('u-diego').first.id;
     expect(find.text('Pedido $id'), findsOneWidget);
     expect(find.byKey(const Key('delivery-code')), findsOneWidget);
+  });
+
+  testWidgets('el selector de pago permite elegir PSE y su banco en demo', (
+    tester,
+  ) async {
+    final s = await pumpBiffy(tester);
+    s.session.login(kDemoBuyerEmail, kDemoPassword);
+    s.cart.add(s.catalog.dishById('qbano-especial')!);
+    await goTo(tester, '/carrito');
+    await tapVisible(tester, find.byKey(const Key('payment-method-card')));
+    await tapVisible(tester, find.byKey(const Key('pay-pse')));
+    await tapVisible(tester, find.byKey(const Key('payment-method-continue')));
+    expect(find.text('PSE'), findsWidgets);
+    await tapVisible(tester, find.byKey(const Key('go-checkout')));
+    await tapVisible(tester, find.byKey(const Key('confirm-order')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('demo-pse-bank')), findsOneWidget);
+    // Sin banco, el botón de simular está deshabilitado.
+    await tester.tap(find.byKey(const Key('demo-pay')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('demo-pse-bank')), findsOneWidget);
+    await tapVisible(tester, find.byKey(const Key('demo-pse-bank')));
+    await tester.tap(find.text('Bancolombia').last);
+    await tester.pumpAndSettle();
+    await tapVisible(tester, find.byKey(const Key('demo-pay')));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
+    expect(s.cart.isEmpty, isTrue);
   });
 
   testWidgets('la navegación inferior conserva el estado de las pestañas', (

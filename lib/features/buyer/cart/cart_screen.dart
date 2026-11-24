@@ -16,6 +16,7 @@ import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import 'cart_draft.dart';
 import 'schedule_sheet.dart';
+import '../payment/payment_method_sheet.dart';
 import '../../../app/di/injection.dart';
 import '../../../shared/state/controller_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -255,26 +256,61 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
             const SectionHeader('Método de pago'),
+            if (payment.isOnline)
+              PaymentModeBadge(demo: !orders.isRemote)
+            else
+              const Tag('💵 Pago contra entrega'),
+            const SizedBox(height: 8),
             Text(
-              orders.isRemote
-                  ? 'Nequi, Daviplata, tarjeta y PSE se pagan en la página segura de Wompi; el efectivo, al recibir.'
-                  : 'Simulado: no se procesan pagos ni se piden datos bancarios.',
+              !payment.isOnline
+                  ? 'El repartidor te cobrará al entregar el pedido.'
+                  : orders.isRemote
+                  ? 'Elige tu preferencia. El pago se completa en Wompi; allí confirmas el método y, si es PSE, el banco.'
+                  : 'Demo: el pago se simula y no se cobran datos reales.',
               style: t.bodySmall,
             ),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final m in PaymentMethod.values)
-                  SelectPill(
-                    key: Key('pay-${m.name}'),
-                    label: m.label,
-                    emoji: m.emoji,
-                    selected: payment == m,
-                    onTap: () => cart.setPayment(m),
+            BiffyCard(
+              key: const Key('payment-method-card'),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              onTap: () async {
+                final picked = await showPaymentMethodSheet(
+                  context,
+                  selected: payment,
+                );
+                if (picked != null) cart.setPayment(picked);
+              },
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      payment.emoji,
+                      style: const TextStyle(fontSize: 22),
+                    ),
                   ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          payment.label,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        Text('Toca para cambiar', style: t.bodySmall),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
             ),
             if (session.isLoggedIn) ...[
               const SectionHeader('Gotas y cupones'),

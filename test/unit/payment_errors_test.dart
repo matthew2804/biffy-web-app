@@ -5,10 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// Pruebas de los mensajes de rechazo en español.
 void main() {
   test('traduce los códigos de la app', () {
-    expect(
-      paymentErrorText(code: 'amount_mismatch'),
-      contains('total'),
-    );
+    expect(paymentErrorText(code: 'amount_mismatch'), contains('total'));
     expect(paymentErrorText(code: 'expired'), contains('venció'));
     expect(paymentErrorText(code: 'network'), contains('conexión'));
   });
@@ -26,10 +23,7 @@ void main() {
       paymentErrorText(detail: 'cc_rejected_call_for_authorize'),
       contains('banco'),
     );
-    expect(
-      paymentErrorText(detail: 'pse_rejected'),
-      contains('PSE'),
-    );
+    expect(paymentErrorText(detail: 'pse_rejected'), contains('PSE'));
   });
 
   test('usa el detalle o el mensaje genérico si no lo conoce', () {
@@ -44,5 +38,14 @@ void main() {
     expect(paymentStatusLabel(PaymentStatus.approved), 'Pago aprobado');
     expect(paymentStatusLabel(PaymentStatus.rejected), 'Pago rechazado');
     expect(paymentStatusLabel(PaymentStatus.expired), 'Pago vencido');
+  });
+
+  test('traduce el método real que reporta Wompi', () {
+    expect(providerMethodLabel('CARD'), 'Tarjeta');
+    expect(providerMethodLabel('NEQUI'), 'Nequi');
+    expect(providerMethodLabel('pse'), 'PSE');
+    expect(providerMethodLabel('DAVIPLATA'), 'Daviplata');
+    expect(providerMethodLabel('BANCOLOMBIA_QR'), 'QR Bancolombia');
+    expect(providerMethodLabel(null), '');
   });
 }

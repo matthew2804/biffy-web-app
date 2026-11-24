@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/di/injection.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../data/models/catalog.dart';
+import '../../../domain/repositories/payment_repository.dart';
 import '../../../shared/state/session_controller.dart';
 import '../../../shared/state/controller_scope.dart';
 
@@ -14,6 +16,7 @@ class PaymentsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watchController<SessionController>();
+    final remote = getIt<PaymentRepository>().isRemote;
     final selected = session.data.defaultPayment;
     return Scaffold(
       appBar: AppBar(title: const Text('Métodos de pago')),
@@ -21,10 +24,12 @@ class PaymentsScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
-            const DemoBadge('Simulado · no se procesan pagos'),
+            PaymentModeBadge(demo: !remote),
             const SizedBox(height: 8),
             Text(
-              'Elige tu método predeterminado. No pedimos ni guardamos datos bancarios.',
+              remote
+                  ? 'Elige tu método preferido. El pago se completa en Wompi; allí confirmas el método final. No pedimos ni guardamos datos bancarios.'
+                  : 'Elige tu método para la demo. El pago se simula y no se procesan cobros.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -51,9 +56,20 @@ class PaymentsScreen extends StatelessWidget {
                       Text(m.emoji, style: const TextStyle(fontSize: 24)),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          m.label,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              m.label,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              m.description,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
                         ),
                       ),
                       Icon(

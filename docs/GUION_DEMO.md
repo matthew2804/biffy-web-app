@@ -71,7 +71,7 @@ Muestra el diagrama de capas de `docs/ARQUITECTURA.md` (sección 1).
 
 ## Minuto 8–9 · Calidad
 
-- La pestaña **Actions** en verde: análisis, más de 260 tests de Flutter, 237
+- La pestaña **Actions** en verde: análisis, 269 tests de Flutter, 238
   casos SQL, integración contra Supabase y builds web y Android.
 - Una prueba de `bloc_test` (`test/unit/delivery_evidence_cubit_test.dart`):
   caso exitoso, caso vacío y error con reintento.

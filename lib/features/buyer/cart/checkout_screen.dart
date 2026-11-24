@@ -17,6 +17,7 @@ import '../../../shared/state/session_controller.dart';
 import 'bloc/cart_cubit.dart';
 import 'bloc/checkout_cubit.dart';
 import 'cart_screen.dart';
+import '../payment/payment_method_sheet.dart';
 import '../../../app/di/injection.dart';
 import '../../../shared/state/controller_scope.dart';
 
@@ -60,6 +61,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cart = context.watch<CartCubit>();
     context.watchController<SessionController>();
     final catalog = context.watchController<CatalogController>();
+    final orders = context.read<OrdersBloc>();
     final t = Theme.of(context).textTheme;
     final draft = _checkout.draft;
     final r = draft.restaurant;
@@ -94,8 +96,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             children: [
+              if (isCash)
+                const Tag('💵 Pago contra entrega')
+              else
+                PaymentModeBadge(demo: !orders.isRemote),
+              const SizedBox(height: 8),
               Text(
-                isCash ? 'Pago contra entrega' : 'Pago seguro con Wompi',
+                isCash
+                    ? 'Pago contra entrega'
+                    : orders.isRemote
+                    ? 'Pago seguro con Wompi'
+                    : 'Pago simulado (demo)',
                 style: t.labelLarge?.copyWith(color: AppColors.muted),
               ),
               const SizedBox(height: 12),
@@ -166,7 +177,42 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ? 'Ahora'
                           : dateTimeLabel(draft.scheduledFor!),
                     ),
-                    InfoRow('Método de pago', method.label),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Método de pago',
+                              style: TextStyle(color: AppColors.muted),
+                            ),
+                          ),
+                          Flexible(
+                            child: Text(
+                              method.label,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.end,
+                            ),
+                          ),
+                          TextButton(
+                            key: const Key('change-payment'),
+                            onPressed: _pickMethod,
+                            child: const Text('Cambiar'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (method.isOnline)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'El método final se confirma en Wompi.',
+                          style: t.bodySmall,
+                        ),
+                      ),
                     if (point != null)
                       InfoRow(
                         'Tiempo estimado',
@@ -309,7 +355,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Text(
                 isCash
                     ? 'El repartidor te cobrará al entregar el pedido.'
-                    : 'Te llevaremos a la página segura de Wompi para pagar.',
+                    : orders.isRemote
+                    ? 'Te llevaremos a la página segura de Wompi para pagar.'
+                    : 'En la demo el pago se simula en la siguiente pantalla.',
                 textAlign: TextAlign.center,
                 style: t.bodySmall,
               ),
@@ -318,6 +366,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       ),
     );
+  }
+
+  /// Abre la hoja para cambiar el método antes de confirmar.
+  Future<void> _pickMethod() async {
+    final cart = context.read<CartCubit>();
+    final picked = await showPaymentMethodSheet(
+      context,
+      selected: _checkout.draft.payment,
+    );
+    if (picked != null) cart.setPayment(picked);
   }
 
   /// Crea el pedido y, si es online, abre el pago en Wompi.
