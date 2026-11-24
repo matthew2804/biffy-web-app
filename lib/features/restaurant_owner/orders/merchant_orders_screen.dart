@@ -8,6 +8,7 @@ import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import '../../../shared/state/controller_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/sync_status.dart';
 
 const _filters = <(String, String, bool Function(Order))>[
   ('todos', 'Todos', _all),
@@ -16,14 +17,19 @@ const _filters = <(String, String, bool Function(Order))>[
   ('listos', 'Listos', _ready),
   ('finalizados', 'Finalizados', _done),
 ];
+
 /// Filtro que acepta todos los pedidos.
 bool _all(Order o) => true;
+
 /// Filtro de pedidos nuevos (pendientes).
 bool _new(Order o) => o.status == OrderStatus.pending;
+
 /// Filtro de pedidos en preparación.
 bool _prep(Order o) => o.status == OrderStatus.preparing;
+
 /// Filtro de pedidos listos para recoger.
 bool _ready(Order o) => o.status == OrderStatus.ready;
+
 /// Filtro de pedidos ya finalizados o cancelados.
 bool _done(Order o) =>
     o.status == OrderStatus.onTheWay ||
@@ -102,9 +108,16 @@ class _MerchantOrdersScreenState extends State<MerchantOrdersScreen> {
             ),
             Expanded(
               child: list.isEmpty
-                  ? const EmptyState(
-                      emoji: '🧾',
-                      title: 'No hay pedidos en esta categoría',
+                  ? SyncStateView(
+                      isEmpty: true,
+                      loading: orders.state.sync == SyncStatus.loading,
+                      failed: orders.state.sync == SyncStatus.failed,
+                      errorTitle: 'No pudimos cargar los pedidos',
+                      onRetry: () => orders.add(const OrdersRefreshRequested()),
+                      child: const EmptyState(
+                        emoji: '🧾',
+                        title: 'No hay pedidos en esta categoría',
+                      ),
                     )
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -169,7 +182,7 @@ class _KitchenCard extends StatelessWidget {
               style: t.bodySmall,
             ),
             Text(
-              '💳 ${o.payment.label} (simulado) · Total ${cop(o.total)}',
+              '💳 ${o.payment.label}${o.dbId != null ? '' : ' (simulado)'} · Total ${cop(o.total)}',
               style: t.bodySmall,
             ),
             if (o.status == OrderStatus.cancelled && o.rejectReason != null)
@@ -196,9 +209,7 @@ class _KitchenCard extends StatelessWidget {
                       minimumSize: const Size(120, 44),
                     ),
                     onPressed: () async {
-                      final outcome = await orders.request(
-                        OrderAccepted(o.id),
-                      );
+                      final outcome = await orders.request(OrderAccepted(o.id));
                       if (!context.mounted || !outcome.ok) return;
                       showSnack(context, 'Pedido ${o.id} en preparación');
                     },

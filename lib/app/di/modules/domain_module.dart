@@ -10,6 +10,7 @@ import '../../../domain/repositories/review_repository.dart';
 import '../../../domain/repositories/rewards_repository.dart';
 import '../../../domain/usecases/get_courier_earnings.dart';
 import '../../../domain/usecases/merchant_boxes_usecases.dart';
+import '../../../domain/usecases/orders/get_delivery_evidence.dart';
 import '../../../domain/usecases/orders/order_usecases.dart';
 import '../../../domain/usecases/payments/check_payment_status.dart';
 import '../../../domain/usecases/payments/retry_payment.dart';
@@ -79,6 +80,9 @@ void _registerUseCases(GetIt g) {
     ),
   );
   g.registerFactory<GetCourierEarnings>(GetCourierEarnings.new);
+  g.registerFactory<GetDeliveryEvidence>(
+    () => GetDeliveryEvidence(g<OrderRepository>()),
+  );
 
   // Pagos: iniciar, consultar y reintentar (sin estado propio).
   g.registerFactory<StartPayment>(() => StartPayment(g<PaymentRepository>()));

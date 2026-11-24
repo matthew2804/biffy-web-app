@@ -12,10 +12,11 @@ import '../../../shared/state/session_controller.dart';
 import '../../../app/di/injection.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Describe el pago del pedido tal como lo ve el repartidor.
+/// Describe el pago del pedido tal como lo ve el repartidor. Un pedido del
+/// servidor (`dbId`) en línea ya llega pagado: solo se ofrece aprobado (HU-3).
 String paymentForCourier(Order o) => o.payment == PaymentMethod.cash
     ? 'Efectivo · cobrar ${cop(o.total)}'
-    : '${o.payment.label} · pago simulado';
+    : '${o.payment.label} · ${o.dbId != null ? 'ya pagado' : 'pago simulado'}';
 
 /// Aceptar una oferta: asignación atómica en el estado compartido.
 Future<void> acceptOffer(BuildContext context, Order o) async {

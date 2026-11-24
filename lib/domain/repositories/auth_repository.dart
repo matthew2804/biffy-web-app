@@ -79,6 +79,15 @@ abstract class AuthRepository {
   /// Guarda el perfil de repartidor del usuario en el backend.
   Future<void> saveCourierProfile(String userId, CourierProfile profile);
 
+  /// Conecta o desconecta al repartidor en el servidor (cuenta para
+  /// `couriers_nearby` de las sedes). Devuelve el código del RPC (`ok`,
+  /// `no_profile`, `not_verified`, `network`); en la demo siempre `ok`.
+  Future<String> setCourierOnline(
+    String userId, {
+    required bool online,
+    CourierZone? zone,
+  });
+
   /// Verifica el correo universitario contra el backend y devuelve su código.
   Future<String?> verifyUniversity(String universityId, String email);
 

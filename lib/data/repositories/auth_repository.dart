@@ -148,6 +148,14 @@ class InMemoryAuthRepository implements AuthRepository {
     CourierProfile profile,
   ) async {}
 
+  /// En la demo la disponibilidad del repartidor vive solo en memoria.
+  @override
+  Future<String> setCourierOnline(
+    String userId, {
+    required bool online,
+    CourierZone? zone,
+  }) async => 'ok';
+
   /// La verificación universitaria de la demo es local.
   @override
   Future<String?> verifyUniversity(String universityId, String email) async =>

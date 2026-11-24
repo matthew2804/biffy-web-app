@@ -35,7 +35,8 @@ declare
     ['notifications', 'role'], ['notifications', 'order_id'],
     ['orders', 'payment_status'], ['orders', 'payment_expires_at'],
     ['orders', 'cash_tendered'], ['orders', 'cash_change'],
-    ['payments', 'provider_transaction_id']
+    ['payments', 'provider_transaction_id'],
+    ['dishes', 'sold_on'], ['order_items', 'sold_on']
   ];
   expected_functions text[] := array[
     'place_order', 'restaurant_accept', 'restaurant_reject', 'restaurant_ready',
@@ -45,7 +46,9 @@ declare
     'create_university_verification', 'confirm_university_verification',
     'revoke_university_verification', 'expire_university_verifications',
     'payment_begin', 'payment_set_checkout', 'payment_apply',
-    'payment_refund', 'expire_pending_payments', 'payment_for_order'
+    'payment_refund', 'expire_pending_payments', 'payment_for_order',
+    'courier_set_online', 'refresh_couriers_nearby', 'reset_sold_today',
+    'guard_order_schedule', 'biffy_now'
   ];
 begin
   foreach v_table in array expected_tables loop

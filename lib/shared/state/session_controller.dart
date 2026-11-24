@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../core/constants/catalog_constants.dart';
@@ -99,6 +101,9 @@ class SessionController extends ChangeNotifier {
 
   /// Cancela la escucha de avisos en Realtime del usuario actual.
   void Function()? _stopNotifications;
+
+  /// Usuario al que ya se conectó automáticamente como repartidor al entrar.
+  String? _courierAutoOnlineFor;
   String? _watchingUserId;
 
   AppUser? _user;
@@ -246,6 +251,7 @@ class SessionController extends ChangeNotifier {
     _stopNotifications?.call();
     _stopNotifications = null;
     _watchingUserId = null;
+    _courierAutoOnlineFor = null;
     _user = null;
     _activeRole = UserRole.buyer;
     notifyListeners();
@@ -303,8 +309,16 @@ class SessionController extends ChangeNotifier {
     return u;
   }
 
-  /// Cierra la sesión remota y la local.
+  /// Cierra la sesión remota y la local. El repartidor se desconecta antes
+  /// para que no siga contando como disponible en las sedes.
   Future<void> logoutAsync() async {
+    final u = _user;
+    if (u != null &&
+        _auth.isRemote &&
+        hasCourierProfile &&
+        data.courierOnline) {
+      await _auth.setCourierOnline(u.id, online: false);
+    }
     await _auth.signOut();
     logout();
   }
@@ -384,10 +398,16 @@ class SessionController extends ChangeNotifier {
     final courier = await courierF;
     if (courier != null) {
       d.courierProfile = courier;
-      d.courierOnline = true;
-      d.courierZone = courier.universityId == null
-          ? CourierZone.general
-          : CourierZone.campus;
+      // Solo al entrar queda conectado (también en el servidor, 0027); una
+      // recarga posterior (p. ej. tras abrir una caja) respeta lo que eligió.
+      if (_courierAutoOnlineFor != u.id) {
+        _courierAutoOnlineFor = u.id;
+        d.courierOnline = true;
+        d.courierZone = courier.universityId == null
+            ? CourierZone.general
+            : CourierZone.campus;
+        unawaited(_syncCourierOnline());
+      }
     }
 
     // Preferencias, ajustes y favoritos del usuario (en paralelo).
@@ -920,11 +940,12 @@ class SessionController extends ChangeNotifier {
     }
   }
 
-  /// Cambia la disponibilidad del repartidor.
+  /// Cambia la disponibilidad del repartidor (y la guarda en el servidor).
   void setCourierOnline(bool online) {
     if (!hasCourierProfile) return;
     data.courierOnline = online;
     notifyListeners();
+    unawaited(_syncCourierOnline());
   }
 
   /// El modo Campus exige universidad verificada (simulación).
@@ -932,6 +953,38 @@ class SessionController extends ChangeNotifier {
     if (zone == CourierZone.campus && !isVerifiedStudent) return false;
     data.courierZone = zone;
     notifyListeners();
+    unawaited(_syncCourierOnline());
     return true;
+  }
+
+  /// Último error al guardar la disponibilidad del repartidor, en español.
+  String? courierSyncError;
+
+  /// Envía conexión y zona al servidor; si falla, vuelve al estado anterior
+  /// para que la pantalla no muestre «CONECTADO» sin estarlo de verdad.
+  Future<void> _syncCourierOnline() async {
+    final u = _user;
+    if (u == null || !_auth.isRemote) return;
+    final online = data.courierOnline;
+    final code = await _auth.setCourierOnline(
+      u.id,
+      online: online,
+      zone: data.courierZone,
+    );
+    if (code == 'ok') {
+      courierSyncError = null;
+      return;
+    }
+    if (code == 'not_verified') {
+      data.courierZone = CourierZone.general;
+    } else if (data.courierOnline == online) {
+      data.courierOnline = !online;
+    }
+    courierSyncError = switch (code) {
+      'network' => 'Sin conexión: no pudimos cambiar tu disponibilidad.',
+      'not_verified' => 'Verifica tu correo universitario para el modo Campus.',
+      _ => 'No pudimos cambiar tu disponibilidad. Intenta de nuevo.',
+    };
+    notifyListeners();
   }
 }

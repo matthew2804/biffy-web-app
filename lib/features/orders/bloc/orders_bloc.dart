@@ -19,8 +19,17 @@ part 'orders_state.dart';
 /// `domain/usecases`. Una acción repetida mientras la anterior sigue en curso
 /// (doble toque) se ignora.
 class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
-  OrdersBloc(this.useCases) : super(OrdersState(orders: useCases.repo.all)) {
+  OrdersBloc(this.useCases)
+    : super(
+        OrdersState(orders: useCases.repo.all, sync: useCases.repo.syncStatus),
+      ) {
     on<OrdersChanged>(_onChanged);
+    // Reintento manual: el repositorio avisa por `changes` al terminar.
+    on<OrdersRefreshRequested>((_, emit) async {
+      emit(state.copyWith(sync: SyncStatus.loading));
+      await _repo.refresh();
+      add(const OrdersChanged());
+    });
     on<OrderPlaced>(
       (e, emit) => _run(
         emit,
@@ -193,10 +202,19 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     PickupConfirmed(:final orderId) => (OrderAction.pickup, orderId),
     DeliveryCompleted(:final orderId) => (OrderAction.deliver, orderId),
     OrdersChanged() => throw ArgumentError('OrdersChanged no tiene resultado'),
+    OrdersRefreshRequested() => throw ArgumentError(
+      'OrdersRefreshRequested no tiene resultado',
+    ),
   };
 
   void _onChanged(OrdersChanged event, Emitter<OrdersState> emit) {
-    emit(state.copyWith(orders: _repo.all, revision: state.revision + 1));
+    emit(
+      state.copyWith(
+        orders: _repo.all,
+        revision: state.revision + 1,
+        sync: _repo.syncStatus,
+      ),
+    );
     // Con servidor las Gotas las mueven los RPC de cualquier rol: se relee el
     // saldo cuando cambian los pedidos.
     if (_repo.isRemote && !_syncingWallet) {

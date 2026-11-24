@@ -152,8 +152,9 @@ Contraseña de todas: `biffy123` (también hay botones de acceso rápido en el l
 | Restaurante Qbano Icesi (demo) | `qbano@demo.biffy.co` |
 
 En Supabase (proyecto `jwdzpwsfwtkdeeuceaco`) ya existen `diego.demo@…`,
-`andres.repartidor@…` y `qbano@…`, con perfil y 450 Gotas: el repartidor queda
-online en campus y el restaurante tiene el negocio **Qbano Icesi** con 4 platos.
+`andres.repartidor@…` y `qbano@…`, con perfil y 450 Gotas, y el restaurante
+tiene el negocio **Qbano Icesi**. Con Supabase el comprador solo ve sedes si
+hay **un repartidor conectado**: entra primero con Andrés.
 `camila` y `valentina` siguen solo en el modo demo local.
 
 Si pruebas de noche y todo aparece cerrado, activa **Configuración › Horario de demostración (12:00)**.
@@ -165,7 +166,9 @@ Estado verificado en esta rama:
 | Comando | Resultado |
 |---|---|
 | `flutter analyze` | `No issues found!` |
-| `flutter test` | **251 pruebas, todas pasan** |
+| `flutter test` | **266 pruebas pasan** (26 de integración se saltan sin `env.json`) |
+| `flutter test test/integration/… --dart-define-from-file=env.json` | 22 pruebas contra el Supabase real (smoke, HU-1, HU-4) |
+| `tool/test_supabase_sql.sh` | **237 casos SQL** (RLS, RPC, pagos, horario, porciones) |
 
 - **Unitarias:** precios, reglas de catálogo, sesión y Gotas, carrito, servicio de pedidos, programación y asistente.
 - **Widgets:** recorrido de todas las rutas de los tres roles (falla ante excepciones u overflow), flujos del comprador y de roles, modo oscuro y punto sin cobertura.
@@ -184,9 +187,9 @@ Estado verificado en esta rama:
 
 Proyecto: `jwdzpwsfwtkdeeuceaco`. Detalle operativo en [`supabase/README.md`](supabase/README.md).
 
-**Estado:** esquema aplicado en el proyecto remoto. La app ya usa **Auth real** y
-lee el **catálogo desde Supabase** (caché hidratada + Realtime); los pedidos
-siguen en memoria hasta la fase 2c.
+**Estado:** migraciones `0000`–`0027` aplicadas en el proyecto remoto
+(`0099_verify` sin errores). Auth, catálogo, pedidos, pagos, Gotas,
+notificaciones y evidencia funcionan contra Supabase.
 
 ### Aplicar la base (una sola vez)
 
@@ -208,7 +211,7 @@ supabase db push
 
 | Pieza | Detalle |
 |---|---|
-| Esquema | 27 tablas: perfiles, negocios, sedes, platos, direcciones, cupones, Gotas (saldo, recompensas, premios por caja y canjes), pedidos, eventos, repartidores, notificaciones |
+| Esquema | 33 tablas: perfiles, negocios, sedes, platos, direcciones, cupones, Gotas (saldo, recompensas, premios por caja y canjes), pedidos, eventos, repartidores, notificaciones, reseñas, verificación universitaria y pagos |
 | Seguridad | RLS activo en todas; catálogo público solo en lectura; datos personales por dueño; pedidos visibles solo para sus tres partes |
 | Integridad | Enums, `CHECK`, FKs, `updated_at` por trigger, borrado lógico e índices en FKs y estado |
 | Operaciones | RPC `place_order`, `restaurant_*`, `courier_*`, `buyer_cancel`, `verify_university`, `register_business` |
@@ -228,11 +231,12 @@ El RPC recibe un único `jsonb`, así se agregan campos sin volver a tocar firma
 | Pedidos por RPC (crear, aceptar, recoger, entregar) + realtime | ✅ |
 | Subida real de evidencia y fotos a Storage | ✅ (evidencia) |
 | Pantalla de recompensas con cajas | ✅ (historial de canjes incluido) |
-| Errores, estados de carga y reintentos | ⏳ |
+| Errores, estados de carga y reintentos | ✅ (`SyncStateView`) |
+| Horario, repartidores y porciones validados en el servidor (`0027`) | ✅ |
+| Foto de evidencia para el comprador (URL firmada) | ✅ |
+| Pagos con Wompi (sandbox) y efectivo | ✅ |
 
-Con `env.json` la app arranca contra Supabase (Auth, catálogo y pedidos);
-sin él sigue en modo demo local. La evidencia de entrega se guarda como
-referencia hasta la subida real a Storage.
+Con `env.json` la app arranca contra Supabase; sin él sigue en modo demo local.
 
 ## legacy_web
 
@@ -241,7 +245,11 @@ Copia de la app React/Lovable original, conservada como referencia. No se compil
 ## Documentación
 
 - [`HANDOFF.md`](HANDOFF.md): qué está hecho, qué falta, reglas de trabajo y trampas conocidas. **Empieza por aquí si retomas el proyecto.**
-- [`DEPLOY.md`](DEPLOY.md): checklist para publicar (Supabase, build web, hosting, secretos y respaldos).
+- [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md): diagramas de capas, GetIt, Bloc, ciclo del pedido y backend.
+- [`docs/MANUAL_DE_PRUEBA.md`](docs/MANUAL_DE_PRUEBA.md): recorrido paso a paso de los tres roles con datos reales.
+- [`docs/GUION_DEMO.md`](docs/GUION_DEMO.md): guion de la demostración final de 10 minutos.
+- [`DEPLOY.md`](DEPLOY.md): despliegue (Supabase, Edge Functions, CI, Android, secretos y rotación).
+- [`GUIA_SANDBOX_WOMPI.md`](GUIA_SANDBOX_WOMPI.md): pagos en sandbox y datos de prueba.
 - [`INFORME_SPRINT_1.md`](INFORME_SPRINT_1.md): alcance, arquitectura, pruebas, limitaciones y pendientes del Sprint 1.
 - [`AGENTS.md`](AGENTS.md): reglas de arquitectura que debe respetar cualquier cambio.
 
@@ -252,4 +260,4 @@ Copia de la app React/Lovable original, conservada como referencia. No se compil
 3. ✅ Pasarela de pagos con Wompi (Nequi, Daviplata, tarjeta y PSE) y efectivo con billete, en **sandbox**; el paso a producción queda pendiente (ver `GUIA_SANDBOX_WOMPI.md`).
 4. Geolocalización real y seguimiento en mapa.
 5. Notificaciones push (FCM).
-6. CI con `flutter analyze`, `flutter test` y `flutter build web`.
+6. ✅ CI con análisis, pruebas, integración contra Supabase, pruebas SQL y builds web y Android.

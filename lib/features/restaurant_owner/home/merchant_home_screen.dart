@@ -128,7 +128,9 @@ class MerchantHomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             BigNumber(
-              'Ventas de hoy (simuladas)',
+              getIt<OrdersBloc>().isRemote
+                  ? 'Ventas de hoy'
+                  : 'Ventas de hoy (simuladas)',
               cop(m.salesToday),
               highlight: true,
             ),

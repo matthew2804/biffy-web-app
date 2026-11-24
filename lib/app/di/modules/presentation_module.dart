@@ -9,6 +9,7 @@ import '../../../domain/repositories/payment_repository.dart';
 import '../../../domain/repositories/profile_repository.dart';
 import '../../../domain/usecases/get_courier_earnings.dart';
 import '../../../domain/usecases/merchant_boxes_usecases.dart';
+import '../../../domain/usecases/orders/get_delivery_evidence.dart';
 import '../../../domain/usecases/orders/order_usecases.dart';
 import '../../../domain/usecases/payments/check_payment_status.dart';
 import '../../../domain/usecases/payments/retry_payment.dart';
@@ -20,6 +21,7 @@ import '../../../features/buyer/cart/bloc/checkout_cubit.dart';
 import '../../../features/buyer/payment/bloc/payment_bloc.dart';
 import '../../../features/buyer/notifications/notifications_cubit.dart';
 import '../../../features/buyer/rewards/rewards_cubit.dart';
+import '../../../features/buyer/tracking/delivery_evidence_cubit.dart';
 import '../../../features/buyer/tracking/rate_order_cubit.dart';
 import '../../../features/auth/bloc/login_cubit.dart';
 import '../../../features/auth/bloc/register_cubit.dart';
@@ -98,6 +100,12 @@ void _registerBlocs(GetIt g) {
       order: args.order,
       userId: args.userId,
       initialStars: args.initialStars,
+    ),
+  );
+  g.registerFactoryParam<DeliveryEvidenceCubit, String, void>(
+    (orderId, _) => DeliveryEvidenceCubit(
+      getEvidence: g<GetDeliveryEvidence>(),
+      orderId: orderId,
     ),
   );
   g.registerFactoryParam<EarningsCubit, String, void>(

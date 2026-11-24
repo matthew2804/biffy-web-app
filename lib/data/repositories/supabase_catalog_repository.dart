@@ -17,7 +17,9 @@ class SupabaseCatalogRepository implements CatalogRepository {
   SupabaseCatalogRepository._(this._client);
 
   /// Carga la caché, se suscribe a Realtime y devuelve el repositorio.
-  static Future<SupabaseCatalogRepository> load({sb.SupabaseClient? client}) async {
+  static Future<SupabaseCatalogRepository> load({
+    sb.SupabaseClient? client,
+  }) async {
     final repo = SupabaseCatalogRepository._(
       client ?? sb.Supabase.instance.client,
     );
@@ -45,9 +47,11 @@ class SupabaseCatalogRepository implements CatalogRepository {
   /// Negocios en caché (solo lectura).
   @override
   List<Business> get businesses => List.unmodifiable(_businesses);
+
   /// Sedes en caché (solo lectura).
   @override
   List<Restaurant> get restaurants => List.unmodifiable(_restaurants);
+
   /// Platos en caché (solo lectura).
   @override
   List<Dish> get dishes => List.unmodifiable(_dishes);
@@ -120,9 +124,24 @@ class SupabaseCatalogRepository implements CatalogRepository {
       _dishes
         ..clear()
         ..addAll(dishRows.map((row) => _dish(row, optionsByDish)));
+      _setSync(SyncStatus.ready);
     } on Object {
-      // Sin conexión: se mantiene la última copia buena.
+      // Sin conexión: se mantiene la última copia buena y se avisa del error.
+      _setSync(SyncStatus.failed);
     }
+  }
+
+  SyncStatus _sync = SyncStatus.loading;
+
+  /// Resultado de la última lectura: `loading` hasta la primera respuesta.
+  @override
+  SyncStatus get syncStatus => _sync;
+
+  /// Cambia el estado de carga y avisa a la vista si cambió.
+  void _setSync(SyncStatus s) {
+    if (_sync == s) return;
+    _sync = s;
+    if (!_changes.isClosed) _changes.add(null);
   }
 
   // ------------------------------------------------------------ Realtime
@@ -209,7 +228,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
       'active': dish.active,
       'sold_out': dish.soldOut,
       'portion_limit': dish.portionLimit,
-      'sold_today': dish.soldToday,
+      // sold_today lo lleva el servidor (0027): la app no lo escribe.
       'image_url': dish.imageAsset,
     };
 
@@ -290,10 +309,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
   /// Persiste el estado de agotado y refresca la caché.
   @override
   Future<void> setDishSoldOut(String dishId, bool soldOut) async {
-    await _client
-        .from('dishes')
-        .update({'sold_out': soldOut})
-        .eq('id', dishId);
+    await _client.from('dishes').update({'sold_out': soldOut}).eq('id', dishId);
     await refresh();
     if (!_changes.isClosed) _changes.add(null);
   }
@@ -316,8 +332,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     required Uint8List bytes,
   }) async {
     try {
-      final path =
-          '$businessId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path = '$businessId/${DateTime.now().millisecondsSinceEpoch}.jpg';
       await _client.storage
           .from('dish-images')
           .uploadBinary(
@@ -370,7 +385,9 @@ class SupabaseCatalogRepository implements CatalogRepository {
     openHour: ((row['open_hour'] as num?) ?? 8).toInt(),
     closeHour: ((row['close_hour'] as num?) ?? 22).toInt(),
     closedWeekdays:
-        (row['closed_weekdays'] as List?)?.map((e) => (e as num).toInt()).toList() ??
+        (row['closed_weekdays'] as List?)
+            ?.map((e) => (e as num).toInt())
+            .toList() ??
         const [],
     campusId: row['campus_id'] as String?,
     studentDiscount: ((row['student_discount'] as num?) ?? 0).toDouble(),
@@ -383,6 +400,17 @@ class SupabaseCatalogRepository implements CatalogRepository {
   );
 
   /// Convierte una fila de `dishes` con sus opciones al modelo.
+  /// Porciones vendidas hoy: si `sold_on` es de otro día, el conteo ya no
+  /// aplica (el servidor lo reinicia a medianoche de Colombia).
+  static int _soldToday(Map<String, dynamic> row) {
+    final sold = ((row['sold_today'] as num?) ?? 0).toInt();
+    final on = DateTime.tryParse((row['sold_on'] as String?) ?? '');
+    if (on == null) return sold;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return on.isBefore(today) ? 0 : sold;
+  }
+
   static Dish _dish(
     Map<String, dynamic> row,
     Map<String, Map<String, List<DishOption>>> optionsByDish,
@@ -421,7 +449,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
       active: (row['active'] as bool?) ?? true,
       soldOut: (row['sold_out'] as bool?) ?? false,
       portionLimit: (row['portion_limit'] as num?)?.toInt(),
-      soldToday: ((row['sold_today'] as num?) ?? 0).toInt(),
+      soldToday: _soldToday(row),
       imageAsset: row['image_url'] as String?,
     );
   }

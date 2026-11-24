@@ -11,6 +11,11 @@ final class OrdersChanged extends OrdersEvent {
   const OrdersChanged();
 }
 
+/// La pantalla pide volver a leer los pedidos (botón «Reintentar»).
+final class OrdersRefreshRequested extends OrdersEvent {
+  const OrdersRefreshRequested();
+}
+
 /// Comprador: confirmar el pedido. [clientKey] hace seguro el reintento.
 final class OrderPlaced extends OrdersEvent {
   const OrderPlaced(this.draft, {this.clientKey});

@@ -80,7 +80,10 @@ class _FakeRemoteAuth implements AuthRepository {
   Future<List<Address>> addresses(String userId) async => const [];
 
   @override
-  Future<CourierProfile?> courierProfile(String userId) async => null;
+  Future<CourierProfile?> courierProfile(String userId) async => courier;
+
+  /// Perfil de repartidor que devuelve el backend falso (null = no tiene).
+  CourierProfile? courier;
 
   @override
   Future<String?> registerBusiness(Map<String, dynamic> payload) async => null;
@@ -94,6 +97,20 @@ class _FakeRemoteAuth implements AuthRepository {
   Future<void> saveCourierProfile(String userId, CourierProfile profile) async {
     savedCourier = profile;
   }
+
+  /// Registra la última disponibilidad enviada al servidor.
+  @override
+  Future<String> setCourierOnline(
+    String userId, {
+    required bool online,
+    CourierZone? zone,
+  }) async {
+    lastOnline = online;
+    return 'ok';
+  }
+
+  /// Último valor de disponibilidad recibido.
+  bool? lastOnline;
 
   @override
   Future<String?> verifyUniversity(String universityId, String email) async {
@@ -162,6 +179,59 @@ void main() {
       expect(s.activeRole, UserRole.courier);
       expect(s.hasCourierProfile, isTrue);
     });
+
+    test('conectarse como repartidor se guarda en el servidor', () async {
+      final auth = _FakeRemoteAuth();
+      final s = _session(auth)..loginAs(auth.user);
+      await s.saveCourierProfile(
+        const CourierProfile(
+          fullName: 'Ana Repartidora',
+          docType: 'CC',
+          docNumber: '1000000009',
+          phone: '300 111 2233',
+          vehicle: Vehicle.bicycle,
+          contactEmail: 'ana@icesi.edu.co',
+        ),
+      );
+
+      s.setCourierOnline(false);
+      await Future<void>.delayed(Duration.zero);
+      expect(auth.lastOnline, isFalse);
+
+      s.setCourierOnline(true);
+      await Future<void>.delayed(Duration.zero);
+      expect(auth.lastOnline, isTrue);
+      expect(s.courierSyncError, isNull);
+    });
+
+    test(
+      'una recarga no vuelve a conectar al repartidor que se desconectó',
+      () async {
+        final auth = _FakeRemoteAuth()
+          ..courier = const CourierProfile(
+            fullName: 'Ana Repartidora',
+            docType: 'CC',
+            docNumber: '1000000009',
+            phone: '300 111 2233',
+            vehicle: Vehicle.bicycle,
+            contactEmail: 'ana@icesi.edu.co',
+          );
+        final s = _session(auth)..loginAs(auth.user);
+        await s.refreshRemote();
+        expect(
+          s.data.courierOnline,
+          isTrue,
+          reason: 'al entrar queda conectado',
+        );
+
+        s.setCourierOnline(false);
+        await Future<void>.delayed(Duration.zero);
+        await s.refreshRemote();
+
+        expect(s.data.courierOnline, isFalse);
+        expect(auth.lastOnline, isFalse);
+      },
+    );
 
     test('restoreAsync recupera la sesión persistida', () async {
       final auth = _FakeRemoteAuth();

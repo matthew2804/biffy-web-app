@@ -48,10 +48,19 @@ class CatalogController extends ChangeNotifier {
 
   /// Punto de entrega activo de la sesión.
   DeliveryPoint get point => _session.point;
+
   /// Hora actual según el reloj de la app.
   DateTime get now => clock.now();
 
   /// Sede por id.
+  /// No hay restaurantes visibles solo porque falta un repartidor conectado.
+  bool get waitingForCouriers =>
+      reachableRestaurants.isEmpty &&
+      repo.restaurants.any((r) => !r.paused && blockedOnlyByCouriers(r, point));
+
+  /// Estado de la última carga del catálogo (para carga y error en pantalla).
+  SyncStatus get syncStatus => repo.syncStatus;
+
   /// Vuelve a leer el catálogo del backend (no-op en demo).
   Future<void> refresh() async {
     await repo.refresh();
@@ -59,8 +68,10 @@ class CatalogController extends ChangeNotifier {
   }
 
   Restaurant? restaurantById(String id) => repo.restaurantById(id);
+
   /// Plato por id.
   Dish? dishById(String id) => repo.dishById(id);
+
   /// Negocio por id.
   Business? businessById(String id) => repo.businessById(id);
 
@@ -72,6 +83,7 @@ class CatalogController extends ChangeNotifier {
 
   /// `true` si la sede llega al punto de entrega actual.
   bool reachable(Restaurant r) => isReachable(r, point);
+
   /// `true` si la sede está abierta ahora.
   bool isOpen(Restaurant r) => isOpenAt(r, now);
 

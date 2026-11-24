@@ -82,8 +82,10 @@ class _PickupScreenState extends State<PickupScreen> {
               color: AppColors.primary,
               child: Column(
                 children: [
-                  const Text(
-                    'Código de recogida (simulado)',
+                  Text(
+                    o.dbId != null
+                        ? 'Código de recogida'
+                        : 'Código de recogida (simulado)',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: AppColors.text,

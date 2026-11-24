@@ -193,6 +193,14 @@ class InMemoryOrderRepository implements OrderRepository {
     return OrderResult.ok(o);
   }
 
+  /// En memoria los datos siempre están listos.
+  @override
+  SyncStatus get syncStatus => SyncStatus.ready;
+
+  /// En la demo la evidencia es un texto: no hay foto que mostrar.
+  @override
+  Future<String?> evidenceUrl(String orderId) async => null;
+
   @override
   Future<OrderResult> deliver(
     String orderId,

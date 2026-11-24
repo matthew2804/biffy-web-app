@@ -108,6 +108,7 @@ class SupabaseOrderRepository implements OrderRepository {
   Future<void> _refreshOnce() async {
     if (_client.auth.currentSession == null) {
       _clear();
+      _sync = SyncStatus.ready;
       return;
     }
     try {
@@ -196,9 +197,24 @@ class SupabaseOrderRepository implements OrderRepository {
       }).toList();
 
       _merge(incoming);
+      _setSync(SyncStatus.ready);
     } on Object {
-      // Sin conexión se conserva la última copia buena.
+      // Sin conexión se conserva la última copia buena y se avisa del error.
+      _setSync(SyncStatus.failed);
     }
+  }
+
+  SyncStatus _sync = SyncStatus.loading;
+
+  /// Resultado de la última recarga: `loading` hasta la primera respuesta.
+  @override
+  SyncStatus get syncStatus => _sync;
+
+  /// Cambia el estado de carga y avisa a la UI solo si cambió.
+  void _setSync(SyncStatus s) {
+    if (_sync == s) return;
+    _sync = s;
+    _emit();
   }
 
   void _clear() {
@@ -222,6 +238,9 @@ class SupabaseOrderRepository implements OrderRepository {
       }
       // Se actualiza el objeto vivo para no romper rutas abiertas.
       existing.status = fresh.status;
+      // El webhook de Wompi aprueba o rechaza después: sin esto la pantalla
+      // seguía en «Pendiente de pago» hasta reabrir la app.
+      existing.paymentStatus = fresh.paymentStatus;
       existing.courierId = fresh.courierId;
       existing.courierName = fresh.courierName;
       existing.rejectReason = fresh.rejectReason;
@@ -376,10 +395,10 @@ class SupabaseOrderRepository implements OrderRepository {
     try {
       final res = await _client.rpc(fn, params: params).timeout(rpcTimeout);
       result = RpcResult.fromJson(res);
-    } on sb.PostgrestException {
-      // Función inexistente, permisos o error interno: no es un resultado de
-      // negocio, así que no se expone el mensaje crudo.
-      result = const RpcResult('server_error');
+    } on sb.PostgrestException catch (e) {
+      // Las reglas de 0027 (horario, porciones) se lanzan desde triggers como
+      // `biffy:<código>`; cualquier otro error interno no se expone crudo.
+      result = RpcResult.fromException(e.message, e.details);
     } on TimeoutException {
       result = const RpcResult('network');
     } on Object {
@@ -425,6 +444,25 @@ class SupabaseOrderRepository implements OrderRepository {
       'p_evidence': reference,
     });
   }
+
+  /// Firma la ruta de `delivery-evidence` por una hora. El bucket es privado
+  /// y la política de lectura (0005) solo deja al comprador, al restaurante y
+  /// al repartidor del pedido.
+  @override
+  Future<String?> evidenceUrl(String orderId) async {
+    final path = byId(orderId)?.evidence;
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    // Evidencias de demostración ("Foto local…") no son rutas de Storage.
+    if (!path.contains('/') || path.contains(' ')) return null;
+    return _client.storage
+        .from('delivery-evidence')
+        .createSignedUrl(path, evidenceUrlTtl.inSeconds)
+        .timeout(rpcTimeout);
+  }
+
+  /// Vigencia de la URL firmada de la evidencia.
+  static const evidenceUrlTtl = Duration(hours: 1);
 
   // ------------------------------------------------------------ Realtime
 

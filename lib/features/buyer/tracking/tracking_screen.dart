@@ -16,6 +16,7 @@ import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/session_controller.dart';
 import '../cart/cart_screen.dart';
 import '../orders/reorder_flow.dart';
+import 'delivery_evidence_card.dart';
 import 'rate_order_card.dart';
 import '../../../app/di/injection.dart';
 import '../../../shared/state/controller_scope.dart';
@@ -272,6 +273,8 @@ class TrackingScreen extends StatelessWidget {
                 },
               ),
             if (o.status == OrderStatus.delivered) ...[
+              DeliveryEvidenceCard(order: o),
+              const SizedBox(height: 12),
               RateOrderCard(order: o),
               const SizedBox(height: 12),
             ],

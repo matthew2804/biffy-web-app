@@ -15,6 +15,7 @@ import '../../../shared/state/session_controller.dart';
 import '../ai/recommendation_input.dart';
 import '../../../shared/state/controller_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/sync_status.dart';
 
 /// Página de inicio del comprador con accesos, promociones y catálogo.
 class HomeScreen extends StatelessWidget {
@@ -370,13 +371,30 @@ class HomeScreen extends StatelessWidget {
                 child: _PromoBanner(),
               ),
             if (restaurants.isEmpty)
-              EmptyState(
-                emoji: '📍',
-                title:
-                    'No hay restaurantes que entreguen en ${session.point.name}',
-                body: 'Prueba con otro punto de entrega de la demostración.',
-                actionLabel: 'Cambiar punto de entrega',
-                onAction: () => showDeliveryPointSheet(context),
+              SyncStateView(
+                isEmpty: catalog.repo.restaurants.isEmpty,
+                loading: catalog.syncStatus == SyncStatus.loading,
+                failed: catalog.syncStatus == SyncStatus.failed,
+                errorTitle: 'No pudimos cargar los restaurantes',
+                onRetry: catalog.refresh,
+                child: catalog.waitingForCouriers
+                    ? EmptyState(
+                        key: const Key('no-couriers'),
+                        emoji: '🛵',
+                        title: 'No hay repartidores conectados ahora',
+                        body:
+                            'Los restaurantes de ${session.point.name} aparecerán apenas se conecte un repartidor.',
+                        actionLabel: 'Actualizar',
+                        onAction: catalog.refresh,
+                      )
+                    : EmptyState(
+                        emoji: '📍',
+                        title:
+                            'No hay restaurantes que entreguen en ${session.point.name}',
+                        body: 'Prueba con otro punto de entrega.',
+                        actionLabel: 'Cambiar punto de entrega',
+                        onAction: () => showDeliveryPointSheet(context),
+                      ),
               )
             else ...[
               const Padding(

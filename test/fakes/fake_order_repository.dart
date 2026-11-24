@@ -109,6 +109,23 @@ class FakeOrderRepository implements OrderRepository {
     Uint8List? evidenceBytes,
   ) => _op('deliver:$orderId');
 
+  /// Estado de carga que reporta el repositorio falso.
+  @override
+  SyncStatus syncStatus = SyncStatus.ready;
+
+  /// URL que devuelve [evidenceUrl]; si [evidenceError] es verdadero, lanza.
+  String? evidence;
+
+  /// Simula una falla de red al pedir la evidencia.
+  bool evidenceError = false;
+
+  /// Devuelve la evidencia configurada o lanza para probar el error.
+  @override
+  Future<String?> evidenceUrl(String orderId) async {
+    if (evidenceError) throw StateError('sin red');
+    return evidence;
+  }
+
   void dispose() => _changes.close();
 }
 
