@@ -95,6 +95,20 @@ class _FakeRemoteAuth implements AuthRepository {
     savedCourier = profile;
   }
 
+  /// Registra la última disponibilidad enviada al servidor.
+  @override
+  Future<String> setCourierOnline(
+    String userId, {
+    required bool online,
+    CourierZone? zone,
+  }) async {
+    lastOnline = online;
+    return 'ok';
+  }
+
+  /// Último valor de disponibilidad recibido.
+  bool? lastOnline;
+
   @override
   Future<String?> verifyUniversity(String universityId, String email) async {
     verifyCalls++;
@@ -161,6 +175,30 @@ void main() {
       expect(auth.savedCourier?.vehicle, Vehicle.bicycle);
       expect(s.activeRole, UserRole.courier);
       expect(s.hasCourierProfile, isTrue);
+    });
+
+    test('conectarse como repartidor se guarda en el servidor', () async {
+      final auth = _FakeRemoteAuth();
+      final s = _session(auth)..loginAs(auth.user);
+      await s.saveCourierProfile(
+        const CourierProfile(
+          fullName: 'Ana Repartidora',
+          docType: 'CC',
+          docNumber: '1000000009',
+          phone: '300 111 2233',
+          vehicle: Vehicle.bicycle,
+          contactEmail: 'ana@icesi.edu.co',
+        ),
+      );
+
+      s.setCourierOnline(false);
+      await Future<void>.delayed(Duration.zero);
+      expect(auth.lastOnline, isFalse);
+
+      s.setCourierOnline(true);
+      await Future<void>.delayed(Duration.zero);
+      expect(auth.lastOnline, isTrue);
+      expect(s.courierSyncError, isNull);
     });
 
     test('restoreAsync recupera la sesión persistida', () async {

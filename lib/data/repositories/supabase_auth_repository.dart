@@ -262,6 +262,26 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Llama al RPC `courier_set_online` (0027): el servidor recalcula los
+  /// repartidores cercanos de cada sede.
+  @override
+  Future<String> setCourierOnline(
+    String userId, {
+    required bool online,
+    CourierZone? zone,
+  }) async {
+    try {
+      final res = await _client.rpc(
+        'courier_set_online',
+        params: {'p_online': online, 'p_zone': ?zone?.name},
+      );
+      final map = res is Map ? res : const {};
+      return (map['result'] as String?) ?? 'server_error';
+    } on Object {
+      return 'network';
+    }
+  }
+
   /// Llama al RPC `verify_university` y devuelve su código de resultado.
   @override
   Future<String?> verifyUniversity(String universityId, String email) async {

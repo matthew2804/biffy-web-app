@@ -19,6 +19,16 @@ class RpcResult {
     return const RpcResult('server_error');
   }
 
+  /// Excepción de la base: `biffy:<código>` es una regla de negocio lanzada
+  /// por un trigger (0027) y `details` trae el plato si aplica; el resto es
+  /// `server_error`.
+  factory RpcResult.fromException(String message, Object? details) {
+    const prefix = 'biffy:';
+    if (!message.startsWith(prefix)) return const RpcResult('server_error');
+    final dish = details is String && details.isNotEmpty ? details : null;
+    return RpcResult(message.substring(prefix.length), {'dish': ?dish});
+  }
+
   final String code;
   final Map<String, dynamic> data;
 

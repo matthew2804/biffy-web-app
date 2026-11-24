@@ -6,13 +6,19 @@ import 'package:flutter_test/flutter_test.dart';
 /// (`0003_functions.sql` + `0019_order_cycle.sql`) más los de transporte.
 const _serverCodes = [
   'not_authenticated', 'no_profile', 'forbidden', 'branch_not_found',
-  'branch_paused', 'address_not_found', 'point_not_found', 'out_of_zone', 'outside_campus',
+  'branch_paused',
+  'address_not_found',
+  'point_not_found',
+  'out_of_zone',
+  'outside_campus',
   'empty_cart', 'invalid_qty', 'dish_not_found', 'dish_unavailable',
   'no_portions', 'invalid_option', 'subtotal_mismatch', 'total_mismatch',
   'insufficient_gotas', 'invalid_gotas', 'invalid_tip', 'invalid_payment',
   'coupon_unavailable', 'invalid_payload', 'not_found', 'invalid_state',
   'already_assigned', 'not_available', 'busy', 'out_of_range',
   'declined_before', 'wrong_code', 'missing_evidence',
+  // reglas del servidor (0027)
+  'branch_closed', 'invalid_schedule',
   // transporte
   'network', 'upload_failed', 'not_synced',
 ];
@@ -24,7 +30,11 @@ void main() {
       for (final code in _serverCodes) {
         final m = orderErrorMessage(code);
         expect(m, isNotEmpty, reason: code);
-        expect(m, isNot(contains('_')), reason: '$code muestra el código crudo');
+        expect(
+          m,
+          isNot(contains('_')),
+          reason: '$code muestra el código crudo',
+        );
         expect(m, isNot(generic), reason: '$code cae en el mensaje genérico');
         expect(m.length, greaterThan(10), reason: code);
       }
@@ -44,7 +54,28 @@ void main() {
           reason: c,
         );
       }
-      expect(orderErrorMessage('total_mismatch'), contains('precios cambiaron'));
+      expect(
+        orderErrorMessage('total_mismatch'),
+        contains('precios cambiaron'),
+      );
+    });
+
+    test('una regla de un trigger (biffy:<código>) llega como resultado', () {
+      final r = RpcResult.fromException('biffy:no_portions', 'Papas');
+      expect(r.code, 'no_portions');
+      expect(orderErrorMessage(r.code, r.data), contains('Papas'));
+      expect(
+        RpcResult.fromException('biffy:branch_closed', null).code,
+        'branch_closed',
+      );
+    });
+
+    test('cualquier otra excepción de la base es server_error', () {
+      final r = RpcResult.fromException(
+        'permission denied for table orders',
+        null,
+      );
+      expect(r.code, 'server_error');
     });
 
     test('nombra el plato cuando el servidor lo informa', () {

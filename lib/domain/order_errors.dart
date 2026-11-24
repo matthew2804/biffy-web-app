@@ -19,6 +19,10 @@ String orderErrorMessage(String code, [Map<String, dynamic> data = const {}]) {
     // Crear pedido
     'branch_not_found' => 'Este restaurante ya no está disponible.',
     'branch_paused' => 'El restaurante pausó sus pedidos por ahora.',
+    'branch_closed' =>
+      'El restaurante está cerrado a esta hora. Programa tu pedido para cuando abra.',
+    'invalid_schedule' =>
+      'Esa hora ya no está disponible en el horario del restaurante. Elige otra.',
     'address_not_found' =>
       'No encontramos esa dirección. Elige o crea otra para continuar.',
     'point_not_found' => 'El punto de entrega de esa dirección ya no existe.',

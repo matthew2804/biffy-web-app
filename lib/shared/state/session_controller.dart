@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../core/constants/catalog_constants.dart';
@@ -303,8 +305,16 @@ class SessionController extends ChangeNotifier {
     return u;
   }
 
-  /// Cierra la sesión remota y la local.
+  /// Cierra la sesión remota y la local. El repartidor se desconecta antes
+  /// para que no siga contando como disponible en las sedes.
   Future<void> logoutAsync() async {
+    final u = _user;
+    if (u != null &&
+        _auth.isRemote &&
+        hasCourierProfile &&
+        data.courierOnline) {
+      await _auth.setCourierOnline(u.id, online: false);
+    }
     await _auth.signOut();
     logout();
   }
@@ -388,6 +398,8 @@ class SessionController extends ChangeNotifier {
       d.courierZone = courier.universityId == null
           ? CourierZone.general
           : CourierZone.campus;
+      // Al entrar queda conectado, también en el servidor (0027).
+      unawaited(_syncCourierOnline());
     }
 
     // Preferencias, ajustes y favoritos del usuario (en paralelo).
@@ -920,11 +932,12 @@ class SessionController extends ChangeNotifier {
     }
   }
 
-  /// Cambia la disponibilidad del repartidor.
+  /// Cambia la disponibilidad del repartidor (y la guarda en el servidor).
   void setCourierOnline(bool online) {
     if (!hasCourierProfile) return;
     data.courierOnline = online;
     notifyListeners();
+    unawaited(_syncCourierOnline());
   }
 
   /// El modo Campus exige universidad verificada (simulación).
@@ -932,6 +945,38 @@ class SessionController extends ChangeNotifier {
     if (zone == CourierZone.campus && !isVerifiedStudent) return false;
     data.courierZone = zone;
     notifyListeners();
+    unawaited(_syncCourierOnline());
     return true;
+  }
+
+  /// Último error al guardar la disponibilidad del repartidor, en español.
+  String? courierSyncError;
+
+  /// Envía conexión y zona al servidor; si falla, vuelve al estado anterior
+  /// para que la pantalla no muestre «CONECTADO» sin estarlo de verdad.
+  Future<void> _syncCourierOnline() async {
+    final u = _user;
+    if (u == null || !_auth.isRemote) return;
+    final online = data.courierOnline;
+    final code = await _auth.setCourierOnline(
+      u.id,
+      online: online,
+      zone: data.courierZone,
+    );
+    if (code == 'ok') {
+      courierSyncError = null;
+      return;
+    }
+    if (code == 'not_verified') {
+      data.courierZone = CourierZone.general;
+    } else if (data.courierOnline == online) {
+      data.courierOnline = !online;
+    }
+    courierSyncError = switch (code) {
+      'network' => 'Sin conexión: no pudimos cambiar tu disponibilidad.',
+      'not_verified' => 'Verifica tu correo universitario para el modo Campus.',
+      _ => 'No pudimos cambiar tu disponibilidad. Intenta de nuevo.',
+    };
+    notifyListeners();
   }
 }

@@ -374,10 +374,10 @@ class SupabaseOrderRepository implements OrderRepository {
     try {
       final res = await _client.rpc(fn, params: params).timeout(rpcTimeout);
       result = RpcResult.fromJson(res);
-    } on sb.PostgrestException {
-      // Función inexistente, permisos o error interno: no es un resultado de
-      // negocio, así que no se expone el mensaje crudo.
-      result = const RpcResult('server_error');
+    } on sb.PostgrestException catch (e) {
+      // Las reglas de 0027 (horario, porciones) se lanzan desde triggers como
+      // `biffy:<código>`; cualquier otro error interno no se expone crudo.
+      result = RpcResult.fromException(e.message, e.details);
     } on TimeoutException {
       result = const RpcResult('network');
     } on Object {
