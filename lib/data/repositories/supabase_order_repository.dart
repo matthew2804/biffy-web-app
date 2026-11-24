@@ -9,6 +9,7 @@ import '../../domain/entities/catalog.dart';
 import '../../domain/entities/order.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/order_repository.dart';
+import '../../shared/adapters/payment_adapters.dart';
 import 'rpc_result.dart';
 
 /// Pedidos reales contra Supabase.
@@ -304,6 +305,7 @@ class SupabaseOrderRepository implements OrderRepository {
       // En UTC con zona explícita: sin ella Postgres la toma como UTC.
       'scheduled_for': r.scheduledFor!.toUtc().toIso8601String(),
     if (r.couponId != null) 'coupon_id': r.couponId,
+    if (r.cashTendered != null) 'cash_tendered': r.cashTendered,
   };
 
   static bool _isTransport(String code) =>
@@ -531,6 +533,9 @@ class SupabaseOrderRepository implements OrderRepository {
       courierPay: _int(row['courier_pay']),
       distanceKm: ((row['distance_km'] as num?) ?? 0).toDouble(),
       couponId: row['coupon_id'] as String?,
+      paymentStatus: paymentStatusFromDb(row['payment_status'] as String?),
+      cashTendered: (row['cash_tendered'] as num?)?.toInt(),
+      cashChange: (row['cash_change'] as num?)?.toInt(),
       status: _status(row['status'] as String?),
     );
 

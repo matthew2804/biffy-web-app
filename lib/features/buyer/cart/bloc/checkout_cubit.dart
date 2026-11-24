@@ -80,7 +80,10 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   bool get canSubmit => errors.isEmpty && !state.placing;
 
   /// Crea el pedido y devuelve su resultado, o `null` si no se envió.
-  Future<OrderOutcome?> submit() async {
+  ///
+  /// [clearCart] se apaga cuando el pago es online: si Wompi lo rechaza, el
+  /// comprador vuelve al carrito con sus productos intactos.
+  Future<OrderOutcome?> submit({bool clearCart = true}) async {
     if (state.placing) return null;
     final current = draft;
     final problems = orders.validate(current);
@@ -98,7 +101,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
     if (outcome.result.ok) {
       _clientKey = null;
-      cart.clear();
+      if (clearCart) cart.clear();
       emit(
         CheckoutState(
           orderId: outcome.orderId,

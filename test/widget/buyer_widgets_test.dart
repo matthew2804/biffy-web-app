@@ -130,19 +130,12 @@ void main() {
     expect(find.text(cop(49800)), findsWidgets);
     expect(find.text('-${cop(4980)}'), findsOneWidget);
     expect(find.text(cop(46320)), findsOneWidget);
-    expect(
-      find.text(
-        'Pedido de demostración · sin cobros reales',
-        skipOffstage: false,
-      ),
-      findsNothing,
-    );
-    expect(
-      find.textContaining('Pedido de demostración · sin cobros reales'),
-      findsOneWidget,
-    );
+    expect(find.text('Pago seguro con Wompi'), findsOneWidget);
     await tapVisible(tester, find.byKey(const Key('confirm-order')));
     expect(s.orders.forBuyer('u-diego').length, before + 1);
+    // El pago simulado aprueba en 10 ms: deja que navegue al seguimiento.
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
     expect(s.cart.isEmpty, isTrue);
     final id = s.orders.forBuyer('u-diego').first.id;
     expect(find.text('Pedido $id'), findsOneWidget);

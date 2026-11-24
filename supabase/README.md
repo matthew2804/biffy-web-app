@@ -79,6 +79,12 @@ solo habilita Campus. El flujo es:
 | `UNIVERSITY_DEMO_MODE` | `true` solo para demo: devuelve el código a la app si no hay Resend |
 | `REVALIDATION_SECRET` | Header `x-cron-secret` para invocar la revalidación |
 | `RESEND_WEBHOOK_SECRET` | Firma de los webhooks de Resend (rebotes) |
+| `WOMPI_PUBLIC_KEY` | Llave pública de Wompi (URL del Checkout Web) |
+| `WOMPI_PRIVATE_KEY` | Consultar/anular transacciones (solo servidor) |
+| `WOMPI_INTEGRITY_SECRET` | Firma de integridad del checkout |
+| `WOMPI_EVENTS_SECRET` | Checksum de los eventos de Wompi |
+| `WOMPI_ENV` | `sandbox` o `production` |
+| `CRON_SECRET` | Header `x-cron-secret` para `expire-payments`/`refund-payment` |
 
 **Despliegue:**
 
@@ -86,7 +92,23 @@ solo habilita Campus. El flujo es:
 supabase functions deploy send-university-code
 supabase functions deploy university-revalidation
 supabase functions deploy resend-webhook
+supabase functions deploy create-payment
+supabase functions deploy wompi-webhook --no-verify-jwt
+supabase functions deploy expire-payments --no-verify-jwt
+supabase functions deploy refund-payment --no-verify-jwt
 ```
+
+### Pagos con Wompi (HU-5)
+
+- Checkout Web en **sandbox**; la app no maneja datos de tarjeta.
+- `create-payment` arma la preferencia por el total de `place_order`; el webhook
+  verifica el checksum, consulta la transacción real y aplica el estado de forma
+  idempotente.
+- Webhook: `https://<ref>.supabase.co/functions/v1/wompi-webhook` con el evento
+  `transaction.updated` (ambiente de pruebas).
+- Cron: `.github/workflows/expire-payments.yml` cada 15 minutos con el secret
+  `CRON_SECRET` del repositorio (el mismo de Supabase).
+- Guía paso a paso: [`GUIA_SANDBOX_WOMPI.md`](../GUIA_SANDBOX_WOMPI.md).
 
 Programa `university-revalidation` una vez al día (por ejemplo 08:00) desde
 **Supabase → Cron** o con `pg_cron` + `pg_net`. No guardes la `service_role` en
@@ -131,17 +153,23 @@ supabase/
     0024_free_shipping_5_gotas.sql # envío gratis cuesta 5 Gotas (HU-4)
     0025_university_revalidation.sql # código al correo institucional, vencimiento
                                   # a 30 días y revocación de Campus
+    0026_payments.sql             # pagos Wompi + efectivo con billete (HU-5)
     0099_verify.sql               # verifica tablas, columnas y RPC clave
   functions/
     send-university-code/         # envía el código al correo con Resend
     university-revalidation/      # cron: revalida, revoca y avisa
     resend-webhook/               # rebotes: revoca Campus y avisa
-    _shared/                      # CORS y envío de correo compartido
+    create-payment/               # inicia el checkout de Wompi
+    wompi-webhook/                # checksum + estado real de la transacción
+    expire-payments/              # cron: cancela pagos vencidos
+    refund-payment/               # anula/reembolsa en Wompi
+    _shared/                      # CORS, email y cliente/firma de Wompi
   tests/
     _supabase_stubs.sql           # auth/storage/roles mínimos para Postgres local
     _demo_accounts.sql            # Diego, Andrés y Qbano para la base local
     hu3_order_cycle.sql           # prueba SQL del ciclo completo (con ROLLBACK)
     hu1_university.sql            # código, verificación, revalidación y revocación
+    hu5_payments.sql              # pagos, gating, efectivo, rechazo y expiración
     hu4_*.sql                     # pruebas de RLS y RPC de HU-4 (con ROLLBACK)
 ```
 

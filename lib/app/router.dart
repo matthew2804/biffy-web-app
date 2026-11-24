@@ -17,6 +17,7 @@ import '../features/buyer/home/home_screen.dart';
 import '../features/buyer/notifications/notifications_screen.dart';
 import '../features/buyer/orders/frequent_orders_screen.dart';
 import '../features/buyer/orders/orders_screen.dart';
+import '../features/buyer/payment/payment_screen.dart';
 import '../features/buyer/payments/payments_screen.dart';
 import '../features/buyer/preferences/preferences_screen.dart';
 import '../features/buyer/product/dish_screen.dart';
@@ -50,6 +51,7 @@ import '../shared/state/controller_scope.dart';
 /// Rutas del comprador que requieren cuenta (explorar nunca la requiere).
 const kBuyerProtected = [
   '/checkout',
+  '/pago',
   '/pedido',
   '/pedidos',
   '/frecuentes',
@@ -166,6 +168,14 @@ GoRouter buildRouter(
       ),
       _r('/carrito', (_) => const CartScreen()),
       _r('/checkout', (_) => const CheckoutScreen()),
+      _r(
+        '/pago/:id',
+        (s) => PaymentScreen(
+          code: s.pathParameters['id']!,
+          orderId: s.uri.queryParameters['order'] ?? s.pathParameters['id']!,
+          method: s.uri.queryParameters['method'],
+        ),
+      ),
       _r('/pedido/:id', (s) => TrackingScreen(id: s.pathParameters['id']!)),
       _r('/pedidos', (_) => const OrdersScreen()),
       _r('/frecuentes', (_) => const FrequentOrdersScreen()),

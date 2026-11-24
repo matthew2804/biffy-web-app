@@ -61,6 +61,7 @@ class PlaceOrder {
         scheduledFor: d.scheduledFor,
         restaurantNote: d.restaurantNote.trim(),
         couponId: d.coupon?.id,
+        cashTendered: d.cashTendered,
       ),
     );
     final order = result.order;

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import '../../core/utils/clock.dart';
 import '../../domain/entities/order.dart';
+import '../../domain/entities/payment.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/order_rules.dart';
 import '../../domain/repositories/order_repository.dart';
@@ -100,6 +101,11 @@ class InMemoryOrderRepository implements OrderRepository {
       courierPay: r.courierPay,
       distanceKm: r.distanceKm,
       couponId: r.couponId,
+      cashTendered: r.cashTendered,
+      cashChange: r.cashTendered == null
+          ? null
+          : math.max(0, r.cashTendered! - t.total),
+      paymentStatus: PaymentStatus.approved,
     );
     _orders.insert(0, order);
     _byClientKey[r.clientKey] = order;

@@ -3,8 +3,10 @@ import 'package:biffy/data/repositories/auth_repository.dart';
 import 'package:biffy/data/repositories/catalog_repository.dart';
 import 'package:biffy/data/repositories/in_memory_order_repository.dart';
 import 'package:biffy/domain/repositories/order_repository.dart';
+import 'package:biffy/domain/repositories/payment_repository.dart';
 import 'package:biffy/domain/repositories/rewards_repository.dart';
 import 'package:biffy/domain/usecases/orders/order_usecases.dart';
+import 'package:biffy/domain/usecases/payments/start_payment.dart';
 import 'package:biffy/domain/usecases/rate_order.dart';
 import 'package:biffy/features/buyer/notifications/notifications_cubit.dart';
 import 'package:biffy/features/buyer/tracking/rate_order_cubit.dart';
@@ -45,6 +47,7 @@ void main() {
       expect(getIt<SessionController>(), same(getIt<SessionController>()));
       expect(getIt<CatalogController>(), same(getIt<CatalogController>()));
       expect(getIt<CartCubit>(), same(getIt<CartCubit>()));
+      expect(getIt<PaymentRepository>(), same(getIt<PaymentRepository>()));
       expect(getIt<NotificationCenter>(), same(getIt<NotificationCenter>()));
       expect(getIt<OrdersBloc>(), same(getIt<OrdersBloc>()));
     });
@@ -52,6 +55,7 @@ void main() {
     test('los casos de uso son Factory: cada petición crea uno nuevo', () {
       expect(getIt<OrderUseCases>(), isNot(same(getIt<OrderUseCases>())));
       expect(getIt<RateOrder>(), isNot(same(getIt<RateOrder>())));
+      expect(getIt<StartPayment>(), isNot(same(getIt<StartPayment>())));
     });
 
     test('los cubits de pantalla son Factory', () {

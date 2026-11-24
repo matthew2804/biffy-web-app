@@ -20,6 +20,7 @@ class CheckoutDraft {
     this.useGotas = false,
     this.coupon,
     this.restaurantNote = '',
+    this.cashTendered,
   });
 
   final AppUser? buyer;
@@ -32,6 +33,9 @@ class CheckoutDraft {
   final bool useGotas;
   final Coupon? coupon;
   final String restaurantNote;
+
+  /// Billete con el que se paga en efectivo (`null` = pago exacto).
+  final int? cashTendered;
 }
 
 /// Clave de idempotencia para crear un pedido: un reintento con la misma clave

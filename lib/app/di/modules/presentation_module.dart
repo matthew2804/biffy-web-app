@@ -5,15 +5,20 @@ import '../../../data/repositories/auth_repository.dart';
 import '../../../data/repositories/catalog_repository.dart';
 import '../../../domain/repositories/merchant_boxes_repository.dart';
 import '../../../domain/repositories/notification_repository.dart';
+import '../../../domain/repositories/payment_repository.dart';
 import '../../../domain/repositories/profile_repository.dart';
 import '../../../domain/usecases/get_courier_earnings.dart';
 import '../../../domain/usecases/merchant_boxes_usecases.dart';
 import '../../../domain/usecases/orders/get_delivery_evidence.dart';
 import '../../../domain/usecases/orders/order_usecases.dart';
+import '../../../domain/usecases/payments/check_payment_status.dart';
+import '../../../domain/usecases/payments/retry_payment.dart';
+import '../../../domain/usecases/payments/start_payment.dart';
 import '../../../domain/usecases/rate_order.dart';
 import '../../../domain/usecases/rewards_usecases.dart';
 import '../../../features/buyer/cart/bloc/cart_cubit.dart';
 import '../../../features/buyer/cart/bloc/checkout_cubit.dart';
+import '../../../features/buyer/payment/bloc/payment_bloc.dart';
 import '../../../features/buyer/notifications/notifications_cubit.dart';
 import '../../../features/buyer/rewards/rewards_cubit.dart';
 import '../../../features/buyer/tracking/delivery_evidence_cubit.dart';
@@ -130,6 +135,15 @@ void _registerBlocs(GetIt g) {
       orders: g<OrdersBloc>(),
       session: g<SessionController>(),
       cart: g<CartCubit>(),
+    ),
+  );
+  g.registerFactoryParam<PaymentBloc, String, void>(
+    (orderId, _) => PaymentBloc(
+      orderId: orderId,
+      start: g<StartPayment>(),
+      check: g<CheckPaymentStatus>(),
+      retry: g<RetryPayment>(),
+      watch: g<PaymentRepository>().watch,
     ),
   );
 }

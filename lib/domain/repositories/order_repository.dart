@@ -58,6 +58,7 @@ class PlaceOrderRequest {
     this.scheduledFor,
     this.restaurantNote = '',
     this.couponId,
+    this.cashTendered,
   });
 
   final AppUser buyer;
@@ -76,6 +77,9 @@ class PlaceOrderRequest {
   final DateTime? scheduledFor;
   final String restaurantNote;
   final String? couponId;
+
+  /// Billete con el que se paga en efectivo (`null` = pago exacto).
+  final int? cashTendered;
 }
 
 /// Persistencia y reglas de transición de pedidos, compartidas por los tres

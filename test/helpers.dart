@@ -4,6 +4,7 @@ import 'package:biffy/app/app.dart';
 import 'package:biffy/app/di/bootstrap.dart';
 import 'package:biffy/app/di/injection.dart';
 import 'package:biffy/data/repositories/in_memory_order_repository.dart';
+import 'package:biffy/data/repositories/in_memory_payment_repository.dart';
 import 'package:biffy/domain/repositories/rewards_repository.dart';
 import 'package:biffy/domain/usecases/rate_order.dart';
 import 'package:biffy/features/orders/bloc/orders_bloc.dart';
@@ -17,6 +18,7 @@ import 'package:biffy/data/models/cart.dart';
 import 'package:biffy/data/models/catalog.dart';
 import 'package:biffy/data/models/order.dart';
 import 'package:biffy/domain/repositories/order_repository.dart';
+import 'package:biffy/domain/repositories/payment_repository.dart';
 import 'package:biffy/domain/usecases/orders/checkout_draft.dart';
 import 'package:biffy/core/utils/clock.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +36,7 @@ class TestServices {
   SessionController get session => getIt<SessionController>();
   CatalogController get catalog => getIt<CatalogController>();
   CartCubit get cart => getIt<CartCubit>();
+  PaymentRepository get payment => getIt<PaymentRepository>();
   NotificationCenter get notifications => getIt<NotificationCenter>();
   OrdersBloc get orders => getIt<OrdersBloc>();
   RateOrder get rateOrder => getIt<RateOrder>();
@@ -61,6 +64,12 @@ Future<TestServices> makeServices({
     ),
   );
   if (rewards != null) getIt.registerSingleton<RewardsRepository>(rewards);
+  // En pruebas el pago simulado se resuelve rápido (sin esperar 2 s).
+  getIt.registerLazySingleton<PaymentRepository>(
+    () => InMemoryPaymentRepository(
+      autoApproveAfter: const Duration(milliseconds: 10),
+    ),
+  );
   bootstrapDemo(seedData: seed);
   return const TestServices();
 }

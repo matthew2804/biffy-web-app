@@ -5,12 +5,16 @@ import '../../../domain/ports/order_ports.dart';
 import '../../../domain/ports/review_ports.dart';
 import '../../../domain/repositories/merchant_boxes_repository.dart';
 import '../../../domain/repositories/order_repository.dart';
+import '../../../domain/repositories/payment_repository.dart';
 import '../../../domain/repositories/review_repository.dart';
 import '../../../domain/repositories/rewards_repository.dart';
 import '../../../domain/usecases/get_courier_earnings.dart';
 import '../../../domain/usecases/merchant_boxes_usecases.dart';
 import '../../../domain/usecases/orders/get_delivery_evidence.dart';
 import '../../../domain/usecases/orders/order_usecases.dart';
+import '../../../domain/usecases/payments/check_payment_status.dart';
+import '../../../domain/usecases/payments/retry_payment.dart';
+import '../../../domain/usecases/payments/start_payment.dart';
 import '../../../domain/usecases/rate_order.dart';
 import '../../../domain/usecases/rewards_usecases.dart';
 import '../../../shared/adapters/order_adapters.dart';
@@ -79,6 +83,13 @@ void _registerUseCases(GetIt g) {
   g.registerFactory<GetDeliveryEvidence>(
     () => GetDeliveryEvidence(g<OrderRepository>()),
   );
+
+  // Pagos: iniciar, consultar y reintentar (sin estado propio).
+  g.registerFactory<StartPayment>(() => StartPayment(g<PaymentRepository>()));
+  g.registerFactory<CheckPaymentStatus>(
+    () => CheckPaymentStatus(g<PaymentRepository>()),
+  );
+  g.registerFactory<RetryPayment>(() => RetryPayment(g<PaymentRepository>()));
 
   // Recompensas y cajas: solo se piden cuando hay repositorio (Supabase).
   g.registerFactory<LoadRewards>(() => LoadRewards(g<RewardsRepository>()));

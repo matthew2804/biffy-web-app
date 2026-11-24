@@ -7,8 +7,11 @@ import '../../../core/constants/catalog_constants.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/confetti.dart';
 import '../../../core/widgets/ui.dart';
+import '../../../domain/cash_payment.dart';
 import '../../../domain/catalog_rules.dart';
+import '../../../domain/entities/catalog.dart';
 import '../../../domain/pricing.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 import 'bloc/cart_cubit.dart';
@@ -30,6 +33,13 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   late final CheckoutCubit _checkout;
 
+  /// Pedido ya creado esperando pago (id real y código visible).
+  String? _pendingOrderId;
+  String? _pendingCode;
+
+  /// Motivo del último rechazo, para mostrarlo en el carrito.
+  String? _paymentError;
+
   /// Crea el cubit con los pedidos, la sesión y el carrito compartidos.
   @override
   void initState() {
@@ -47,7 +57,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   /// Construye el resumen, los errores y el botón de confirmar.
   @override
   Widget build(BuildContext context) {
-    context.watch<CartCubit>();
+    final cart = context.watch<CartCubit>();
     context.watchController<SessionController>();
     final catalog = context.watchController<CatalogController>();
     final t = Theme.of(context).textTheme;
@@ -69,6 +79,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final point = draft.address == null
         ? null
         : pointById(draft.address!.pointId);
+    final method = draft.payment;
+    final isCash = method == PaymentMethod.cash;
+    final cashTendered = cart.cashTendered ?? (isCash ? totals.total : null);
+    final cashChange = isCash && cashTendered != null
+        ? changeFor(totals.total, cashTendered)
+        : 0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Confirmar pedido')),
@@ -78,7 +94,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             children: [
-              const DemoBadge('Pedido de demostración · sin cobros reales'),
+              Text(
+                isCash ? 'Pago contra entrega' : 'Pago seguro con Wompi',
+                style: t.labelLarge?.copyWith(color: AppColors.muted),
+              ),
               const SizedBox(height: 12),
               BiffyCard(
                 child: Column(
@@ -147,7 +166,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ? 'Ahora'
                           : dateTimeLabel(draft.scheduledFor!),
                     ),
-                    InfoRow('Método de pago (simulado)', draft.payment.label),
+                    InfoRow('Método de pago', method.label),
                     if (point != null)
                       InfoRow(
                         'Tiempo estimado',
@@ -160,14 +179,82 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               const SizedBox(height: 12),
               TotalsCard(totals: totals),
-              if (draft.payment.name == 'cash')
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    'El repartidor te cobrará ${cop(totals.total)} en efectivo (simulado).',
-                    style: t.bodySmall,
+              if (isCash) ...[
+                const SizedBox(height: 12),
+                BiffyCard(
+                  key: const Key('cash-bills'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '¿Con qué billete pagas?',
+                        style: t.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final bill in cashOptions(totals.total))
+                            ChoiceChip(
+                              label: Text(
+                                bill == totals.total
+                                    ? 'Pago exacto (${cop(bill)})'
+                                    : cop(bill),
+                              ),
+                              selected: cashTendered == bill,
+                              onSelected: (_) => cart.setCashTendered(bill),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        cashChange > 0
+                            ? 'Pagas con ${cop(cashTendered!)} · Vueltas ${cop(cashChange)}'
+                            : 'Pagas el valor exacto.',
+                        style: t.bodySmall,
+                      ),
+                    ],
                   ),
                 ),
+              ],
+              if (_paymentError != null) ...[
+                const SizedBox(height: 12),
+                BiffyCard(
+                  key: const Key('payment-error'),
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'El pago no se completó',
+                        style: TextStyle(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(_paymentError!),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          TextButton(
+                            onPressed: _place,
+                            child: const Text('Reintentar pago'),
+                          ),
+                          TextButton(
+                            onPressed: _cancelPending,
+                            child: const Text('Cancelar pedido'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (errors.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 BiffyCard(
@@ -204,12 +291,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 key: const Key('confirm-order'),
                 label: state.placing
                     ? 'Creando pedido…'
-                    : 'Confirmar pedido · ${cop(totals.total)}',
-                onPressed: errors.isNotEmpty || state.placing ? null : _place,
+                    : _pendingOrderId != null
+                    ? 'Reintentar pago · ${cop(totals.total)}'
+                    : isCash
+                    ? 'Confirmar pedido · ${cop(totals.total)}'
+                    : 'Pagar con ${method.label} · ${cop(totals.total)}',
+                onPressed:
+                    errors.isNotEmpty ||
+                        state.placing ||
+                        (isCash &&
+                            (cashTendered == null ||
+                                cashTendered < totals.total))
+                    ? null
+                    : _place,
               ),
               const SizedBox(height: 8),
               Text(
-                'No se realizará ningún cobro: la pasarela de pago está fuera del alcance de este sprint.',
+                isCash
+                    ? 'El repartidor te cobrará al entregar el pedido.'
+                    : 'Te llevaremos a la página segura de Wompi para pagar.',
                 textAlign: TextAlign.center,
                 style: t.bodySmall,
               ),
@@ -220,21 +320,83 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  /// Crea el pedido, vacía el carrito y navega al seguimiento.
+  /// Crea el pedido y, si es online, abre el pago en Wompi.
   Future<void> _place() async {
-    final outcome = await _checkout.submit();
+    final method = _checkout.draft.payment;
+    final totals = _checkout.totals;
+    final cart = context.read<CartCubit>();
+
+    if (method == PaymentMethod.cash) {
+      if (cart.cashTendered == null) cart.setCashTendered(totals.total);
+      if ((cart.cashTendered ?? 0) < totals.total) return;
+    }
+
+    // Si el pedido ya existe, se reintenta su pago en vez de duplicarlo.
+    if (_pendingOrderId != null) {
+      await _openPayment(
+        _pendingOrderId!,
+        _pendingCode ?? _pendingOrderId!,
+        method,
+      );
+      return;
+    }
+
+    final outcome = await _checkout.submit(
+      clearCart: method == PaymentMethod.cash,
+    );
     if (!mounted || outcome == null) return;
     if (!outcome.result.ok) {
       showSnack(context, outcome.result.message, error: true);
       return;
     }
-    final id = outcome.orderId;
-    showSnack(
-      context,
-      _checkout.state.message ??
-          (id == null ? 'Pedido creado' : 'Pedido $id creado'),
+    final code = outcome.orderId;
+    if (code == null) return;
+
+    if (method == PaymentMethod.cash) {
+      showSnack(
+        context,
+        _checkout.state.message ??
+            (code.isEmpty ? 'Pedido creado' : 'Pedido $code creado'),
+      );
+      celebrate(context);
+      context.go('/pedido/$code');
+      return;
+    }
+
+    // El id real (uuid) es el que entiende la pasarela; el código es la ruta.
+    final order = context.read<OrdersBloc>().byId(code);
+    final paymentId = order?.dbId ?? order?.id ?? code;
+    setState(() {
+      _pendingOrderId = paymentId;
+      _pendingCode = code;
+      _paymentError = null;
+    });
+    await _openPayment(paymentId, code, method);
+  }
+
+  /// Abre la pantalla de pago y recoge el mensaje de rechazo.
+  Future<void> _openPayment(
+    String paymentId,
+    String code,
+    PaymentMethod method,
+  ) async {
+    final message = await context.push<String>(
+      '/pago/$code?order=$paymentId&method=${method.name}',
     );
-    celebrate(context);
-    if (id != null) context.go('/pedido/$id');
+    if (!mounted || message == null) return;
+    setState(() => _paymentError = message);
+  }
+
+  /// Cancela el pedido pendiente y devuelve el carrito editable.
+  Future<void> _cancelPending() async {
+    final code = _pendingCode;
+    if (code == null) return;
+    await context.read<OrdersBloc>().request(OrderCancelled(code));
+    if (!mounted) return;
+    setState(() {
+      _pendingOrderId = null;
+      _pendingCode = null;
+      _paymentError = null;
+    });
   }
 }

@@ -9,6 +9,7 @@ import '../../../core/widgets/ui.dart';
 import '../../../data/mock/seed_users.dart';
 import '../../../data/models/order.dart';
 import '../../../data/models/user.dart';
+import '../../../domain/payment_errors.dart';
 import '../../../domain/pricing.dart';
 import '../../../shared/state/catalog_controller.dart';
 import '../../../features/orders/bloc/orders_bloc.dart';
@@ -215,7 +216,13 @@ class TrackingScreen extends StatelessWidget {
                   InfoRow('Creado', dateTimeLabel(o.createdAt)),
                   if (o.isScheduled)
                     InfoRow('Programado', dateTimeLabel(o.scheduledFor!)),
-                  InfoRow('Pago (simulado)', o.payment.label),
+                  InfoRow('Pago', o.payment.label),
+                  InfoRow('Estado del pago', paymentStatusLabel(o.paymentStatus)),
+                  if (o.cashTendered != null)
+                    InfoRow(
+                      'Paga con',
+                      '${cop(o.cashTendered!)} · Vueltas ${cop(o.cashChange ?? 0)}',
+                    ),
                 ],
               ),
             ),

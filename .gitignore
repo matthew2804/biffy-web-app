@@ -33,8 +33,12 @@ ios/Flutter/flutter_export_environment.sh
 # Entorno y secretos (Supabase, scripts de administración)
 .env
 .env.*
+# La plantilla sí se versiona; los .env reales no.
+!supabase/functions/.env.example
 env.json
 *.env
+# Secretos locales de Edge Functions (Wompi y otros): nunca se publican.
+supabase/functions/.env
 supabase/.temp/
 supabase/.branches/
 

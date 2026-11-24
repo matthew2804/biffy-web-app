@@ -1,6 +1,7 @@
 import 'address.dart';
 import 'cart.dart';
 import 'catalog.dart';
+import 'payment.dart';
 
 /// Estados internos del pedido compartidos por los tres roles.
 enum OrderStatus {
@@ -104,7 +105,10 @@ class Order {
     this.scheduledFor,
     this.restaurantNote = '',
     this.status = OrderStatus.pending,
+    this.paymentStatus = PaymentStatus.approved,
     this.couponId,
+    this.cashTendered,
+    this.cashChange,
   }) : history = [StatusEvent(OrderStatus.pending, createdAt, 'Comprador')];
 
   final String id;
@@ -133,8 +137,17 @@ class Order {
   final double distanceKm;
   final String? couponId;
 
+  /// Billete con el que paga en efectivo (`null` = pago exacto).
+  final int? cashTendered;
+
+  /// Vueltas calculadas para el billete.
+  final int? cashChange;
+
   // Estado mutable: solo lo modifica OrdersBloc.
   OrderStatus status;
+
+  /// Estado del pago (el servidor tiene la última palabra).
+  PaymentStatus paymentStatus;
   String? courierId;
   String? courierName;
   String? rejectReason;

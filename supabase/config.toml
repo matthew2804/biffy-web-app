@@ -36,3 +36,15 @@ file_size_limit = "10MiB"
 
 [realtime]
 enabled = true
+
+# Webhook de Wompi y tareas de cron: validan su propio secreto/firma dentro de
+# la función, así que no exigen JWT de usuario.
+[functions.wompi-webhook]
+verify_jwt = false
+
+[functions.expire-payments]
+verify_jwt = false
+
+[functions.refund-payment]
+verify_jwt = false
+

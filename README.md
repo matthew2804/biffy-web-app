@@ -12,8 +12,9 @@ Biffy es una aplicación de domicilios de comida para estudiantes universitarios
 | Capa | Tecnología |
 |---|---|
 | UI | Flutter 3.44 · Material 3 · tema propio (claro/oscuro) |
-| Estado | `flutter_bloc` (Bloc/Cubit) en pedidos, auth y carrito; sesión, catálogo y avisos con `ChangeNotifier` (GetIt) |
+| Estado | `flutter_bloc` (Bloc/Cubit) en pedidos, auth, carrito y pagos; sesión, catálogo y avisos con `ChangeNotifier` (GetIt) |
 | Inyección de dependencias | `get_it` (`lib/app/di/`) |
+| Pagos | Wompi Checkout Web (sandbox) + efectivo con billete; Edge Functions + webhook firmado |
 | Navegación | `go_router` con un `StatefulShellRoute` por rol y guardas por sesión |
 | Datos | Repositorios en memoria detrás de interfaces (`lib/data/repositories/`) |
 | Reglas de negocio | Funciones puras en `lib/domain/` |
@@ -106,7 +107,7 @@ lib/
     restaurant_owner/        # registration, home, orders, menu, products, statistics, profile
   shared/state/              # Controladores ChangeNotifier y ControllerScope
 test/
-  unit/  widget/  integration/   # 235 pruebas (sin dispositivo)
+  unit/  widget/  integration/   # 251 pruebas (sin dispositivo)
   helpers.dart
 integration_test/app_test.dart   # Flujo completo en Android/iOS
 supabase/
@@ -119,7 +120,8 @@ assets/
 ## Arquitectura
 
 - **Inyección de dependencias:** GetIt registra todo en `lib/app/di/`. El módulo de datos decide entre Supabase y memoria según `AppConfig.hasSupabase`; los casos de uso y los cubits de pantalla son `Factory`, los repositorios, controladores y `CartCubit` `LazySingleton`. Las pruebas llaman a `makeServices()` (reinicia GetIt con reloj fijo y semilla aleatoria), por lo que son deterministas.
-- **Cubits por slice:** `LoginCubit`, `RegisterCubit` y `UniversityVerificationCubit` (auth/Campus); `CartCubit` y `CheckoutCubit` (carrito). Las pantallas piden el cubit a GetIt y solo pintan estado; `CheckoutCubit` delega el pedido a `OrdersBloc`.
+- **Cubits por slice:** `LoginCubit`, `RegisterCubit` y `UniversityVerificationCubit` (auth/Campus); `CartCubit`, `CheckoutCubit` y `PaymentBloc` (carrito y pago). Las pantallas piden el cubit a GetIt y solo pintan estado; `CheckoutCubit` delega el pedido a `OrdersBloc` y `PaymentBloc` a `StartPayment`/`CheckPaymentStatus`/`RetryPayment`.
+- **Pagos:** `PaymentRepository` en dominio con implementación de Wompi (sandbox) y otra en memoria. El servidor crea el cobro por el total de `place_order`, el webhook firmado actualiza el estado y el restaurante solo ve pedidos aprobados. El efectivo se aprueba sin pasarela, con billete y vueltas.
 - **Reglas fuera de la UI:** `pricing.dart`, `catalog_rules.dart` (regla única de cobertura `isReachable`), `order_rules.dart` (tabla `kAllowedTransitions`, pago al repartidor, métricas), `scheduling.dart`, `recommendation.dart`, `assistant.dart`, `reorder.dart`.
 - **Pedidos compartidos:** `OrdersBloc` (casos de uso → `OrderRepository`) es el único que cambia estados. La aceptación del repartidor es atómica: si el pedido ya tiene repartidor devuelve `alreadyAssigned`.
 - **Navegación:** `lib/app/router.dart` concentra las rutas. El comprador explora sin sesión; checkout, pedidos, recompensas, favoritos, direcciones y pagos exigen cuenta y conservan la ruta de origen (`/login?from=…`). `/repartidor/*` exige perfil de repartidor y `/negocio/*` un negocio vinculado.
@@ -127,13 +129,13 @@ assets/
 
 ## Roles y flujo de demostración
 
-**Comprador** (Inicio · Explorar · Biffy AI · Perfil): explora sin cuenta, filtra, personaliza platos, arma el carrito, programa, elige dirección y pago simulado, confirma un pedido de demostración, sigue el estado, repite pedidos, recibe recomendaciones locales, gestiona preferencias, Gotas, favoritos, direcciones y soporte.
+**Comprador** (Inicio · Explorar · Biffy AI · Perfil): explora sin cuenta, filtra, personaliza platos, arma el carrito, programa, elige dirección y paga con Wompi (sandbox) o efectivo con billete, confirma el pedido, sigue el estado, repite pedidos, recibe recomendaciones locales, gestiona preferencias, Gotas, favoritos, direcciones y soporte.
 
 **Restaurante** (Inicio · Pedidos · Menú · Estadísticas · Perfil): registro en 6 pasos, panel con métricas, pedidos de cocina (aceptar, rechazar con motivo, marcar listo), CRUD de productos que se publican en el catálogo del comprador, estadísticas y perfil.
 
 **Repartidor** (Inicio · Ganancias · Perfil): registro con vehículo, conexión y zona General/Campus, ofertas con asignación atómica, recogida con checklist obligatorio, entrega con código y evidencia fotográfica, ganancias e historial.
 
-Un pedido creado por el comprador aparece en el panel del restaurante, pasa a las ofertas de los repartidores al marcarse listo y vuelve al historial del comprador al entregarse. `test/integration/full_flow.dart` recorre ese ciclo completo a través de la interfaz.
+Un pedido creado por el comprador aparece en el panel del restaurante **solo cuando el pago está aprobado**, pasa a las ofertas de los repartidores al marcarse listo y vuelve al historial del comprador al entregarse. `test/integration/full_flow.dart` recorre ese ciclo completo a través de la interfaz.
 
 Guía paso a paso del ciclo completo: [`INFORME_SPRINT_1.md`](INFORME_SPRINT_1.md), sección 4.
 
@@ -163,7 +165,7 @@ Estado verificado en esta rama:
 | Comando | Resultado |
 |---|---|
 | `flutter analyze` | `No issues found!` |
-| `flutter test` | **235 pruebas, todas pasan** |
+| `flutter test` | **251 pruebas, todas pasan** |
 
 - **Unitarias:** precios, reglas de catálogo, sesión y Gotas, carrito, servicio de pedidos, programación y asistente.
 - **Widgets:** recorrido de todas las rutas de los tres roles (falla ante excepciones u overflow), flujos del comprador y de roles, modo oscuro y punto sin cobertura.
@@ -247,7 +249,7 @@ Copia de la app React/Lovable original, conservada como referencia. No se compil
 
 1. Supabase: esquema, RLS, RPC, Auth, Storage y Realtime.
 2. Autenticación real con verificación de correo universitario.
-3. Pasarela de pagos (Nequi, PSE, tarjeta).
+3. ✅ Pasarela de pagos con Wompi (Nequi, Daviplata, tarjeta y PSE) y efectivo con billete, en **sandbox**; el paso a producción queda pendiente (ver `GUIA_SANDBOX_WOMPI.md`).
 4. Geolocalización real y seguimiento en mapa.
 5. Notificaciones push (FCM).
 6. CI con `flutter analyze`, `flutter test` y `flutter build web`.

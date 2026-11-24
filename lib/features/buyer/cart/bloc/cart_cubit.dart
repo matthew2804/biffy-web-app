@@ -24,6 +24,7 @@ class CartState {
     this.payment,
     this.scheduledFor,
     this.addressId,
+    this.cashTendered,
   });
 
   /// Líneas del carrito (solo lectura).
@@ -61,6 +62,9 @@ class CartState {
 
   /// Dirección de entrega elegida.
   final String? addressId;
+
+  /// Billete con el que pagará en efectivo (`null` = pago exacto).
+  final int? cashTendered;
 
   /// `true` si no hay líneas.
   bool get isEmpty => items.isEmpty;
@@ -131,6 +135,9 @@ class CartCubit extends Cubit<CartState> {
   /// Dirección elegida.
   String? get addressId => state.addressId;
 
+  /// Billete con el que paga en efectivo.
+  int? get cashTendered => state.cashTendered;
+
   /// Genera un id único para una línea nueva.
   String newLineId() => 'line-${++_seq}';
 
@@ -194,6 +201,7 @@ class CartCubit extends Cubit<CartState> {
       useGotas: false,
       couponId: null,
       scheduledFor: null,
+      cashTendered: null,
     );
   }
 
@@ -247,13 +255,14 @@ class CartCubit extends Cubit<CartState> {
         useGotas: false,
         couponId: null,
         scheduledFor: null,
+        cashTendered: null,
       );
       return;
     }
     _commit(current);
   }
 
-  /// Vacía el carrito y reinicia nota, propina, Gotas, cupón y horario.
+  /// Vacía el carrito y reinicia nota, propina, Gotas, cupón, horario y billete.
   void clear() => _commit(
     const [],
     note: '',
@@ -261,6 +270,7 @@ class CartCubit extends Cubit<CartState> {
     useGotas: false,
     couponId: null,
     scheduledFor: null,
+    cashTendered: null,
   );
 
   /// Guarda la nota para el restaurante.
@@ -283,6 +293,10 @@ class CartCubit extends Cubit<CartState> {
 
   /// Elige la dirección de entrega.
   void setAddress(String? id) => _commit(state.items, addressId: id);
+
+  /// Guarda el billete con el que se paga en efectivo.
+  void setCashTendered(int? value) =>
+      _commit(state.items, cashTendered: value);
 
   /// Copia una línea cambiando solo lo indicado.
   CartItem _copy(
@@ -308,6 +322,7 @@ class CartCubit extends Cubit<CartState> {
     PaymentMethod? payment,
     Object? scheduledFor = _unset,
     Object? addressId = _unset,
+    Object? cashTendered = _unset,
   }) {
     final fixed = List<CartItem>.unmodifiable(items);
     Restaurant? restaurant;
@@ -341,6 +356,9 @@ class CartCubit extends Cubit<CartState> {
         addressId: identical(addressId, _unset)
             ? state.addressId
             : addressId as String?,
+        cashTendered: identical(cashTendered, _unset)
+            ? state.cashTendered
+            : cashTendered as int?,
       ),
     );
   }

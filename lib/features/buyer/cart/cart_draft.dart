@@ -20,4 +20,5 @@ CheckoutDraft draftFromCart(SessionController session, CartCubit cart) =>
       useGotas: cart.useGotas && session.isLoggedIn,
       coupon: session.couponById(cart.couponId),
       restaurantNote: cart.restaurantNote,
+      cashTendered: cart.cashTendered,
     );
