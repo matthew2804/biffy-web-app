@@ -238,6 +238,9 @@ class SupabaseOrderRepository implements OrderRepository {
       }
       // Se actualiza el objeto vivo para no romper rutas abiertas.
       existing.status = fresh.status;
+      // El webhook de Wompi aprueba o rechaza después: sin esto la pantalla
+      // seguía en «Pendiente de pago» hasta reabrir la app.
+      existing.paymentStatus = fresh.paymentStatus;
       existing.courierId = fresh.courierId;
       existing.courierName = fresh.courierName;
       existing.rejectReason = fresh.rejectReason;

@@ -256,7 +256,9 @@ class _CartScreenState extends State<CartScreen> {
               ),
             const SectionHeader('Método de pago'),
             Text(
-              'Simulado: no se procesan pagos ni se piden datos bancarios.',
+              orders.isRemote
+                  ? 'Nequi, Daviplata, tarjeta y PSE se pagan en la página segura de Wompi; el efectivo, al recibir.'
+                  : 'Simulado: no se procesan pagos ni se piden datos bancarios.',
               style: t.bodySmall,
             ),
             const SizedBox(height: 8),

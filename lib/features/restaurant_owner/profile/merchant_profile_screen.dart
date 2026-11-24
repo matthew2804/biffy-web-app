@@ -63,7 +63,7 @@ class MerchantProfileScreen extends StatelessWidget {
                       Text(r.address, style: t.bodySmall),
                       Text('🕒 ${scheduleLabel(r)}', style: t.bodySmall),
                       Text(
-                        '📍 Radio ${r.radiusKm} km · ${r.couriersNearby} repartidores conectados${getIt<OrdersBloc>().isRemote ? '' : ' (simulado)'}',
+                        '📍 Radio ${r.radiusKm} km · ${r.couriersNearby == 1 ? '1 repartidor conectado' : '${r.couriersNearby} repartidores conectados'}${getIt<OrdersBloc>().isRemote ? '' : ' (simulado)'}',
                         style: t.bodySmall,
                       ),
                       if (r.campusId != null)

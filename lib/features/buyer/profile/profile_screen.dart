@@ -327,17 +327,21 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-/// Cierra sesión con confirmación, limpia la sesión y vuelve al inicio.
+/// Cierra sesión con confirmación y vuelve al inicio. Primero navega (la
+/// pantalla actual puede desaparecer al cambiar la sesión) y después cierra
+/// también la sesión del servidor: así el repartidor se desconecta y al
+/// reabrir la app no se restaura la cuenta anterior.
 Future<void> logoutFlow(BuildContext context) async {
   final ok = await showConfirm(
     context,
     title: '¿Cerrar sesión?',
-    message: 'Se cerrará tu sesión de demostración en este dispositivo.',
+    message: 'Se cerrará tu sesión en este dispositivo.',
     confirm: 'Cerrar sesión',
     destructive: true,
   );
   if (!ok || !context.mounted) return;
-  getIt<SessionController>().logout();
-  context.go('/');
-  showSnack(context, 'Sesión cerrada');
+  final messenger = ScaffoldMessenger.of(context);
+  GoRouter.of(context).go('/');
+  await getIt<SessionController>().logoutAsync();
+  messenger.showSnackBar(const SnackBar(content: Text('Sesión cerrada')));
 }

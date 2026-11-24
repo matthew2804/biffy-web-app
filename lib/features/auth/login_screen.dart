@@ -19,7 +19,19 @@ void navigateAfterAuth(BuildContext context, AppUser user, String? from) {
     if (from != null && from.isNotEmpty) {
       context.go(from);
     } else if (context.canPop()) {
+      final router = GoRouter.of(context);
+      final depth = router.routerDelegate.currentConfiguration.matches.length;
       context.pop(true);
+      // El login avisa al router (refreshListenable); si su refresco repone
+      // /login encima (pasa desde las pestañas del inicio), se cierra otra vez.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final now = router.routerDelegate.currentConfiguration.matches;
+        if (now.length >= depth &&
+            now.last.matchedLocation == '/login' &&
+            router.canPop()) {
+          router.pop(true);
+        }
+      });
     } else {
       context.go('/');
     }
