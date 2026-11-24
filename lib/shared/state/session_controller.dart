@@ -101,6 +101,9 @@ class SessionController extends ChangeNotifier {
 
   /// Cancela la escucha de avisos en Realtime del usuario actual.
   void Function()? _stopNotifications;
+
+  /// Usuario al que ya se conectó automáticamente como repartidor al entrar.
+  String? _courierAutoOnlineFor;
   String? _watchingUserId;
 
   AppUser? _user;
@@ -248,6 +251,7 @@ class SessionController extends ChangeNotifier {
     _stopNotifications?.call();
     _stopNotifications = null;
     _watchingUserId = null;
+    _courierAutoOnlineFor = null;
     _user = null;
     _activeRole = UserRole.buyer;
     notifyListeners();
@@ -394,12 +398,16 @@ class SessionController extends ChangeNotifier {
     final courier = await courierF;
     if (courier != null) {
       d.courierProfile = courier;
-      d.courierOnline = true;
-      d.courierZone = courier.universityId == null
-          ? CourierZone.general
-          : CourierZone.campus;
-      // Al entrar queda conectado, también en el servidor (0027).
-      unawaited(_syncCourierOnline());
+      // Solo al entrar queda conectado (también en el servidor, 0027); una
+      // recarga posterior (p. ej. tras abrir una caja) respeta lo que eligió.
+      if (_courierAutoOnlineFor != u.id) {
+        _courierAutoOnlineFor = u.id;
+        d.courierOnline = true;
+        d.courierZone = courier.universityId == null
+            ? CourierZone.general
+            : CourierZone.campus;
+        unawaited(_syncCourierOnline());
+      }
     }
 
     // Preferencias, ajustes y favoritos del usuario (en paralelo).
