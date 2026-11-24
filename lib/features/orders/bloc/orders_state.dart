@@ -39,19 +39,26 @@ final class OrdersState {
     this.orders = const [],
     this.revision = 0,
     this.outcome,
+    this.sync = SyncStatus.ready,
   });
 
   final List<Order> orders;
   final int revision;
   final OrderOutcome? outcome;
 
+  /// Estado de la última lectura del servidor: con una lista vacía, `failed`
+  /// significa «no pudimos cargar» y `loading` «todavía no llega».
+  final SyncStatus sync;
+
   OrdersState copyWith({
     List<Order>? orders,
     int? revision,
     OrderOutcome? outcome,
+    SyncStatus? sync,
   }) => OrdersState(
     orders: orders ?? this.orders,
     revision: revision ?? this.revision,
     outcome: outcome ?? this.outcome,
+    sync: sync ?? this.sync,
   );
 }

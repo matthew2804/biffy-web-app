@@ -251,6 +251,51 @@ class ErrorView extends StatelessWidget {
   }
 }
 
+/// Decide qué mostrar en una lista que viene del servidor: el contenido,
+/// un indicador mientras llega la primera carga o un error con reintento.
+/// Solo actúa si la lista está vacía; con datos en caché se muestra el
+/// contenido aunque la última recarga haya fallado.
+class SyncStateView extends StatelessWidget {
+  /// Recibe si la lista está vacía, si sigue cargando o si falló, y el
+  /// contenido normal (que incluye su propio estado vacío).
+  const SyncStateView({
+    super.key,
+    required this.isEmpty,
+    required this.loading,
+    required this.failed,
+    required this.onRetry,
+    required this.child,
+    this.errorTitle = 'No pudimos cargar esto',
+  });
+
+  final bool isEmpty;
+  final bool loading;
+  final bool failed;
+  final VoidCallback onRetry;
+  final Widget child;
+  final String errorTitle;
+
+  /// Pinta carga, error o el contenido según el estado.
+  @override
+  Widget build(BuildContext context) {
+    if (isEmpty && failed) {
+      return ErrorView(
+        key: const Key('sync-error'),
+        title: errorTitle,
+        onRetry: onRetry,
+      );
+    }
+    if (isEmpty && loading) {
+      return const Padding(
+        key: Key('sync-loading'),
+        padding: EdgeInsets.all(32),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return child;
+  }
+}
+
 /// Píldora seleccionable (filtros, categorías, opciones).
 class SelectPill extends StatelessWidget {
   const SelectPill({

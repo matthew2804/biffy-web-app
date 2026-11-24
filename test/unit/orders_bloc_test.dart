@@ -17,7 +17,9 @@ void main() {
 
   Future<Order> pending() async {
     final s = await makeServices();
-    final base = s.orders.all.firstWhere((o) => o.status == OrderStatus.pending);
+    final base = s.orders.all.firstWhere(
+      (o) => o.status == OrderStatus.pending,
+    );
     final o = Order(
       id: 'BF-3001',
       buyerId: base.buyerId,
@@ -75,6 +77,25 @@ void main() {
     expect(fresh.state.outcome, isNull);
   });
 
+  test(
+    'si la carga falla el estado lo dice y el reintento vuelve a leer',
+    () async {
+      repo.syncStatus = SyncStatus.failed;
+      repo.notifyChanged();
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state.sync, SyncStatus.failed);
+
+      repo.syncStatus = SyncStatus.ready;
+      final before = repo.refreshes;
+      bloc.add(const OrdersRefreshRequested());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repo.refreshes, before + 1);
+      expect(bloc.state.sync, SyncStatus.ready);
+    },
+  );
+
   test('un cambio del repositorio refresca la lista y la revisión', () async {
     final first = bloc.state.revision;
     repo.insertSeed(await pending());
@@ -85,17 +106,20 @@ void main() {
     expect(state.outcome, isNull, reason: 'refrescar no es un resultado');
   });
 
-  test('request devuelve el resultado de la acción y lo deja en el estado', () async {
-    final o = await pending();
-    repo.insertSeed(o);
-    final outcome = await bloc.request(OrderAccepted(o.id));
+  test(
+    'request devuelve el resultado de la acción y lo deja en el estado',
+    () async {
+      final o = await pending();
+      repo.insertSeed(o);
+      final outcome = await bloc.request(OrderAccepted(o.id));
 
-    expect(outcome.ok, isTrue);
-    expect(outcome.action, OrderAction.accept);
-    expect(outcome.orderId, o.id);
-    expect(bloc.state.outcome, same(outcome));
-    expect(repo.calls, ['accept:BF-3001']);
-  });
+      expect(outcome.ok, isTrue);
+      expect(outcome.action, OrderAction.accept);
+      expect(outcome.orderId, o.id);
+      expect(bloc.state.outcome, same(outcome));
+      expect(repo.calls, ['accept:BF-3001']);
+    },
+  );
 
   test('cada resultado tiene un id creciente (para BlocListener)', () async {
     final o = await pending();
@@ -105,16 +129,19 @@ void main() {
     expect(b.id, greaterThan(a.id));
   });
 
-  test('un fallo del servidor llega como resultado con mensaje en español', () async {
-    final o = await pending();
-    repo.insertSeed(o);
-    repo.responses['accept:BF-3001'] = const OrderResult('forbidden');
-    final outcome = await bloc.request(OrderAccepted(o.id));
+  test(
+    'un fallo del servidor llega como resultado con mensaje en español',
+    () async {
+      final o = await pending();
+      repo.insertSeed(o);
+      repo.responses['accept:BF-3001'] = const OrderResult('forbidden');
+      final outcome = await bloc.request(OrderAccepted(o.id));
 
-    expect(outcome.ok, isFalse);
-    expect(outcome.result.code, 'forbidden');
-    expect(outcome.result.message, contains('No tienes permiso'));
-  });
+      expect(outcome.ok, isFalse);
+      expect(outcome.result.code, 'forbidden');
+      expect(outcome.result.message, contains('No tienes permiso'));
+    },
+  );
 
   test('doble toque: la segunda petición idéntica se ignora', () async {
     final o = await pending();

@@ -3,9 +3,12 @@ import 'dart:typed_data';
 import '../entities/address.dart';
 import '../entities/catalog.dart';
 import '../entities/order.dart';
+import '../entities/sync_status.dart';
 import '../entities/user.dart';
 import '../order_errors.dart' as errors;
 import '../pricing.dart';
+
+export '../entities/sync_status.dart';
 
 /// Resultado de una operación de pedidos, igual en modo demo y con servidor.
 ///
@@ -28,7 +31,8 @@ class OrderResult {
   bool get ok => code == 'ok';
 
   /// Mensaje en español para mostrar; nunca expone el código crudo.
-  String get message => (data['message'] as String?) ?? errors.orderErrorMessage(code, data);
+  String get message =>
+      (data['message'] as String?) ?? errors.orderErrorMessage(code, data);
 
   /// Falló la conexión: el servidor pudo o no procesar la petición.
   bool get isTransportError => errors.isTransportError(code);
@@ -101,6 +105,9 @@ abstract class OrderRepository {
   /// mueve las Gotas y los cupones, y que las direcciones y cupones deben
   /// existir en la cuenta (identificados con uuid).
   bool get isRemote;
+
+  /// Resultado de la última lectura del servidor (siempre `ready` en la demo).
+  SyncStatus get syncStatus;
 
   /// Relee desde la fuente (no hace nada en memoria). Nunca lanza.
   Future<void> refresh();

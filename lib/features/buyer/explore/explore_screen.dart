@@ -12,6 +12,7 @@ import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 import '../../../app/di/injection.dart';
 import '../../../shared/state/controller_scope.dart';
+import '../../../domain/entities/sync_status.dart';
 
 /// Buscador de platos y restaurantes con filtros rápidos y avanzados.
 class ExploreScreen extends StatefulWidget {
@@ -270,12 +271,27 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
             if (catalog.reachableRestaurants.isEmpty)
               SliverToBoxAdapter(
-                child: EmptyState(
-                  emoji: '📍',
-                  title: 'Sin cobertura en ${session.point.name}',
-                  body: 'Ningún restaurante entrega en este punto ahora mismo.',
-                  actionLabel: 'Cambiar punto de entrega',
-                  onAction: () => showDeliveryPointSheet(context),
+                child: SyncStateView(
+                  isEmpty: catalog.repo.restaurants.isEmpty,
+                  loading: catalog.syncStatus == SyncStatus.loading,
+                  failed: catalog.syncStatus == SyncStatus.failed,
+                  errorTitle: 'No pudimos cargar el catálogo',
+                  onRetry: catalog.refresh,
+                  child: EmptyState(
+                    emoji: catalog.waitingForCouriers ? '🛵' : '📍',
+                    title: catalog.waitingForCouriers
+                        ? 'No hay repartidores conectados ahora'
+                        : 'Sin cobertura en ${session.point.name}',
+                    body: catalog.waitingForCouriers
+                        ? 'Los restaurantes aparecerán apenas se conecte un repartidor.'
+                        : 'Ningún restaurante entrega en este punto ahora mismo.',
+                    actionLabel: catalog.waitingForCouriers
+                        ? 'Actualizar'
+                        : 'Cambiar punto de entrega',
+                    onAction: catalog.waitingForCouriers
+                        ? catalog.refresh
+                        : () => showDeliveryPointSheet(context),
+                  ),
                 ),
               )
             else if (browsing && !widget.restaurantsView) ...[

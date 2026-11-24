@@ -21,6 +21,16 @@ void main() {
       expect(isReachable(q, pointById('biblio')), isFalse);
     });
 
+    test('distingue «sin repartidores» de «fuera de zona»', () {
+      final q = restaurants['qbano-icesi']!..couriersNearby = 0;
+      expect(isReachable(q, pointById('icesi-biblioteca')), isFalse);
+      expect(blockedOnlyByCouriers(q, pointById('icesi-biblioteca')), isTrue);
+      // Fuera del campus no es por repartidores: no entregaría igual.
+      expect(blockedOnlyByCouriers(q, pointById('biblio')), isFalse);
+      q.couriersNearby = 3;
+      expect(blockedOnlyByCouriers(q, pointById('icesi-biblioteca')), isFalse);
+    });
+
     test('sin repartidores cerca no es alcanzable', () {
       expect(
         isReachable(restaurants['dulce-panal']!, pointById('biblio')),

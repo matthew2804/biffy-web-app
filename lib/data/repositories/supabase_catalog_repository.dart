@@ -124,9 +124,24 @@ class SupabaseCatalogRepository implements CatalogRepository {
       _dishes
         ..clear()
         ..addAll(dishRows.map((row) => _dish(row, optionsByDish)));
+      _setSync(SyncStatus.ready);
     } on Object {
-      // Sin conexión: se mantiene la última copia buena.
+      // Sin conexión: se mantiene la última copia buena y se avisa del error.
+      _setSync(SyncStatus.failed);
     }
+  }
+
+  SyncStatus _sync = SyncStatus.loading;
+
+  /// Resultado de la última lectura: `loading` hasta la primera respuesta.
+  @override
+  SyncStatus get syncStatus => _sync;
+
+  /// Cambia el estado de carga y avisa a la vista si cambió.
+  void _setSync(SyncStatus s) {
+    if (_sync == s) return;
+    _sync = s;
+    if (!_changes.isClosed) _changes.add(null);
   }
 
   // ------------------------------------------------------------ Realtime

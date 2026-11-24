@@ -14,6 +14,13 @@ bool isReachable(Restaurant r, DeliveryPoint p) {
   return r.couriersNearby > 0 && distanceTo(r, p) <= r.radiusKm;
 }
 
+/// El restaurante entregaría en el punto, pero ahora no hay repartidores
+/// conectados que lo atiendan (el servidor los cuenta en 0027).
+bool blockedOnlyByCouriers(Restaurant r, DeliveryPoint p) {
+  if (r.campusDeliveryOnly && p.campusId != r.campusId) return false;
+  return r.couriersNearby == 0 && distanceTo(r, p) <= r.radiusKm;
+}
+
 /// Indica si el restaurante está abierto en ese momento.
 bool isOpenAt(Restaurant r, DateTime t) =>
     !r.paused &&

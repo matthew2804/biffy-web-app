@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import '../../domain/entities/sync_status.dart';
 import '../mock/seed_catalog.dart';
 import '../models/business.dart';
 import '../models/catalog.dart';
+
+export '../../domain/entities/sync_status.dart';
 
 /// Contrato del catálogo. En un sprint posterior puede implementarse con
 /// Firebase/Firestore sin cambiar las pantallas.
@@ -48,6 +51,9 @@ abstract class CatalogRepository {
 
   /// Vuelve a leer el catálogo del backend. No-op en la demo.
   Future<void> refresh() async {}
+
+  /// Resultado de la última lectura del backend (en la demo, siempre listo).
+  SyncStatus get syncStatus => SyncStatus.ready;
 }
 
 /// Catálogo de demostración guardado en memoria.
@@ -71,6 +77,10 @@ class InMemoryCatalogRepository implements CatalogRepository {
 
   @override
   Future<void> refresh() async {}
+
+  /// En memoria el catálogo siempre está listo.
+  @override
+  SyncStatus get syncStatus => SyncStatus.ready;
 
   /// Negocios registrados (solo lectura).
   @override

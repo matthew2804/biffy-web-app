@@ -108,6 +108,7 @@ class SupabaseOrderRepository implements OrderRepository {
   Future<void> _refreshOnce() async {
     if (_client.auth.currentSession == null) {
       _clear();
+      _sync = SyncStatus.ready;
       return;
     }
     try {
@@ -196,9 +197,24 @@ class SupabaseOrderRepository implements OrderRepository {
       }).toList();
 
       _merge(incoming);
+      _setSync(SyncStatus.ready);
     } on Object {
-      // Sin conexión se conserva la última copia buena.
+      // Sin conexión se conserva la última copia buena y se avisa del error.
+      _setSync(SyncStatus.failed);
     }
+  }
+
+  SyncStatus _sync = SyncStatus.loading;
+
+  /// Resultado de la última recarga: `loading` hasta la primera respuesta.
+  @override
+  SyncStatus get syncStatus => _sync;
+
+  /// Cambia el estado de carga y avisa a la UI solo si cambió.
+  void _setSync(SyncStatus s) {
+    if (_sync == s) return;
+    _sync = s;
+    _emit();
   }
 
   void _clear() {

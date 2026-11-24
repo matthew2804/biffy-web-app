@@ -15,6 +15,7 @@ import '../offers/offer_widgets.dart';
 import '../../../app/di/injection.dart';
 import '../../../shared/state/controller_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/sync_status.dart';
 
 /// Pantalla de inicio del repartidor con estado, ofertas y entrega en curso.
 class CourierHomeScreen extends StatelessWidget {
@@ -244,6 +245,15 @@ class CourierHomeScreen extends StatelessWidget {
               Text(
                 'Termina tu entrega actual para aceptar otra oferta.',
                 style: t.bodySmall,
+              )
+            else if (offers.isEmpty && orders.state.sync != SyncStatus.ready)
+              SyncStateView(
+                isEmpty: true,
+                loading: orders.state.sync == SyncStatus.loading,
+                failed: orders.state.sync == SyncStatus.failed,
+                errorTitle: 'No pudimos cargar las ofertas',
+                onRetry: () => orders.add(const OrdersRefreshRequested()),
+                child: const SizedBox.shrink(),
               )
             else if (offers.isEmpty)
               EmptyState(

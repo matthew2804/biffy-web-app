@@ -11,6 +11,7 @@ import 'reorder_flow.dart';
 import '../../../app/di/injection.dart';
 import '../../../shared/state/controller_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/sync_status.dart';
 
 /// Historial separado en activos, programados, anteriores y cancelados.
 class OrdersScreen extends StatelessWidget {
@@ -71,11 +72,19 @@ class OrdersScreen extends StatelessWidget {
             children: [
               for (final (label, list) in tabs)
                 list.isEmpty
-                    ? EmptyState(
-                        emoji: '🧾',
-                        title: 'No tienes pedidos ${label.toLowerCase()}',
-                        actionLabel: 'Explorar comida',
-                        onAction: () => context.go('/explorar'),
+                    ? SyncStateView(
+                        isEmpty: true,
+                        loading: orders.state.sync == SyncStatus.loading,
+                        failed: orders.state.sync == SyncStatus.failed,
+                        errorTitle: 'No pudimos cargar tus pedidos',
+                        onRetry: () =>
+                            orders.add(const OrdersRefreshRequested()),
+                        child: EmptyState(
+                          emoji: '🧾',
+                          title: 'No tienes pedidos ${label.toLowerCase()}',
+                          actionLabel: 'Explorar comida',
+                          onAction: () => context.go('/explorar'),
+                        ),
                       )
                     : ListView(
                         padding: const EdgeInsets.all(16),
