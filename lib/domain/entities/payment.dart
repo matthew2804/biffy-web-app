@@ -34,6 +34,7 @@ class Payment {
     this.checkoutUrl,
     this.statusDetail,
     this.providerTransactionId,
+    this.providerMethod,
     this.createdAt,
     this.approvedAt,
     this.refundedAt,
@@ -49,6 +50,10 @@ class Payment {
   final String? checkoutUrl;
   final String? statusDetail;
   final String? providerTransactionId;
+
+  /// Método real que reportó Wompi (CARD, NEQUI, PSE…), no la preferencia.
+  final String? providerMethod;
+
   final DateTime? createdAt;
   final DateTime? approvedAt;
   final DateTime? refundedAt;
@@ -62,6 +67,7 @@ class Payment {
     String? checkoutUrl,
     String? statusDetail,
     String? providerTransactionId,
+    String? providerMethod,
     DateTime? approvedAt,
     DateTime? refundedAt,
   }) => Payment(
@@ -75,6 +81,7 @@ class Payment {
     checkoutUrl: checkoutUrl ?? this.checkoutUrl,
     statusDetail: statusDetail ?? this.statusDetail,
     providerTransactionId: providerTransactionId ?? this.providerTransactionId,
+    providerMethod: providerMethod ?? this.providerMethod,
     createdAt: createdAt,
     approvedAt: approvedAt ?? this.approvedAt,
     refundedAt: refundedAt ?? this.refundedAt,

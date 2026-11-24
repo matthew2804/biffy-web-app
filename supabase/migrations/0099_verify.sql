@@ -35,7 +35,7 @@ declare
     ['notifications', 'role'], ['notifications', 'order_id'],
     ['orders', 'payment_status'], ['orders', 'payment_expires_at'],
     ['orders', 'cash_tendered'], ['orders', 'cash_change'],
-    ['payments', 'provider_transaction_id'],
+    ['payments', 'provider_transaction_id'], ['payments', 'provider_method'],
     ['dishes', 'sold_on'], ['order_items', 'sold_on']
   ];
   expected_functions text[] := array[

@@ -87,10 +87,10 @@ Reglas que **no** se negocian:
 | Datos | 4 universidades, 8 puntos con geometría, 9 categorías, 5 recompensas con 18 premios, 15 sedes y 32 platos |
 | Cuentas | 3 cuentas demo reales con bienvenida de 450 Gotas |
 
-Migraciones en `supabase/migrations/` (`0000`–`0019`; la `0019_order_cycle`
-es el ciclo del pedido de HU-3). El bootstrap para pegar
-en el SQL Editor es `supabase/apply_all.sql` (generado concatenando las
-migraciones).
+Migraciones en `supabase/migrations/` (`0000`–`0028`; la `0019_order_cycle`
+es el ciclo del pedido de HU-3 y la `0028` guarda el método real de Wompi).
+El bootstrap para pegar en el SQL Editor es `supabase/apply_all.sql`
+(generado concatenando las migraciones).
 
 ### App (Fase 2a–2c)
 
@@ -229,7 +229,7 @@ Rama `hu5-pasarela-pagos`.
   el seguimiento.
 - ✅ Pruebas: `hu5_payments.sql`, 5 pruebas Deno de firma, unit del Bloc, casos
   de uso, errores, efectivo y repositorio. `flutter analyze` limpio ·
-  `flutter test` **251/251**.
+  `flutter test` **269/269** (26 de integración se saltan sin credenciales).
 - ✅ Webhook probado con un evento firmado de la transacción aprobada:
   `payment_events.result = applied` y `signature_valid = true`.
 - ✅ Wompi llama al webhook con la URL configurada en **pruebas** y el secreto
@@ -246,6 +246,22 @@ Rama `hu5-pasarela-pagos`.
 - ⏳ Wompi reintenta los eventos anteriores (BF-2052/BF-2057) de forma
   idempotente; el flujo real ya quedó verificado con BF-2058 y el endpoint
   acepta los eventos reales.
+
+#### Mejoras de pago (rama `hu5-mejoras-pago-wompi`)
+
+- ✅ Selector tipo Rappi (`PaymentMethodSheet`): hoja inferior con “Paga ahora”
+  (tarjeta, Nequi, Daviplata, PSE) y “Paga al recibir” (efectivo); se usa en el
+  carrito y en el checkout con un botón **Cambiar**. Sin QR ni métodos extra.
+- ✅ La app ya no se autoaprueba en modo demo: `/pago` muestra una simulación
+  local y exige pulsar **Simular pago**; para PSE hay que elegir el banco. El
+  modo real se rotula **Wompi · pago seguro** y el demo **Demo · pago simulado**.
+- ✅ El Checkout Web no permite preseleccionar el método: la elección de la app
+  es una preferencia. `0028_payment_provider_method.sql` agrega
+  `payments.provider_method`, el webhook guarda el `payment_method_type` real y
+  la pantalla muestra “Pagado con …”. La app nunca ve datos de tarjeta.
+- ✅ Builds: el CI compila web/APK con `SUPABASE_URL`/`SUPABASE_KEY` si existen
+  los secrets; sin ellos avisa y genera artefactos en modo demo. Para Wompi real
+  hay que compilar con `--dart-define-from-file=env.json` (también en release).
 
 ### HU-4 (sprint final) · Flujo completo y cierre de entrega
 
@@ -288,8 +304,8 @@ Rama `hu4-cierre-entrega` (desde `dev`).
 - ⏳ Evidencia en video o capturas del recorrido de `docs/MANUAL_DE_PRUEBA.md`.
 
 Calidad actual (HU-3 + HU-4 + HU-5): `flutter analyze` limpio · `flutter test`
-**266/266** (26 de integración se saltan sin credenciales; con `env.json`
-pasan 22 contra el proyecto real) · pruebas SQL **237/237**.
+**269/269** (26 de integración se saltan sin credenciales; con `env.json`
+pasan 22 contra el proyecto real) · pruebas SQL **238/238**.
 
 ---
 

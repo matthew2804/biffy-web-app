@@ -10,6 +10,8 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../domain/entities/catalog.dart';
+import '../../../domain/payment_errors.dart';
+import '../../../domain/repositories/payment_repository.dart';
 import '../cart/bloc/cart_cubit.dart';
 import '../../orders/bloc/orders_bloc.dart';
 import 'bloc/payment_bloc.dart';
@@ -41,8 +43,25 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen>
     with WidgetsBindingObserver {
   late final PaymentBloc _bloc;
+  late final bool _isDemo;
+  bool _demoReady = false;
+  String? _pseBank;
   String? _openedUrl;
   bool _navigating = false;
+
+  /// Bancos de ejemplo para la simulación local de PSE.
+  static const List<String> _pseBanks = [
+    'Bancolombia',
+    'Banco de Bogotá',
+    'Davivienda',
+    'BBVA Colombia',
+    'Banco Popular',
+    'Banco de Occidente',
+    'Banco Caja Social',
+    'Scotiabank Colpatria',
+    'Banco Agrario',
+    'Nu Colombia',
+  ];
 
   /// Método de pago elegido en el carrito.
   PaymentMethod get _method => PaymentMethod.values.firstWhere(
@@ -50,20 +69,24 @@ class _PaymentScreenState extends State<PaymentScreen>
     orElse: () => PaymentMethod.card,
   );
 
-  /// Crea el bloc y arranca el pago.
+  /// Crea el bloc; en modo demo espera a que el comprador simule el pago.
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _isDemo = !getIt<PaymentRepository>().isRemote;
+    _demoReady = _isDemo;
     _bloc = getIt<PaymentBloc>(param1: widget.orderId);
-    final order = getIt<OrdersBloc>().byId(widget.code);
-    _bloc.add(PaymentStarted(widget.orderId, _method, amount: order?.total));
+    if (!_isDemo) {
+      final order = getIt<OrdersBloc>().byId(widget.code);
+      _bloc.add(PaymentStarted(widget.orderId, _method, amount: order?.total));
+    }
   }
 
   /// Al volver de Wompi se consulta el estado real.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (!_isDemo && state == AppLifecycleState.resumed) {
       _bloc.add(const PaymentStatusChecked());
     }
   }
@@ -81,15 +104,24 @@ class _PaymentScreenState extends State<PaymentScreen>
     if (_openedUrl == url) return;
     _openedUrl = url;
     try {
-      await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } on Object {
       if (mounted) {
-        showSnack(context, 'No pudimos abrir Wompi. Inténtalo de nuevo.', error: true);
+        showSnack(
+          context,
+          'No pudimos abrir Wompi. Inténtalo de nuevo.',
+          error: true,
+        );
       }
     }
+  }
+
+  /// Inicia el pago simulado solo después de la acción del comprador.
+  void _startDemo() {
+    if (_method == PaymentMethod.pse && _pseBank == null) return;
+    setState(() => _demoReady = false);
+    final order = getIt<OrdersBloc>().byId(widget.code);
+    _bloc.add(PaymentStarted(widget.orderId, _method, amount: order?.total));
   }
 
   /// Reacciona al estado: abre el checkout y navega si se aprobó.
@@ -117,13 +149,31 @@ class _PaymentScreenState extends State<PaymentScreen>
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             children: [
-              _StatusCard(state: state),
+              PaymentModeBadge(demo: _isDemo),
+              const SizedBox(height: 8),
+              if (_isDemo && _demoReady)
+                _DemoPaymentCard(
+                  method: _method,
+                  pseBank: _pseBank,
+                  banks: _pseBanks,
+                  amount:
+                      state.payment?.amount ??
+                      getIt<OrdersBloc>().byId(widget.code)?.total,
+                  onBankChanged: (bank) => setState(() => _pseBank = bank),
+                  onPay: _startDemo,
+                  onCancel: () => context.pop(),
+                )
+              else
+                _StatusCard(state: state, demo: _isDemo),
               const SizedBox(height: 12),
               BiffyCard(
                 child: Column(
                   children: [
                     InfoRow('Pedido', widget.code),
-                    InfoRow('Método', _method.label),
+                    InfoRow('Método elegido', _method.label),
+                    if (state.payment?.providerMethod case final method?
+                        when method.trim().isNotEmpty)
+                      InfoRow('Pagado con', providerMethodLabel(method)),
                     if (state.payment != null)
                       InfoRow('Total', cop(state.payment!.amount)),
                     if (state.payment?.reference.isNotEmpty ?? false)
@@ -131,11 +181,15 @@ class _PaymentScreenState extends State<PaymentScreen>
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              ..._actions(context, state),
+              if (!(_isDemo && _demoReady)) ...[
+                const SizedBox(height: 16),
+                ..._actions(context, state),
+              ],
               const SizedBox(height: 12),
               Text(
-                'El pago se procesa en la página segura de Wompi. Biffy no guarda datos de tu tarjeta.',
+                _isDemo
+                    ? 'Esto es una simulación local: no se cobra dinero ni se abre Wompi.'
+                    : 'El pago se procesa en la página segura de Wompi. Biffy no guarda datos de tu tarjeta.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -152,14 +206,13 @@ class _PaymentScreenState extends State<PaymentScreen>
         ? () => _bloc.add(PaymentRetried(_method))
         : null;
     return switch (state.step) {
-      PaymentStep.idle ||
-      PaymentStep.processing => [
+      PaymentStep.idle || PaymentStep.processing => [
         const PrimaryButton(label: 'Procesando pago…', onPressed: null),
       ],
       PaymentStep.pending => [
         PrimaryButton(
-          label: 'Abrir checkout de Wompi',
-          onPressed: state.checkoutUrl == null
+          label: _isDemo ? 'Simulando pago…' : 'Abrir checkout de Wompi',
+          onPressed: _isDemo || state.checkoutUrl == null
               ? null
               : () => _openCheckout(state.checkoutUrl!),
         ),
@@ -174,9 +227,8 @@ class _PaymentScreenState extends State<PaymentScreen>
         const SizedBox(height: 8),
         SecondaryButton(
           label: 'Volver al carrito',
-          onPressed: () => context.pop(
-            state.message ?? 'El pago fue rechazado.',
-          ),
+          onPressed: () =>
+              context.pop(state.message ?? 'El pago fue rechazado.'),
         ),
       ],
       PaymentStep.networkError => [
@@ -184,9 +236,8 @@ class _PaymentScreenState extends State<PaymentScreen>
         const SizedBox(height: 8),
         SecondaryButton(
           label: 'Volver al carrito',
-          onPressed: () => context.pop(
-            state.message ?? 'No pudimos confirmar el pago.',
-          ),
+          onPressed: () =>
+              context.pop(state.message ?? 'No pudimos confirmar el pago.'),
         ),
       ],
       PaymentStep.expired => [
@@ -210,35 +261,31 @@ class _PaymentScreenState extends State<PaymentScreen>
 
 /// Tarjeta con el icono, el título y el mensaje del estado del pago.
 class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.state});
+  const _StatusCard({required this.state, required this.demo});
 
   final PaymentState state;
+  final bool demo;
 
   /// Dibuja el estado actual.
   @override
   Widget build(BuildContext context) {
     final (color, icon, title) = switch (state.step) {
-      PaymentStep.idle ||
-      PaymentStep.processing => (
+      PaymentStep.idle || PaymentStep.processing => (
         AppColors.primary,
         Icons.hourglass_top,
         'Procesando pago',
       ),
       PaymentStep.pending => (
         AppColors.primary,
-        Icons.open_in_new,
-        'Completa el pago en Wompi',
+        demo ? Icons.hourglass_top : Icons.open_in_new,
+        demo ? 'Confirmando pago simulado' : 'Completa el pago en Wompi',
       ),
       PaymentStep.approved => (
         AppColors.success,
         Icons.check_circle,
         'Pago aprobado',
       ),
-      PaymentStep.rejected => (
-        AppColors.error,
-        Icons.cancel,
-        'Pago rechazado',
-      ),
+      PaymentStep.rejected => (AppColors.error, Icons.cancel, 'Pago rechazado'),
       PaymentStep.expired => (
         AppColors.error,
         Icons.timer_off,
@@ -274,7 +321,9 @@ class _StatusCard extends StatelessWidget {
                 if (state.step == PaymentStep.pending) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Si la página no se abrió, usa el botón de abajo.',
+                    demo
+                        ? 'La simulación se aprueba en unos segundos.'
+                        : 'Si la página no se abrió, usa el botón de abajo.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -285,4 +334,125 @@ class _StatusCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Tarjeta que simula el checkout de Wompi cuando la app corre sin Supabase.
+class _DemoPaymentCard extends StatelessWidget {
+  const _DemoPaymentCard({
+    required this.method,
+    required this.pseBank,
+    required this.banks,
+    required this.amount,
+    required this.onBankChanged,
+    required this.onPay,
+    required this.onCancel,
+  });
+
+  final PaymentMethod method;
+  final String? pseBank;
+  final List<String> banks;
+  final int? amount;
+  final ValueChanged<String?> onBankChanged;
+  final VoidCallback onPay;
+  final VoidCallback onCancel;
+
+  /// Dibuja la simulación con el método elegido y, para PSE, el banco.
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final needsBank = method == PaymentMethod.pse && pseBank == null;
+    return BiffyCard(
+      key: const Key('demo-payment'),
+      color: AppColors.secondary.withValues(alpha: 0.10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.science_outlined, color: AppColors.text),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Simulación de Wompi',
+                  style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'No se cobra dinero real. En producción aquí se abre la página '
+            'segura de Wompi con el método que elijas.',
+            style: t.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          InfoRow('Método', method.label),
+          if (method == PaymentMethod.pse) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Banco para PSE',
+              style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: AppColors.muted.withValues(alpha: 0.35),
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  key: const Key('demo-pse-bank'),
+                  value: pseBank,
+                  isExpanded: true,
+                  hint: const Text('Elige tu banco'),
+                  items: [
+                    for (final bank in banks)
+                      DropdownMenuItem(value: bank, child: Text(bank)),
+                  ],
+                  onChanged: onBankChanged,
+                ),
+              ),
+            ),
+            if (needsBank) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Elige el banco para continuar.',
+                style: t.bodySmall?.copyWith(color: AppColors.error),
+              ),
+            ],
+          ] else ...[
+            const SizedBox(height: 4),
+            Text(_hint, style: t.bodySmall),
+          ],
+          const SizedBox(height: 12),
+          PrimaryButton(
+            key: const Key('demo-pay'),
+            label: amount == null
+                ? 'Simular pago'
+                : 'Simular pago · ${cop(amount!)}',
+            onPressed: needsBank ? null : onPay,
+          ),
+          const SizedBox(height: 8),
+          SecondaryButton(
+            key: const Key('demo-cancel'),
+            label: 'Volver al carrito',
+            onPressed: onCancel,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Explica qué datos pediría Wompi para el método elegido.
+  String get _hint => switch (method) {
+    PaymentMethod.card => 'En Wompi ingresarías los datos de tu tarjeta.',
+    PaymentMethod.nequi => 'En Wompi confirmarías el pago desde tu app Nequi.',
+    PaymentMethod.daviplata =>
+      'En Wompi confirmarías el pago desde tu app Daviplata.',
+    PaymentMethod.pse => 'En Wompi elegirías el banco para el débito PSE.',
+    PaymentMethod.cash => 'El efectivo se cobra al recibir el pedido.',
+  };
 }

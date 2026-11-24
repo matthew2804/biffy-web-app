@@ -140,6 +140,8 @@ Deno.serve(async (req: Request) => {
     p_status: status,
     p_tx_id: real.id,
     p_detail: real.status_message ?? '',
+    // El método real (CARD, NEQUI, PSE…) puede diferir de la preferencia.
+    p_method_type: real.payment_method_type ?? null,
   });
   if (applyError) {
     console.error('payment_apply', applyError.message);

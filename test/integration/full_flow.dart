@@ -47,7 +47,9 @@ Future<void> runFullOrderFlow(WidgetTester tester, TestServices s) async {
   await tester.tap(find.byKey(const Key('cart-bar')));
   await tester.pumpAndSettle();
   await tapVisible(tester, find.byKey(const Key('when-now')));
+  await tapVisible(tester, find.byKey(const Key('payment-method-card')));
   await tapVisible(tester, find.byKey(const Key('pay-cash')));
+  await tapVisible(tester, find.byKey(const Key('payment-method-continue')));
   await tapVisible(tester, find.byKey(const Key('tip-ten')));
   await tapVisible(tester, find.byKey(const Key('go-checkout')));
   expect(find.text('Inicia sesión para confirmar tu pedido'), findsOneWidget);

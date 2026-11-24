@@ -4,11 +4,7 @@ import 'entities/payment.dart';
 ///
 /// Si no hay una traducción conocida, se usa [detail] (que Wompi a veces manda
 /// en inglés) o [fallback]. La UI nunca muestra códigos técnicos.
-String paymentErrorText({
-  String? code,
-  String? detail,
-  String? fallback,
-}) {
+String paymentErrorText({String? code, String? detail, String? fallback}) {
   final c = (code ?? '').trim().toLowerCase();
   final d = (detail ?? '').trim().toLowerCase();
   final raw = '$c $d';
@@ -41,7 +37,8 @@ String paymentErrorText({
   if (raw.contains('insufficient') || raw.contains('insuficiente')) {
     return 'Tu tarjeta o cuenta no tiene fondos suficientes.';
   }
-  if (raw.contains('bad_filled_card_number') || raw.contains('invalid_number')) {
+  if (raw.contains('bad_filled_card_number') ||
+      raw.contains('invalid_number')) {
     return 'Revisa el número de la tarjeta.';
   }
   if (raw.contains('bad_filled_date') || raw.contains('expired_date')) {
@@ -53,7 +50,8 @@ String paymentErrorText({
   if (raw.contains('call_for_authorize') || raw.contains('authoriz')) {
     return 'Tu banco debe autorizar el pago. Llama a tu banco e inténtalo de nuevo.';
   }
-  if (raw.contains('high_risk') || raw.contains('fraud') ||
+  if (raw.contains('high_risk') ||
+      raw.contains('fraud') ||
       raw.contains('rejected_by_bank')) {
     return 'El banco rechazó el pago por seguridad.';
   }
@@ -86,3 +84,20 @@ String paymentStatusLabel(PaymentStatus status) => switch (status) {
   PaymentStatus.expired => 'Pago vencido',
   PaymentStatus.refunded => 'Pago reembolsado',
 };
+
+/// Traduce el `payment_method_type` real de Wompi a un nombre para la UI.
+String providerMethodLabel(String? type) {
+  return switch ((type ?? '').trim().toUpperCase()) {
+    'CARD' => 'Tarjeta',
+    'NEQUI' => 'Nequi',
+    'DAVIPLATA' => 'Daviplata',
+    'PSE' => 'PSE',
+    'BANCOLOMBIA_TRANSFER' => 'Transferencia Bancolombia',
+    'BANCOLOMBIA_QR' => 'QR Bancolombia',
+    'BANCOLOMBIA_COLLECT' => 'Efectivo en corresponsal',
+    'PCOL' => 'Puntos Colombia',
+    'BANCOLOMBIA_BNPL' => 'Compra y paga después',
+    '' => '',
+    _ => type!.trim(),
+  };
+}

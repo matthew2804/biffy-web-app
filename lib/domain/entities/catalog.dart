@@ -42,16 +42,35 @@ class DeliveryPoint {
   final String? campusId;
 }
 
+/// Métodos que el comprador puede preferir; el pago final se confirma en Wompi.
 enum PaymentMethod {
-  nequi('Nequi', '📱'),
-  daviplata('Daviplata', '📲'),
-  card('Tarjeta •••• 4521', '💳'),
-  pse('PSE', '🏦'),
-  cash('Efectivo', '💵');
+  nequi('Nequi', '📱', 'Paga desde tu app Nequi'),
+  daviplata('Daviplata', '📲', 'Paga desde tu app Daviplata'),
+  card('Tarjeta débito o crédito', '💳', 'Visa o Mastercard'),
+  pse('PSE', '🏦', 'Transferencia desde tu banco'),
+  cash('Efectivo', '💵', 'Paga cuando recibas tu pedido');
 
-  const PaymentMethod(this.label, this.emoji);
+  const PaymentMethod(this.label, this.emoji, this.description);
+
+  /// Nombre visible en la interfaz.
   final String label;
+
+  /// Emoji que acompaña al método.
   final String emoji;
+
+  /// Frase corta que explica cómo se paga.
+  final String description;
+
+  /// `true` si el método se completa en la pasarela (no contra entrega).
+  bool get isOnline => this != PaymentMethod.cash;
+
+  /// Métodos que se pagan en la pasarela.
+  static List<PaymentMethod> get online =>
+      values.where((m) => m.isOnline).toList();
+
+  /// Métodos que se pagan al recibir el pedido.
+  static List<PaymentMethod> get offline =>
+      values.where((m) => !m.isOnline).toList();
 }
 
 class Nutrition {
@@ -111,6 +130,7 @@ class Restaurant {
   String tagline;
   final String cuisine;
   String address;
+
   /// Promedio de reseñas; se actualiza cuando el comprador califica.
   double rating;
   final int prepMin;

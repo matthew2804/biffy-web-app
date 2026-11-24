@@ -3,7 +3,7 @@
 -- ============================================================================
 -- Uso: Supabase Dashboard -> SQL Editor -> pegar todo -> Run.
 --
--- Requisitos: migraciones aplicadas hasta 0026 y las 3 cuentas demo
+-- Requisitos: migraciones aplicadas hasta 0028 y las 3 cuentas demo
 --   diego.demo@icesi.edu.co · andres.repartidor@demo.biffy.co · qbano@demo.biffy.co
 --
 -- Todo corre dentro de una transacción que termina en ROLLBACK: no deja
@@ -310,9 +310,15 @@ begin
     ) ->> 'payment_id' = v_pid::text
   );
 
-  -- Wompi confirma el pago.
-  r := public.payment_apply(v_pid, 'approved', 'TX-ONLINE-1', 'accredited');
+  -- Wompi confirma el pago y reporta el método real.
+  r := public.payment_apply(
+    v_pid, 'approved', 'TX-ONLINE-1', 'accredited', 'NEQUI'
+  );
   perform pg_temp.expect('online: payment_apply approved', r ->> 'result' = 'ok');
+  perform pg_temp.expect(
+    'online: guarda el método real de Wompi',
+    (select provider_method from public.payments where id = v_pid) = 'NEQUI'
+  );
   perform pg_temp.expect(
     'online: el pedido queda aprobado',
     (select payment_status::text from public.orders where id = v_order) = 'approved'

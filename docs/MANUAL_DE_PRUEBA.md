@@ -80,7 +80,7 @@ cuenta los repartidores reales (`0027`).
 |---|---|---|
 | 3.1 | Con **Diego**, en el inicio, entra a **Qbano · Icesi**. | Ves el menú con precios y fotos o emojis. |
 | 3.2 | Agrega 2 productos (cambia tamaño o extras en uno). | El carrito suma bien y muestra el descuento de campus si aplica. |
-| 3.3 | En el carrito elige **Ahora** y una dirección. Elige pago con **tarjeta**. Toca **Confirmar pedido**. | Abre la pantalla **Pago** con el botón **Abrir checkout de Wompi**. |
+| 3.3 | En el carrito elige **Ahora** y una dirección. Toca **Método de pago**, elige **Tarjeta débito o crédito** y **Continuar**. Toca **Confirmar pedido**. | Se abre el Checkout Web de Wompi (la app solo guarda tu preferencia; el método final lo confirmas allí). |
 | 3.4 | Paga con la **tarjeta rechazada**. | Vuelves con un aviso rojo y el motivo en español. **El restaurante NO ve el pedido.** |
 | 3.5 | Toca **Reintentar pago** y paga con la **tarjeta aprobada**. | El pago queda aprobado y pasa al seguimiento del pedido. No se crea un pedido duplicado. |
 | 3.6 | Mira el seguimiento. | Estado **Pendiente** y el **Código de entrega** de 4 dígitos (anótalo). |
