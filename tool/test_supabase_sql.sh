@@ -34,7 +34,9 @@ run < supabase/tests/_demo_accounts.sql
 
 fail=0
 for f in supabase/tests/hu*.sql; do
-  if out=$(run < "$f" 2>&1); then
+  # Reloj fijo al mediodía de Colombia: el horario de las sedes (0027) no
+  # depende de la hora a la que corra el CI.
+  if out=$( { echo "set biffy.now = '2026-11-25 12:00:00-05';"; cat "$f"; } | run 2>&1); then
     echo "✅ $f ($(grep -cE 'ok ·|PASS ·' <<<"$out") casos)"
   else
     echo "❌ $f"

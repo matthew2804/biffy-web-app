@@ -32,7 +32,8 @@ declare
     ['reward_redemptions', 'claim_code'],
     ['branches', 'location'], ['universities', 'boundary_polygon'],
     ['order_events', 'from_status'], ['orders', 'client_key'],
-    ['notifications', 'role'], ['notifications', 'order_id']
+    ['notifications', 'role'], ['notifications', 'order_id'],
+    ['dishes', 'sold_on'], ['order_items', 'sold_on']
   ];
   expected_functions text[] := array[
     'place_order', 'restaurant_accept', 'restaurant_reject', 'restaurant_ready',
@@ -40,7 +41,9 @@ declare
     'courier_deliver', 'verify_university', 'register_business', 'redeem_reward',
     'distance_km', 'refund_order', 'order_json', 'rate_order', 'notify',
     'create_university_verification', 'confirm_university_verification',
-    'revoke_university_verification', 'expire_university_verifications'
+    'revoke_university_verification', 'expire_university_verifications',
+    'courier_set_online', 'refresh_couriers_nearby', 'reset_sold_today',
+    'guard_order_schedule', 'biffy_now'
   ];
 begin
   foreach v_table in array expected_tables loop
