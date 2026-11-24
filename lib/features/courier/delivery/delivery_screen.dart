@@ -141,7 +141,9 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                   InfoRow('Método de pago', o.payment.label),
                   if (o.payment == PaymentMethod.cash)
                     InfoRow(
-                      'Cobrar en efectivo (simulado)',
+                      o.dbId != null
+                          ? 'Cobrar en efectivo'
+                          : 'Cobrar en efectivo (simulado)',
                       cop(o.total),
                       bold: true,
                       valueColor: AppColors.error,
@@ -264,7 +266,6 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       ),
     );
   }
-
 
   /// Cierra la entrega validando código y evidencia, y celebra el resultado.
   Future<void> _complete(BuildContext context, Order o) async {

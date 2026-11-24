@@ -182,7 +182,7 @@ class _KitchenCard extends StatelessWidget {
               style: t.bodySmall,
             ),
             Text(
-              '💳 ${o.payment.label} (simulado) · Total ${cop(o.total)}',
+              '💳 ${o.payment.label}${o.dbId != null ? '' : ' (simulado)'} · Total ${cop(o.total)}',
               style: t.bodySmall,
             ),
             if (o.status == OrderStatus.cancelled && o.rejectReason != null)

@@ -126,7 +126,9 @@ class CourierHomeScreen extends StatelessWidget {
                           if (!session.setCourierZone(z)) {
                             showSnack(
                               context,
-                              'El modo Campus requiere universidad verificada (simulada)',
+                              orders.isRemote
+                                  ? 'El modo Campus requiere tu correo universitario verificado'
+                                  : 'El modo Campus requiere universidad verificada (simulada)',
                               error: true,
                             );
                           }

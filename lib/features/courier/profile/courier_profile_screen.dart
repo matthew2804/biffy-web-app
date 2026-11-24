@@ -10,6 +10,8 @@ import '../../../data/models/user.dart';
 import '../../../shared/state/session_controller.dart';
 import '../../buyer/profile/profile_screen.dart';
 import '../../../shared/state/controller_scope.dart';
+import '../../orders/bloc/orders_bloc.dart';
+import '../../../app/di/injection.dart';
 
 /// Perfil del repartidor con sus datos y accesos de cuenta.
 class CourierProfileScreen extends StatelessWidget {
@@ -56,7 +58,9 @@ class CourierProfileScreen extends StatelessWidget {
                   InfoRow(
                     'Modo Campus',
                     session.isVerifiedStudent
-                        ? 'Habilitado (simulado)'
+                        ? (getIt<OrdersBloc>().isRemote
+                              ? 'Habilitado'
+                              : 'Habilitado (simulado)')
                         : 'Bloqueado',
                   ),
                 ],
@@ -64,7 +68,9 @@ class CourierProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Identidad no verificada legalmente: datos de demostración.',
+              getIt<OrdersBloc>().isRemote
+                  ? 'Identidad no verificada legalmente (fuera del alcance del proyecto).'
+                  : 'Identidad no verificada legalmente: datos de demostración.',
               style: t.bodySmall,
             ),
             const SizedBox(height: 12),

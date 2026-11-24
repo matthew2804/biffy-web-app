@@ -11,6 +11,8 @@ import '../../../shared/state/catalog_controller.dart';
 import '../../../shared/state/session_controller.dart';
 import '../../buyer/profile/profile_screen.dart';
 import '../../../shared/state/controller_scope.dart';
+import '../../orders/bloc/orders_bloc.dart';
+import '../../../app/di/injection.dart';
 
 /// Perfil del negocio. Los campos que aún no se pueden editar se muestran
 /// como información (sin botones engañosos).
@@ -61,7 +63,7 @@ class MerchantProfileScreen extends StatelessWidget {
                       Text(r.address, style: t.bodySmall),
                       Text('🕒 ${scheduleLabel(r)}', style: t.bodySmall),
                       Text(
-                        '📍 Radio ${r.radiusKm} km · ${r.couriersNearby} repartidores cerca (simulado)',
+                        '📍 Radio ${r.radiusKm} km · ${r.couriersNearby} repartidores conectados${getIt<OrdersBloc>().isRemote ? '' : ' (simulado)'}',
                         style: t.bodySmall,
                       ),
                       if (r.campusId != null)

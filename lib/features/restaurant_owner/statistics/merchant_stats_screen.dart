@@ -9,6 +9,7 @@ import '../../../shared/state/session_controller.dart';
 import '../home/merchant_home_screen.dart';
 import '../../../shared/state/controller_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../app/di/injection.dart';
 
 /// Estadísticas del negocio con ventas por sede y productos top.
 class MerchantStatsScreen extends StatelessWidget {
@@ -65,7 +66,9 @@ class MerchantStatsScreen extends StatelessWidget {
           children: [
             Text('Estadísticas', style: t.headlineSmall),
             Text(
-              'Calculadas con los pedidos y productos de la demostración.',
+              getIt<OrdersBloc>().isRemote
+                  ? 'Calculadas con los pedidos y productos de tu negocio.'
+                  : 'Calculadas con los pedidos y productos de la demostración.',
               style: t.bodySmall,
             ),
             const SizedBox(height: 12),
