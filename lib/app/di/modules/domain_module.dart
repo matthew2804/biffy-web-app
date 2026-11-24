@@ -9,6 +9,7 @@ import '../../../domain/repositories/review_repository.dart';
 import '../../../domain/repositories/rewards_repository.dart';
 import '../../../domain/usecases/get_courier_earnings.dart';
 import '../../../domain/usecases/merchant_boxes_usecases.dart';
+import '../../../domain/usecases/orders/get_delivery_evidence.dart';
 import '../../../domain/usecases/orders/order_usecases.dart';
 import '../../../domain/usecases/rate_order.dart';
 import '../../../domain/usecases/rewards_usecases.dart';
@@ -75,6 +76,9 @@ void _registerUseCases(GetIt g) {
     ),
   );
   g.registerFactory<GetCourierEarnings>(GetCourierEarnings.new);
+  g.registerFactory<GetDeliveryEvidence>(
+    () => GetDeliveryEvidence(g<OrderRepository>()),
+  );
 
   // Recompensas y cajas: solo se piden cuando hay repositorio (Supabase).
   g.registerFactory<LoadRewards>(() => LoadRewards(g<RewardsRepository>()));

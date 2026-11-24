@@ -424,6 +424,25 @@ class SupabaseOrderRepository implements OrderRepository {
     });
   }
 
+  /// Firma la ruta de `delivery-evidence` por una hora. El bucket es privado
+  /// y la política de lectura (0005) solo deja al comprador, al restaurante y
+  /// al repartidor del pedido.
+  @override
+  Future<String?> evidenceUrl(String orderId) async {
+    final path = byId(orderId)?.evidence;
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    // Evidencias de demostración ("Foto local…") no son rutas de Storage.
+    if (!path.contains('/') || path.contains(' ')) return null;
+    return _client.storage
+        .from('delivery-evidence')
+        .createSignedUrl(path, evidenceUrlTtl.inSeconds)
+        .timeout(rpcTimeout);
+  }
+
+  /// Vigencia de la URL firmada de la evidencia.
+  static const evidenceUrlTtl = Duration(hours: 1);
+
   // ------------------------------------------------------------ Realtime
 
   void _subscribe() {

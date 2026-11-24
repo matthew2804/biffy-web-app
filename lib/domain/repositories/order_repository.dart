@@ -127,6 +127,11 @@ abstract class OrderRepository {
     Uint8List? evidenceBytes,
   );
 
+  /// Enlace temporal para ver la foto de evidencia de un pedido entregado.
+  /// Con servidor es una URL firmada del bucket privado; en la demo, `null`
+  /// (la evidencia es solo un texto). Lanza si no hay conexión.
+  Future<String?> evidenceUrl(String orderId);
+
   /// Inserta un pedido semilla (solo datos de demostración).
   void insertSeed(Order order);
 }
