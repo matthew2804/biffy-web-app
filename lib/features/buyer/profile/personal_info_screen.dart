@@ -1,0 +1,108 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/widgets/ui.dart';
+import '../../../shared/state/session_controller.dart';
+import '../../../app/di/injection.dart';
+import '../../../shared/state/controller_scope.dart';
+
+/// Formulario para editar nombre y teléfono del usuario.
+class PersonalInfoScreen extends StatefulWidget {
+  const PersonalInfoScreen({super.key});
+
+  /// Crea el estado del formulario de datos personales.
+  @override
+  State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
+}
+
+/// Estado con los controladores de nombre y teléfono.
+class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+  final _form = GlobalKey<FormState>();
+  late final _session = getIt<SessionController>();
+  late final _name = TextEditingController(text: _session.user?.name);
+  late final _phone = TextEditingController(text: _session.user?.phone);
+
+  /// Inicializa los controladores con los datos del usuario.
+  @override
+  void initState() {
+    super.initState();
+    _name;
+    _phone;
+  }
+
+  /// Libera los controladores de nombre y teléfono.
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  /// Construye el formulario de datos personales.
+  @override
+  Widget build(BuildContext context) {
+    final u = context.watchController<SessionController>().user;
+    if (u == null) return const Scaffold();
+    return Scaffold(
+      appBar: AppBar(title: const Text('Información personal')),
+      body: MobileFrame(
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TextFormField(
+                controller: _name,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+                validator: (v) => (v == null || v.trim().length < 2)
+                    ? 'Escribe tu nombre'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: u.email,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Correo',
+                  helperText:
+                      'Informativo: el correo no se puede cambiar en la demo.',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _phone,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Teléfono'),
+                validator: (v) =>
+                    (v != null &&
+                        v.trim().isNotEmpty &&
+                        v.replaceAll(RegExp(r'\D'), '').length < 7)
+                    ? 'Teléfono no válido'
+                    : null,
+              ),
+              const SizedBox(height: 20),
+              PrimaryButton(
+                label: 'Guardar',
+                onPressed: () async {
+                  if (!_form.currentState!.validate()) return;
+                  try {
+                    await _session.updateProfile(
+                      name: _name.text,
+                      phone: _phone.text,
+                    );
+                    if (!context.mounted) return;
+                    showSnack(context, 'Datos actualizados');
+                    context.pop();
+                  } on Object catch (e) {
+                    if (!context.mounted) return;
+                    showSnack(context, '$e', error: true);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,24 +1,263 @@
-# Biffy Web App
+# Biffy · App móvil (Flutter)
 
-Crea un nuevo proyecto para la aplicación web/móvil Biffy. Configura el entorno utilizando Next.js con App Router y React. Asegúrate de estructurar el proyecto para que los paquetes se puedan gestionar con pnpm. Configura Tailwind CSS definiendo las siguientes variables globales: primary: #5E23E3, secondary: #F3B428, background: #F4F5F9, text-main: #1E1E20, accent-green: #23A05B, y accent-red: #E85D57.
+Biffy es una aplicación de domicilios de comida para estudiantes universitarios en Colombia. Conecta tres roles sobre un mismo pedido: **comprador**, **restaurante** y **repartidor**.
 
-This project was built with [Lovable](https://lovable.dev).
+- **Sprint 1 (actual):** frontend Flutter funcional con datos simulados. Sin pagos reales, sin GPS y sin notificaciones push.
+- **Rama `supabase`:** integración del backend en preparación (ver [Supabase](#supabase-en-integración)). Hoy la app sigue funcionando 100 % en memoria, sin red.
 
-## Build with Lovable
+> La app web anterior (React/Lovable) se conserva solo como referencia de comportamiento y diseño en [`legacy_web/`](legacy_web/). No se le agregan funcionalidades.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/8499962e-91d6-45b0-bba2-8c6153e18c69).
+## Stack
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+| Capa | Tecnología |
+|---|---|
+| UI | Flutter 3.44 · Material 3 · tema propio (claro/oscuro) |
+| Estado | `flutter_bloc` (Bloc/Cubit) en pedidos, auth, carrito y pagos; sesión, catálogo y avisos con `ChangeNotifier` (GetIt) |
+| Inyección de dependencias | `get_it` (`lib/app/di/`) |
+| Pagos | Wompi Checkout Web (sandbox) + efectivo con billete; Edge Functions + webhook firmado |
+| Navegación | `go_router` con un `StatefulShellRoute` por rol y guardas por sesión |
+| Datos | Repositorios en memoria detrás de interfaces (`lib/data/repositories/`) |
+| Reglas de negocio | Funciones puras en `lib/domain/` |
+| Tipografía | Sora + Manrope empaquetadas en `assets/fonts/` (offline) |
+| Evidencia de entrega | `image_picker` |
+| Backend (en integración) | Supabase (Postgres + Auth + Storage + Realtime) |
 
-## Development
+## Requisitos
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+- **Flutter 3.44 o superior** (probado con Flutter 3.44.8 / Dart 3.12.2).
+- **Android SDK / Android Studio** y un emulador o teléfono con depuración USB, solo si vas a compilar o ejecutar en Android.
+- **Supabase CLI** (opcional, únicamente para aplicar migraciones de base de datos).
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+## Puesta en marcha
+
+### 1. Modo actual, sin backend
+
+```bash
+flutter pub get
+flutter run                 # dispositivo o emulador conectado
+flutter run -d chrome       # vista previa en el navegador
 ```
+
+No requiere variables de entorno, claves ni servicios externos.
+
+### 2. Con Supabase (cuando las migraciones estén aplicadas)
+
+Copia [`env.example.json`](env.example.json) a `env.json` (ya está ignorado por git):
+
+```json
+{
+  "SUPABASE_URL": "https://jwdzpwsfwtkdeeuceaco.supabase.co",
+  "SUPABASE_KEY": "sb_publishable_..."
+}
+```
+
+Y ejecuta:
+
+```bash
+flutter run --dart-define-from-file=env.json
+```
+
+Reglas de seguridad:
+
+- El archivo `env.json` **nunca** se versiona.
+- En la app solo va la **clave publicable** (`sb_publishable_...`, equivalente a la anon key). Es pública por diseño: la protección real son las políticas RLS.
+- La **service_role key** y la **contraseña de la base** no van en la app ni en el repositorio: se usan solo en scripts de administración o en la CLI.
+
+Sin esas variables la app arranca igual, en **modo demo local** y sin red.
+
+## Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `flutter pub get` | Instala dependencias |
+| `flutter run` | Ejecuta la app en el dispositivo conectado |
+| `flutter run -d chrome` | Vista previa web |
+| `dart format .` | Formatea el código |
+| `flutter analyze` | Análisis estático |
+| `flutter test` | Unitarias + widgets + integración sin dispositivo |
+| `flutter test integration_test/app_test.dart -d <id>` | Integración en Android/iOS (requiere dispositivo) |
+| `flutter build apk --debug` | APK de depuración |
+| `flutter build web --release` | Sitio estático en `build/web` |
+| `supabase db push` | Aplica las migraciones al proyecto remoto |
+
+## Estructura del proyecto
+
+```text
+lib/
+  main.dart                  # Punto de entrada (configureDependencies + bootstrapApp)
+  app/                       # BiffyApp, router (go_router), tema (colores, tipografía)
+    di/                      # GetIt: injection.dart, bootstrap.dart y modules/ (core, data, domain, presentation)
+  core/
+    constants/               # Categorías, universidades, puntos de entrega, valores demo
+    navigation/              # Shells con navegación inferior por rol + barra del carrito
+    utils/                   # Formato COP/fechas, distancia, reloj inyectable
+    widgets/                 # Componentes compartidos (botones, tarjetas, hojas, píldoras)
+  data/
+    models/                  # Modelos tipados (catálogo, carrito, pedido, usuario…)
+    repositories/            # Interfaces + implementaciones en memoria
+    mock/                    # Datos semilla ficticios (catálogo, usuarios, pedidos)
+  domain/                    # Reglas puras: precios, filtros, transiciones, horarios,
+                             # recomendaciones, asistente, repetición de pedidos
+  features/
+    onboarding/  auth/
+    buyer/                   # home, explore, restaurant, product, cart, tracking, orders,
+                             # ai, preferences, rewards, favorites, notifications, settings,
+                             # support, payments, addresses, campus, profile
+    courier/                 # registration, home, offers, pickup, delivery, earnings, profile
+    restaurant_owner/        # registration, home, orders, menu, products, statistics, profile
+  shared/state/              # Controladores ChangeNotifier y ControllerScope
+test/
+  unit/  widget/  integration/   # 251 pruebas (sin dispositivo)
+  helpers.dart
+integration_test/app_test.dart   # Flujo completo en Android/iOS
+supabase/
+  migrations/              # migraciones SQL versionadas (esquema, RLS, RPC, storage)
+  apply_all.sql            # bootstrap para pegar en el SQL Editor
+assets/
+  fonts/  images/
+```
+
+## Arquitectura
+
+- **Inyección de dependencias:** GetIt registra todo en `lib/app/di/`. El módulo de datos decide entre Supabase y memoria según `AppConfig.hasSupabase`; los casos de uso y los cubits de pantalla son `Factory`, los repositorios, controladores y `CartCubit` `LazySingleton`. Las pruebas llaman a `makeServices()` (reinicia GetIt con reloj fijo y semilla aleatoria), por lo que son deterministas.
+- **Cubits por slice:** `LoginCubit`, `RegisterCubit` y `UniversityVerificationCubit` (auth/Campus); `CartCubit`, `CheckoutCubit` y `PaymentBloc` (carrito y pago). Las pantallas piden el cubit a GetIt y solo pintan estado; `CheckoutCubit` delega el pedido a `OrdersBloc` y `PaymentBloc` a `StartPayment`/`CheckPaymentStatus`/`RetryPayment`.
+- **Pagos:** `PaymentRepository` en dominio con implementación de Wompi (sandbox) y otra en memoria. El servidor crea el cobro por el total de `place_order`, el webhook firmado actualiza el estado y el restaurante solo ve pedidos aprobados. El efectivo se aprueba sin pasarela, con billete y vueltas.
+- **Reglas fuera de la UI:** `pricing.dart`, `catalog_rules.dart` (regla única de cobertura `isReachable`), `order_rules.dart` (tabla `kAllowedTransitions`, pago al repartidor, métricas), `scheduling.dart`, `recommendation.dart`, `assistant.dart`, `reorder.dart`.
+- **Pedidos compartidos:** `OrdersBloc` (casos de uso → `OrderRepository`) es el único que cambia estados. La aceptación del repartidor es atómica: si el pedido ya tiene repartidor devuelve `alreadyAssigned`.
+- **Navegación:** `lib/app/router.dart` concentra las rutas. El comprador explora sin sesión; checkout, pedidos, recompensas, favoritos, direcciones y pagos exigen cuenta y conservan la ruta de origen (`/login?from=…`). `/repartidor/*` exige perfil de repartidor y `/negocio/*` un negocio vinculado.
+- **Preparado para backend:** `CatalogRepository`, `OrderRepository` y `AuthRepository` son interfaces; la implementación remota se registra en GetIt (`data_module.dart`) sin tocar las pantallas.
+
+## Roles y flujo de demostración
+
+**Comprador** (Inicio · Explorar · Biffy AI · Perfil): explora sin cuenta, filtra, personaliza platos, arma el carrito, programa, elige dirección y paga con Wompi (sandbox) o efectivo con billete, confirma el pedido, sigue el estado, repite pedidos, recibe recomendaciones locales, gestiona preferencias, Gotas, favoritos, direcciones y soporte.
+
+**Restaurante** (Inicio · Pedidos · Menú · Estadísticas · Perfil): registro en 6 pasos, panel con métricas, pedidos de cocina (aceptar, rechazar con motivo, marcar listo), CRUD de productos que se publican en el catálogo del comprador, estadísticas y perfil.
+
+**Repartidor** (Inicio · Ganancias · Perfil): registro con vehículo, conexión y zona General/Campus, ofertas con asignación atómica, recogida con checklist obligatorio, entrega con código y evidencia fotográfica, ganancias e historial.
+
+Un pedido creado por el comprador aparece en el panel del restaurante **solo cuando el pago está aprobado**, pasa a las ofertas de los repartidores al marcarse listo y vuelve al historial del comprador al entregarse. `test/integration/full_flow.dart` recorre ese ciclo completo a través de la interfaz.
+
+Guía paso a paso del ciclo completo: [`INFORME_SPRINT_1.md`](INFORME_SPRINT_1.md), sección 4.
+
+## Cuentas de demostración
+
+Contraseña de todas: `biffy123` (se escribe en el formulario de login; la app ya no trae accesos rápidos ni selector de cuentas).
+
+| Rol | Correo |
+|---|---|
+| Comprador con historial (Icesi verificado, simulado) | `diego.demo@icesi.edu.co` |
+| Comprador nuevo | `camila.demo@biffy.co` |
+| Repartidor (moto) | `andres.repartidor@demo.biffy.co` |
+| Repartidora (bicicleta) | `valentina.repartidora@demo.biffy.co` |
+| Restaurante Qbano Icesi (demo) | `qbano@demo.biffy.co` |
+
+En Supabase (proyecto `jwdzpwsfwtkdeeuceaco`) ya existen `diego.demo@…`,
+`andres.repartidor@…` y `qbano@…`, con perfil y 450 Gotas, y el restaurante
+tiene el negocio **Qbano Icesi**. Con Supabase el comprador solo ve sedes si
+hay **un repartidor conectado**: entra primero con Andrés.
+`camila` y `valentina` siguen solo en el modo demo local.
+
+Si pruebas de noche y todo aparece cerrado, activa **Configuración › Horario de demostración (12:00)**.
+
+## Pruebas
+
+Estado verificado en esta rama:
+
+| Comando | Resultado |
+|---|---|
+| `flutter analyze` | `No issues found!` |
+| `flutter test` | **266 pruebas pasan** (26 de integración se saltan sin `env.json`) |
+| `flutter test test/integration/… --dart-define-from-file=env.json` | 22 pruebas contra el Supabase real (smoke, HU-1, HU-4) |
+| `tool/test_supabase_sql.sh` | **237 casos SQL** (RLS, RPC, pagos, horario, porciones) |
+
+- **Unitarias:** precios, reglas de catálogo, sesión y Gotas, carrito, servicio de pedidos, programación y asistente.
+- **Widgets:** recorrido de todas las rutas de los tres roles (falla ante excepciones u overflow), flujos del comprador y de roles, modo oscuro y punto sin cobertura.
+- **Integración:** ciclo completo Comprador → Restaurante → Repartidor → Historial y prueba de asignación duplicada.
+
+## Convenciones de código
+
+- Archivos en `snake_case`, clases en `PascalCase`, miembros en `camelCase`.
+- Un widget público por archivo cuando tiene lógica propia; los helpers internos llevan prefijo `_`.
+- Las reglas de negocio no viven en widgets: van en `lib/domain/` y se cubren con pruebas unitarias.
+- Los controladores no leen `BuildContext`; las pantallas escuchan con `context.watch`/`Selector`.
+- Formato con `dart format` y validación con `flutter analyze` antes de cada commit.
+- Todo control visible debe tener una acción real; lo simulado se rotula como demostración.
+
+## Supabase
+
+Proyecto: `jwdzpwsfwtkdeeuceaco`. Detalle operativo en [`supabase/README.md`](supabase/README.md).
+
+**Estado:** migraciones `0000`–`0027` aplicadas en el proyecto remoto
+(`0099_verify` sin errores). Auth, catálogo, pedidos, pagos, Gotas,
+notificaciones y evidencia funcionan contra Supabase.
+
+### Aplicar la base (una sola vez)
+
+```text
+Dashboard → SQL Editor → New query → pegar supabase/apply_all.sql → Run
+```
+
+o, con CLI:
+
+```bash
+supabase login
+supabase link --project-ref jwdzpwsfwtkdeeuceaco
+supabase db push
+```
+
+`apply_all.sql` se genera concatenando las migraciones y es idempotente. A partir de ahí, **cada cambio es una migración nueva**; no se edita el esquema desde el panel.
+
+### Qué incluye
+
+| Pieza | Detalle |
+|---|---|
+| Esquema | 33 tablas: perfiles, negocios, sedes, platos, direcciones, cupones, Gotas (saldo, recompensas, premios por caja y canjes), pedidos, eventos, repartidores, notificaciones, reseñas, verificación universitaria y pagos |
+| Seguridad | RLS activo en todas; catálogo público solo en lectura; datos personales por dueño; pedidos visibles solo para sus tres partes |
+| Integridad | Enums, `CHECK`, FKs, `updated_at` por trigger, borrado lógico e índices en FKs y estado |
+| Operaciones | RPC `place_order`, `restaurant_*`, `courier_*`, `buyer_cancel`, `verify_university`, `register_business` |
+| Storage | `dish-images` (público), `delivery-evidence` y `merchant-docs` (privados por carpeta) |
+| Seed | Universidades, puntos de entrega y categorías |
+
+El RPC recibe un único `jsonb`, así se agregan campos sin volver a tocar firmas, y devuelve `{ result, order }` para mapear directo a los enums de Dart.
+
+### Estado de la integración
+
+| Paso | Estado |
+|---|---|
+| `supabase_flutter` + `Supabase.initialize()` condicionado a `AppConfig` | ✅ |
+| `SupabaseAuthRepository` (login, registro con rol, sesión persistida) | ✅ |
+| Pantallas de acceso con ruta asíncrona | ✅ |
+| Catálogo remoto (caché hidratada + realtime) | ✅ |
+| Pedidos por RPC (crear, aceptar, recoger, entregar) + realtime | ✅ |
+| Subida real de evidencia y fotos a Storage | ✅ (evidencia) |
+| Pantalla de recompensas con cajas | ✅ (historial de canjes incluido) |
+| Errores, estados de carga y reintentos | ✅ (`SyncStateView`) |
+| Horario, repartidores y porciones validados en el servidor (`0027`) | ✅ |
+| Foto de evidencia para el comprador (URL firmada) | ✅ |
+| Pagos con Wompi (sandbox) y efectivo | ✅ |
+
+Con `env.json` la app arranca contra Supabase; sin él sigue en modo demo local.
+
+## legacy_web
+
+Copia de la app React/Lovable original, conservada como referencia. No se compila ni se despliega desde esta rama y no recibe cambios.
+
+## Documentación
+
+- [`HANDOFF.md`](HANDOFF.md): qué está hecho, qué falta, reglas de trabajo y trampas conocidas. **Empieza por aquí si retomas el proyecto.**
+- [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md): diagramas de capas, GetIt, Bloc, ciclo del pedido y backend.
+- [`docs/MANUAL_DE_PRUEBA.md`](docs/MANUAL_DE_PRUEBA.md): recorrido paso a paso de los tres roles con datos reales.
+- [`docs/GUION_DEMO.md`](docs/GUION_DEMO.md): guion de la demostración final de 10 minutos.
+- [`DEPLOY.md`](DEPLOY.md): despliegue (Supabase, Edge Functions, CI, Android, secretos y rotación).
+- [`GUIA_SANDBOX_WOMPI.md`](GUIA_SANDBOX_WOMPI.md): pagos en sandbox y datos de prueba.
+- [`INFORME_SPRINT_1.md`](INFORME_SPRINT_1.md): alcance, arquitectura, pruebas, limitaciones y pendientes del Sprint 1.
+- [`AGENTS.md`](AGENTS.md): reglas de arquitectura que debe respetar cualquier cambio.
+
+## Roadmap
+
+1. Supabase: esquema, RLS, RPC, Auth, Storage y Realtime.
+2. Autenticación real con verificación de correo universitario.
+3. ✅ Pasarela de pagos con Wompi (Nequi, Daviplata, tarjeta y PSE) y efectivo con billete, en **sandbox**; el paso a producción queda pendiente (ver `GUIA_SANDBOX_WOMPI.md`).
+4. Geolocalización real y seguimiento en mapa.
+5. Notificaciones push (FCM).
+6. ✅ CI con análisis, pruebas, integración contra Supabase, pruebas SQL y builds web y Android.

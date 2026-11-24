@@ -1,0 +1,454 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_typography.dart';
+import '../../../core/utils/format.dart';
+import '../../../core/widgets/ui.dart';
+import '../../../data/mock/seed_users.dart';
+import '../../../data/models/order.dart';
+import '../../../domain/payment_errors.dart';
+import '../../../domain/pricing.dart';
+import '../../../features/orders/bloc/orders_bloc.dart';
+import '../../../shared/state/session_controller.dart';
+import '../cart/cart_screen.dart';
+import '../orders/reorder_flow.dart';
+import 'delivery_evidence_card.dart';
+import 'rate_order_card.dart';
+import '../../../shared/state/controller_scope.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+/// Seguimiento del pedido con línea de tiempo, código y resumen.
+class TrackingScreen extends StatelessWidget {
+  const TrackingScreen({super.key, required this.id});
+  final String id;
+
+  /// Construye el estado del pedido y las acciones disponibles.
+  @override
+  Widget build(BuildContext context) {
+    final orders = context.watch<OrdersBloc>();
+    final session = context.watchController<SessionController>();
+    final t = Theme.of(context).textTheme;
+    final o = orders.byId(id);
+    if (o == null || (session.user != null && o.buyerId != session.user!.id)) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: EmptyState(
+          emoji: '🔎',
+          title: 'Pedido no encontrado',
+          actionLabel: 'Volver al historial',
+          onAction: () => context.go('/pedidos'),
+        ),
+      );
+    }
+    final steps = _steps;
+    final step = o.status.buyerStep;
+    final sub = switch (o.status) {
+      OrderStatus.pending =>
+        o.isScheduled
+            ? 'Programado para ${dateTimeLabel(o.scheduledFor!)}. Esperando confirmación del restaurante.'
+            : 'Esperando que ${o.restaurantName} acepte tu pedido.',
+      OrderStatus.preparing => '${o.restaurantName} está preparando tu pedido.',
+      OrderStatus.ready =>
+        o.courierName == null
+            ? 'Tu pedido está listo. Buscando repartidor…'
+            : 'Listo. ${o.courierName} va a recogerlo.',
+      OrderStatus.onTheWay => '${o.courierName} va en camino.',
+      OrderStatus.delivered =>
+        'Entregado ${o.deliveredAt == null ? '' : 'a las ${hourLabel(o.deliveredAt!)}'}. ¡Buen provecho!',
+      OrderStatus.cancelled =>
+        'Cancelado: ${o.rejectReason ?? 'sin motivo'}. No se realizó ningún cobro.',
+    };
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Pedido ${o.id}'),
+        leading: IconButton(
+          tooltip: 'Volver',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/pedidos'),
+        ),
+      ),
+      body: MobileFrame(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            BiffyCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(o.restaurantName, style: t.titleMedium),
+                      ),
+                      StatusChip(o.status, key: const Key('buyer-status')),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(sub, style: t.bodyMedium),
+                  if (!o.status.isFinal && !o.isScheduled) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      '⏱ Tiempo estimado: ~${o.etaMin} min',
+                      style: t.titleSmall,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  if (o.status != OrderStatus.cancelled)
+                    for (var i = 0; i < steps.length; i++)
+                      _TimelineStep(
+                        step: steps[i],
+                        done: i < step || o.status == OrderStatus.delivered,
+                        current: i == step && o.status != OrderStatus.delivered,
+                        last: i == steps.length - 1,
+                      ),
+                ],
+              ),
+            ),
+            if (!o.status.isFinal) ...[
+              const SizedBox(height: 12),
+              BiffyCard(
+                color: AppColors.primary,
+                child: Column(
+                  children: [
+                    const Text(
+                      'Código de entrega',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.text,
+                      ),
+                    ),
+                    Text(
+                      o.deliveryCode,
+                      key: const Key('delivery-code'),
+                      style: const TextStyle(
+                        fontFamily: AppTypography.heading,
+                        fontSize: 40,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 8,
+                        color: AppColors.text,
+                      ),
+                    ),
+                    const Text(
+                      'Dáselo al repartidor solo cuando recibas tu pedido.',
+                      style: TextStyle(fontSize: 12, color: AppColors.text),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (o.courierName != null) ...[
+              const SizedBox(height: 12),
+              BiffyCard(
+                child: Row(
+                  children: [
+                    PersonAvatar(
+                      name: o.courierName!,
+                      asset: kDemoAvatars[o.courierId],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            o.courierName!,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            'Repartidor de demostración · sin GPS en vivo',
+                            style: t.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(96, 44),
+                      ),
+                      onPressed: () => _contact(context, o),
+                      child: const Text('Contacto'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SectionHeader('Resumen del pedido'),
+            BiffyCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final l in o.lines)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${l.qty}× ',
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(l.name),
+                                if (l.detail.isNotEmpty)
+                                  Text(l.detail, style: t.bodySmall),
+                                if (l.note.isNotEmpty)
+                                  Text('📝 ${l.note}', style: t.bodySmall),
+                              ],
+                            ),
+                          ),
+                          Text(cop(l.total)),
+                        ],
+                      ),
+                    ),
+                  const Divider(),
+                  InfoRow('Dirección', o.address.label),
+                  Text(o.address.full, style: t.bodySmall),
+                  InfoRow('Creado', dateTimeLabel(o.createdAt)),
+                  if (o.isScheduled)
+                    InfoRow('Programado', dateTimeLabel(o.scheduledFor!)),
+                  InfoRow('Pago', o.payment.label),
+                  InfoRow('Estado del pago', paymentStatusLabel(o.paymentStatus)),
+                  if (o.cashTendered != null)
+                    InfoRow(
+                      'Paga con',
+                      '${cop(o.cashTendered!)} · Vueltas ${cop(o.cashChange ?? 0)}',
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            TotalsCard(
+              totals: CartTotals(
+                subtotal: o.subtotal,
+                campusDiscount: o.campusDiscount,
+                couponDiscount: o.couponDiscount,
+                deliveryFee: o.deliveryFee,
+                gotasUsed: o.gotasUsed,
+                tip: o.tip,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (o.status == OrderStatus.pending)
+              SecondaryButton(
+                key: const Key('cancel-order'),
+                label: 'Cancelar pedido',
+                foreground: AppColors.error,
+                onPressed: () async {
+                  final ok = await showConfirm(
+                    context,
+                    title: '¿Cancelar el pedido?',
+                    message:
+                        'Solo puedes cancelar antes de que el restaurante lo acepte.',
+                    confirm: 'Cancelar pedido',
+                    cancel: 'Volver',
+                    destructive: true,
+                  );
+                  if (ok && context.mounted) {
+                    final outcome = await context.read<OrdersBloc>().request(
+                      OrderCancelled(o.id),
+                    );
+                    if (!context.mounted) return;
+                    if (outcome.ok) {
+                      showSnack(context, 'Pedido cancelado');
+                    } else {
+                      showSnack(
+                        context,
+                        outcome.result.code == 'invalid_state'
+                            ? 'El restaurante ya lo aceptó'
+                            : outcome.result.message,
+                        error: true,
+                      );
+                    }
+                  }
+                },
+              ),
+            if (o.status == OrderStatus.delivered) ...[
+              DeliveryEvidenceCard(order: o),
+              const SizedBox(height: 12),
+              RateOrderCard(order: o),
+              const SizedBox(height: 12),
+            ],
+            if (o.status == OrderStatus.delivered ||
+                o.status == OrderStatus.cancelled)
+              PrimaryButton(
+                label: 'Pedir de nuevo',
+                icon: Icons.replay,
+                onPressed: () => reorderToCart(context, o),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Abre la hoja de contacto simulado con el repartidor.
+  void _contact(BuildContext context, Order o) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Contacto simulado',
+                style: Theme.of(ctx).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'El chat y las llamadas en tiempo real no están disponibles en este sprint. '
+                'Puedes copiar los datos de demostración del pedido para compartirlos.',
+              ),
+              const SizedBox(height: 16),
+              PrimaryButton(
+                label: 'Copiar datos del pedido',
+                icon: Icons.copy,
+                onPressed: () async {
+                  await Clipboard.setData(
+                    ClipboardData(
+                      text:
+                          'Pedido ${o.id} · ${o.restaurantName} · Repartidor: ${o.courierName}',
+                    ),
+                  );
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (context.mounted) {
+                    showSnack(context, 'Datos copiados al portapapeles');
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tipo de un paso de la línea de tiempo del pedido.
+typedef _Step = ({String label, String hint, IconData icon});
+
+const List<_Step> _steps = [
+  (
+    label: 'Confirmado',
+    hint: 'El restaurante recibe tu pedido',
+    icon: Icons.check,
+  ),
+  (
+    label: 'Preparando',
+    hint: 'Están preparando tu comida',
+    icon: Icons.soup_kitchen,
+  ),
+  (
+    label: 'En camino',
+    hint: 'Tu repartidor va hacia ti',
+    icon: Icons.delivery_dining,
+  ),
+  (label: 'Entregado', hint: '¡A disfrutar!', icon: Icons.celebration),
+];
+
+/// Un paso de la línea de tiempo vertical: círculo con ícono, línea al siguiente y texto.
+/// Verde = ya pasó, amarillo con anillo = paso actual, gris = falta.
+class _TimelineStep extends StatelessWidget {
+  const _TimelineStep({
+    required this.step,
+    required this.done,
+    required this.current,
+    required this.last,
+  });
+
+  final _Step step;
+  final bool done;
+  final bool current;
+  final bool last;
+
+  /// Dibuja el círculo del paso, la línea y su texto.
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final color = done
+        ? AppColors.success
+        : current
+        ? AppColors.primary
+        : p.border;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 40,
+            child: Column(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 400),
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: current
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.35),
+                              spreadRadius: 5,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Icon(
+                    step.icon,
+                    size: 18,
+                    color: done
+                        ? Colors.white
+                        : current
+                        ? AppColors.text
+                        : p.muted,
+                  ),
+                ),
+                if (!last)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      color: done ? AppColors.success : p.border,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(top: 6, bottom: last ? 0 : 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    step.label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: done || current ? p.text : p.muted,
+                    ),
+                  ),
+                  if (done || current)
+                    Text(
+                      step.hint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

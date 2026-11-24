@@ -1,0 +1,25 @@
+name: Pagos vencidos
+
+# Cancela los pedidos cuyo pago no se aprobó en la ventana de 30 minutos.
+# Requiere el secret CRON_SECRET del repositorio (el mismo de Supabase).
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  expire-payments:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar expire-payments
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Falta el secret CRON_SECRET en el repositorio." >&2
+            exit 1
+          fi
+          curl --fail-with-body -sS -X POST \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            https://jwdzpwsfwtkdeeuceaco.supabase.co/functions/v1/expire-payments
