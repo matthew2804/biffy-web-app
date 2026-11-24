@@ -231,6 +231,94 @@ void main() {
         orderId = null;
         expect(await soldToday(), sold - 1);
       });
+
+      test(
+        'un cupón real de envío gratis se aplica y vuelve al cancelar',
+        () async {
+          final uid = buyer.auth.currentUser!.id;
+
+          /// Cupón de envío gratis vigente y sin usar del comprador, si hay.
+          Future<String?> freeShipping() async {
+            final rows = await buyer
+                .from('user_coupons')
+                .select('used_at, coupon:coupons(id, kind, active)')
+                .eq('user_id', uid)
+                .isFilter('used_at', null);
+            for (final r in rows) {
+              final c = r['coupon'] as Map?;
+              if (c?['kind'] == 'free_delivery' && c?['active'] == true) {
+                return c!['id'] as String;
+              }
+            }
+            return null;
+          }
+
+          // Si no tiene, lo gana como en la app: caja de envío gratis (5 Gotas).
+          var couponId = await freeShipping();
+          if (couponId == null) {
+            final r = await buyer.rpc(
+              'redeem_reward',
+              params: {
+                'p_payload': {'code': 'free_shipping'},
+              },
+            );
+            expect(r['result'], 'ok', reason: '$r');
+            couponId = await freeShipping();
+          }
+          expect(couponId, isNotNull);
+
+          final res = await buyer.rpc(
+            'place_order',
+            params: {
+              'p_payload': {
+                'branch_id': branchId,
+                'address_id': addressId,
+                'payment': 'cash',
+                'coupon_id': couponId,
+                // Valor inflado a propósito: el servidor debe ignorarlo.
+                'coupon_discount': 50000,
+                'lines': [
+                  {'dish_id': dishId, 'qty': 1},
+                ],
+                'client_key':
+                    'hu4-cupon-${DateTime.now().millisecondsSinceEpoch}',
+              },
+            },
+          );
+          expect(res['result'], 'ok', reason: '$res');
+          final order = res['order'] as Map;
+          orderId = order['id'] as String;
+          expect(order['coupon_discount'], order['delivery_fee']);
+          expect(order['coupon_id'], couponId);
+
+          final used = await buyer
+              .from('user_coupons')
+              .select('used_at')
+              .eq('user_id', uid)
+              .eq('coupon_id', couponId!)
+              .single();
+          expect(
+            used['used_at'],
+            isNotNull,
+            reason: 'el pedido gasta el cupón',
+          );
+
+          final cancel = await buyer.rpc(
+            'buyer_cancel',
+            params: {'p_order': orderId},
+          );
+          expect(cancel['result'], 'ok');
+          orderId = null;
+
+          final back = await buyer
+              .from('user_coupons')
+              .select('used_at')
+              .eq('user_id', uid)
+              .eq('coupon_id', couponId)
+              .single();
+          expect(back['used_at'], isNull, reason: 'cancelar devuelve el cupón');
+        },
+      );
     },
     skip: enabled
         ? false
